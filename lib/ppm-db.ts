@@ -396,14 +396,24 @@ export async function updateProject(project_id: string, patch: Partial<PpmProjec
   return _projects[idx];
 }
 
+// ─── BU scope helper ──────────────────────────────────────────────────────────
+
+async function projectIdsForBu(bu_code?: BuCode): Promise<Set<string> | null> {
+  if (!bu_code) return null;
+  const projects = await listProjects({ bu_code });
+  return new Set(projects.map(p => p.project_id));
+}
+
 // ─── Task CRUD ────────────────────────────────────────────────────────────────
 
-export async function listTasks(project_id?: string, filters?: { status?: TaskStatus; assigned_to?: string }): Promise<PpmTask[]> {
+export async function listTasks(project_id?: string, filters?: { status?: TaskStatus; assigned_to?: string; bu_code?: BuCode }): Promise<PpmTask[]> {
+  const buIds = await projectIdsForBu(filters?.bu_code);
   if (supabase) {
     let q = supabase.from("ppm_tasks").select("*").order("sort_order");
     if (project_id)          q = q.eq("project_id",  project_id);
     if (filters?.status)     q = q.eq("status",       filters.status);
     if (filters?.assigned_to)q = q.eq("assigned_to",  filters.assigned_to);
+    if (buIds) q = q.in("project_id", [...buIds]);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmTask[];
@@ -412,6 +422,7 @@ export async function listTasks(project_id?: string, filters?: { status?: TaskSt
   if (project_id)         rows = rows.filter(t => t.project_id === project_id);
   if (filters?.status)    rows = rows.filter(t => t.status === filters.status);
   if (filters?.assigned_to) rows = rows.filter(t => t.assigned_to === filters.assigned_to);
+  if (buIds)              rows = rows.filter(t => buIds.has(t.project_id));
   return rows.sort((a, b) => a.sort_order - b.sort_order);
 }
 
@@ -442,15 +453,18 @@ export async function updateTask(task_id: string, patch: Partial<PpmTask>): Prom
 
 // ─── Milestone CRUD ───────────────────────────────────────────────────────────
 
-export async function listMilestones(project_id?: string): Promise<PpmMilestone[]> {
+export async function listMilestones(project_id?: string, opts?: { bu_code?: BuCode }): Promise<PpmMilestone[]> {
+  const buIds = await projectIdsForBu(opts?.bu_code);
   if (supabase) {
     let q = supabase.from("ppm_milestones").select("*").order("planned_date");
     if (project_id) q = q.eq("project_id", project_id);
+    if (buIds) q = q.in("project_id", [...buIds]);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmMilestone[];
   }
-  const rows = project_id ? _milestones.filter(m => m.project_id === project_id) : [..._milestones];
+  let rows = project_id ? _milestones.filter(m => m.project_id === project_id) : [..._milestones];
+  if (buIds) rows = rows.filter(m => buIds.has(m.project_id));
   return rows.sort((a, b) => a.planned_date.localeCompare(b.planned_date));
 }
 
@@ -463,11 +477,13 @@ export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" |
 
 // ─── Resource Allocation CRUD ─────────────────────────────────────────────────
 
-export async function listAllocations(project_id?: string, user_id?: string): Promise<PpmAllocation[]> {
+export async function listAllocations(project_id?: string, user_id?: string, opts?: { bu_code?: BuCode }): Promise<PpmAllocation[]> {
+  const buIds = await projectIdsForBu(opts?.bu_code);
   if (supabase) {
     let q = supabase.from("ppm_allocations").select("*");
     if (project_id) q = q.eq("project_id", project_id);
     if (user_id)    q = q.eq("user_id",    user_id);
+    if (buIds)      q = q.in("project_id", [...buIds]);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmAllocation[];
@@ -475,6 +491,7 @@ export async function listAllocations(project_id?: string, user_id?: string): Pr
   let rows = [..._allocations];
   if (project_id) rows = rows.filter(a => a.project_id === project_id);
   if (user_id)    rows = rows.filter(a => a.user_id === user_id);
+  if (buIds)      rows = rows.filter(a => buIds.has(a.project_id));
   return rows;
 }
 
@@ -485,9 +502,10 @@ export async function createAllocation(input: Omit<PpmAllocation, "allocation_id
   return a;
 }
 
-export async function getResourceUtilization(): Promise<{ user_id: string; user_name: string; total_allocation_pct: number; utilization_status: string; active_projects: number; project_names: string[] }[]> {
+export async function getResourceUtilization(opts?: { bu_code?: BuCode }): Promise<{ user_id: string; user_name: string; total_allocation_pct: number; utilization_status: string; active_projects: number; project_names: string[] }[]> {
+  const buIds = await projectIdsForBu(opts?.bu_code);
   const byUser: Record<string, { user_name: string; total: number; projects: string[] }> = {};
-  for (const a of _allocations.filter(x => x.status === "active")) {
+  for (const a of _allocations.filter(x => x.status === "active" && (!buIds || buIds.has(x.project_id)))) {
     if (!byUser[a.user_id]) byUser[a.user_id] = { user_name: a.user_name ?? a.user_id, total: 0, projects: [] };
     byUser[a.user_id].total += a.allocation_pct;
     if (a.project_name) byUser[a.user_id].projects.push(a.project_name);
@@ -504,11 +522,13 @@ export async function getResourceUtilization(): Promise<{ user_id: string; user_
 
 // ─── Time Entry CRUD ──────────────────────────────────────────────────────────
 
-export async function listTimeEntries(filters?: { project_id?: string; user_id?: string; status?: TimeEntryStatus }): Promise<PpmTimeEntry[]> {
+export async function listTimeEntries(filters?: { project_id?: string; user_id?: string; status?: TimeEntryStatus; bu_code?: BuCode }): Promise<PpmTimeEntry[]> {
+  const buIds = await projectIdsForBu(filters?.bu_code);
   let rows = [..._timeEntries];
   if (filters?.project_id) rows = rows.filter(e => e.project_id === filters.project_id);
   if (filters?.user_id)    rows = rows.filter(e => e.user_id    === filters.user_id);
   if (filters?.status)     rows = rows.filter(e => e.status     === filters.status);
+  if (buIds)               rows = rows.filter(e => buIds.has(e.project_id));
   return rows.sort((a, b) => b.entry_date.localeCompare(a.entry_date));
 }
 
@@ -529,15 +549,19 @@ export async function approveTimeEntry(entry_id: string, approved_by: string): P
 
 // ─── Risk CRUD ────────────────────────────────────────────────────────────────
 
-export async function listRisks(project_id?: string): Promise<PpmRisk[]> {
+export async function listRisks(project_id?: string, opts?: { bu_code?: BuCode }): Promise<PpmRisk[]> {
+  const buIds = await projectIdsForBu(opts?.bu_code);
   if (supabase) {
     let q = supabase.from("ppm_risks").select("*").order("risk_score", { ascending: false });
     if (project_id) q = q.eq("project_id", project_id);
+    if (buIds)      q = q.in("project_id", [...buIds]);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmRisk[];
   }
-  return project_id ? _risks.filter(r => r.project_id === project_id) : [..._risks];
+  let rows = project_id ? _risks.filter(r => r.project_id === project_id) : [..._risks];
+  if (buIds) rows = rows.filter(r => buIds.has(r.project_id));
+  return rows;
 }
 
 export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" | "created_at" | "updated_at">): Promise<PpmRisk> {
@@ -550,15 +574,19 @@ export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" |
 
 // ─── Issue CRUD ───────────────────────────────────────────────────────────────
 
-export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
+export async function listIssues(project_id?: string, opts?: { bu_code?: BuCode }): Promise<PpmIssue[]> {
+  const buIds = await projectIdsForBu(opts?.bu_code);
   if (supabase) {
     let q = supabase.from("ppm_issues").select("*").order("reported_date", { ascending: false });
     if (project_id) q = q.eq("project_id", project_id);
+    if (buIds)      q = q.in("project_id", [...buIds]);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmIssue[];
   }
-  return project_id ? _issues.filter(i => i.project_id === project_id) : [..._issues];
+  let rows = project_id ? _issues.filter(i => i.project_id === project_id) : [..._issues];
+  if (buIds) rows = rows.filter(i => buIds.has(i.project_id));
+  return rows;
 }
 
 export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at" | "updated_at">): Promise<PpmIssue> {
@@ -569,6 +597,22 @@ export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at
 }
 
 // ─── Portfolio Metrics ────────────────────────────────────────────────────────
+
+/**
+ * Returns the total contract value for a project.
+ * For retainers, budget_revenue is treated as MRR (monthly recurring revenue) and
+ * multiplied by the number of months between start_date and planned_end_date.
+ * For one-off / fixed-price projects, budget_revenue is the total contract.
+ */
+export function contractValue(p: Pick<PpmProject, "budget_revenue" | "project_type" | "billing_frequency" | "start_date" | "planned_end_date">): number {
+  if (p.project_type !== "retainer") return p.budget_revenue;
+  if (p.billing_frequency && p.billing_frequency !== "monthly") return p.budget_revenue;
+  const start = new Date(p.start_date + "T00:00:00");
+  const end   = new Date(p.planned_end_date + "T00:00:00");
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return p.budget_revenue;
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+  return p.budget_revenue * Math.max(1, months);
+}
 
 export async function getPortfolioMetrics(filter?: { bu_code?: BuCode }): Promise<PpmPortfolioMetrics> {
   const projects = await listProjects(filter ? { bu_code: filter.bu_code } : undefined);
@@ -581,9 +625,9 @@ export async function getPortfolioMetrics(filter?: { bu_code?: BuCode }): Promis
   return {
     total_projects:       projects.length,
     active_projects:      active.length,
-    total_budget_revenue: projects.reduce((s, p) => s + p.budget_revenue, 0),
+    total_budget_revenue: projects.reduce((s, p) => s + contractValue(p), 0),
     total_actual_revenue: projects.reduce((s, p) => s + p.actual_revenue, 0),
-    total_budget_cost:    projects.reduce((s, p) => s + p.budget_cost, 0),
+    total_budget_cost:    projects.reduce((s, p) => s + (p.project_type === "retainer" ? contractValue({ ...p, budget_revenue: p.budget_cost }) : p.budget_cost), 0),
     total_actual_cost:    projects.reduce((s, p) => s + p.actual_cost, 0),
     avg_margin_pct: active.length === 0 ? 0 : active.reduce((s, p) => {
       const m = p.actual_revenue > 0 ? ((p.actual_revenue - p.actual_cost) / p.actual_revenue) * 100 : ((p.budget_revenue - p.budget_cost) / p.budget_revenue) * 100;

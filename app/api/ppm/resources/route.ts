@@ -1,22 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAllocations, createAllocation, getResourceUtilization } from "@/lib/ppm-db";
+import type { BuCode } from "@/lib/ppm-types";
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
+    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
     const p = req.nextUrl.searchParams;
     const mode = p.get("mode"); // "utilization" | "allocations"
 
     if (mode === "utilization") {
-      const util = await getResourceUtilization();
+      const util = await getResourceUtilization({ bu_code: lockedBU });
       return ok(util);
     }
 
     const allocations = await listAllocations(
       p.get("project_id") ?? undefined,
       p.get("user_id")    ?? undefined,
+      { bu_code: lockedBU },
     );
     return ok(allocations);
   } catch (e) {

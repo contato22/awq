@@ -30,7 +30,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
     const body = await req.json();
+    if (lockedBU) body.bu_code = lockedBU;
     const { project_name, bu_code, project_type, contract_type, start_date, planned_end_date, budget_cost, budget_revenue } = body;
 
     if (!project_name)    return err("project_name is required");
