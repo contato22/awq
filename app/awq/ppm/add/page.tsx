@@ -4,6 +4,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, Save, Briefcase, ExternalLink } from "lucide-react";
 
@@ -47,13 +48,17 @@ const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:
 function AddProjectPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as { name?: string; role?: string } | undefined;
+  const defaultBU   = sessionUser?.role === "enrd" ? "ENRD" : "CAZA";
+  const defaultPM   = sessionUser?.name ?? "Miguel";
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
   const [form, setForm] = useState({
     project_name:     "",
     customer_name:    "",
     opportunity_id:   "",
-    bu_code:          "CAZA",
+    bu_code:          defaultBU,
     project_type:     "one_off",
     service_category: "video_production",
     contract_type:    "fixed_price",
@@ -62,7 +67,7 @@ function AddProjectPageInner() {
     budget_hours:     "",
     budget_cost:      "",
     budget_revenue:   "",
-    project_manager:  "Miguel",
+    project_manager:  defaultPM,
     priority:         "medium",
     description:      "",
     objectives:       "",

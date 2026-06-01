@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   X,
   Zap,
@@ -27,6 +28,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Tag,
+  Calendar,
   GanttChart,
   Clock,
   AlertTriangle,
@@ -446,7 +448,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const cazaMode     = isCazaRoute(pathname);
   const advisorMode  = isAdvisorRoute(pathname);
   const ventureMode  = isVentureRoute(pathname);
-  const enrdMode     = isEnrdRoute(pathname);
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const enrdMode     = isEnrdRoute(pathname) || userRole === "enrd";
   const crmMode      = isCrmRoute(pathname);
   const epmMode      = isEpmRoute(pathname);
   const ppmMode      = isPpmRoute(pathname);
@@ -681,13 +685,8 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── ENRD ─────────────────────────────────────── */}
           {enrdMode && (
             <>
-              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
-              <div className="space-y-0.5">
-                <NavLink href="/enrd/financial"              icon={DollarSign}    label="Financial (ENRD)"    active={isActive("/enrd/financial")}              onNavigate={onClose} />
-              </div>
               <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
               <div className="space-y-0.5">
-                <NavLink href="/enrd/customers"    icon={Users}    label="Clientes"      active={isActive("/enrd/customers")}    onNavigate={onClose} />
                 <NavLink href="/crm"               icon={Target}   label="Dashboard CRM" active={isActive("/crm")}               onNavigate={onClose} />
                 <NavLink href="/crm/leads?bu=ENRD" icon={UserPlus} label="Leads"         active={isActive("/crm/leads")}        onNavigate={onClose} />
                 <NavLink href="/crm/pipeline"      icon={Activity} label="Pipeline"      active={isActive("/crm/pipeline")}     onNavigate={onClose} />
@@ -695,9 +694,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               <SectionLabel>PPM · Projetos & Portfólio</SectionLabel>
               <div className="space-y-0.5">
                 <NavLink href="/awq/ppm?bu=ENRD"    icon={Briefcase}    label="Portfolio"    active={isActive("/awq/ppm")}            onNavigate={onClose} />
+                <NavLink href="/awq/ppm/calendar"   icon={Calendar}     label="Calendário"   active={isActive("/awq/ppm/calendar")}   onNavigate={onClose} />
                 <NavLink href="/awq/ppm/gantt"      icon={GanttChart}   label="Gantt"        active={isActive("/awq/ppm/gantt")}      onNavigate={onClose} />
                 <NavLink href="/awq/ppm/tasks"      icon={ClipboardList}label="Tarefas"      active={isActive("/awq/ppm/tasks")}      onNavigate={onClose} />
-                <NavLink href="/awq/ppm/timesheets" icon={Clock}        label="Timesheets"   active={isActive("/awq/ppm/timesheets")} onNavigate={onClose} />
               </div>
               <SectionLabel>BI · Analytics & Relatórios</SectionLabel>
               <div className="space-y-0.5">

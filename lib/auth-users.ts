@@ -65,7 +65,7 @@ export const USERS: AuthUser[] = [
     email: "Kazadem2@gmail.com",
     passwordHash: "$2b$10$Flk/HaeWLP9UkDxCIh5Qpu8T/PIRjrj6ocMnrw/CW84QdCTEB2E1.",
     role: "enrd",
-    homeRoute: "/enrd",
+    homeRoute: "/awq/ppm",
   },
 ];
 
@@ -88,7 +88,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   analyst:  ["/"],             // full access — permissive by design (MVP)
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
   caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
-  enrd:     ["/enrd", "/crm", "/awq/ppm"],      // ENRD BU + CRM + PPM compartilhados
+  enrd:     ["/crm", "/awq/ppm"],               // ENRD: CRM + PPM compartilhados (BI vive sob /crm)
 };
 
 export function canAccess(role: Role, pathname: string): boolean {
