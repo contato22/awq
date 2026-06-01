@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
 
     const opp = await getOpportunity(opportunity_id);
     if (!opp) return err("Opportunity not found", 404);
+
+    // BU isolation: bloqueia sync de opportunity fora da BU travada do usuário.
+    const lockedBU = req.headers.get("x-bu-lock") ?? undefined;
+    if (lockedBU && opp.bu !== lockedBU) return err("Opportunity not found", 404);
+
     if (opp.stage !== "closed_won") return err("Opportunity must be closed_won", 400);
     if (opp.synced_to_epm) return ok({ already_synced: true });
 

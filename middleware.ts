@@ -4,6 +4,29 @@ import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
 
 const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA", jacqes: "JACQES" };
 
+// API allow-list por role BU-scoped. Qualquer outra rota /api/* retorna 403.
+// Mantém Holding-only surfaces (bpm, epm, admin, ingest, supervisor, agents,
+// ma, security, setup, chat, internal, financial-link, erp) fora do alcance
+// dessas roles. Roles permissivas (owner/admin/analyst/cs-ops) não passam por
+// este filtro.
+const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
+  jacqes: [
+    /^\/api\/crm(\/|$)/,
+    /^\/api\/ppm(\/|$)/,
+    /^\/api\/jacqes(\/|$)/,
+    /^\/api\/cora\/(sync|audit|debug)(\/|$|$)/,
+  ],
+  caza: [
+    /^\/api\/crm(\/|$)/,
+    /^\/api\/caza(\/|$)/,
+  ],
+  enrd: [
+    /^\/api\/crm(\/|$)/,
+    /^\/api\/ppm(\/|$)/,
+    /^\/api\/enrd(\/|$)/,
+  ],
+};
+
 // ── Security headers (aplicados a todas as respostas server-side) ──────────
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -30,6 +53,14 @@ export default withAuth(
     // response object only adds them to the browser response, not the request seen
     // by the API handler.
     if (pathname.startsWith("/api/")) {
+      // BU-scoped roles só podem chamar APIs explicitamente liberadas.
+      const allow = BU_API_ALLOW_LIST[role];
+      if (allow && !allow.some((re) => re.test(pathname))) {
+        return NextResponse.json(
+          { error: "Forbidden: API fora do escopo da BU" },
+          { status: 403 },
+        );
+      }
       const requestHeaders = new Headers(req.headers);
       const lockedBU = ROLE_BU_LOCK[role];
       if (lockedBU)    requestHeaders.set("x-bu-lock",    lockedBU);
