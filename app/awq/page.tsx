@@ -226,7 +226,8 @@ export default async function AwqGroupPage() {
         due_date: i.due_date,
         type: "AR" as const,
         days_overdue: Math.floor((Date.parse(today) - Date.parse(i.due_date)) / 86400000),
-      }));
+      }))
+      .filter((o) => o.amount > 0.005);
     const overdueAP = apItems
       .filter((i) => (i.status === "PENDING" || i.status === "SCHEDULED" || i.status === "OVERDUE") && i.due_date < today)
       .map((i) => ({
@@ -236,7 +237,8 @@ export default async function AwqGroupPage() {
         due_date: i.due_date,
         type: "AP" as const,
         days_overdue: Math.floor((Date.parse(today) - Date.parse(i.due_date)) / 86400000),
-      }));
+      }))
+      .filter((o) => o.amount > 0.005);
 
     mobileOverdueItems = [...overdueAR, ...overdueAP]
       .sort((a, b) => b.days_overdue - a.days_overdue);
