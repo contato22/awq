@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
 
-const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA" };
+const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA", jacqes: "JACQES" };
 
 // ── Security headers (aplicados a todas as respostas server-side) ──────────
 function withSecurityHeaders(response: NextResponse): NextResponse {
