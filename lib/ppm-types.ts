@@ -1,6 +1,6 @@
 // ─── AWQ PPM — Type Definitions ───────────────────────────────────────────────
 
-export type BuCode = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
+export type BuCode = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE" | "ENRD";
 
 export type ProjectType     = "one_off" | "retainer" | "internal" | "investment";
 export type ContractType    = "fixed_price" | "time_and_materials" | "retainer";

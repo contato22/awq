@@ -98,7 +98,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   analyst:  ["/"],             // full access — permissive by design (MVP)
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
   caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
-  enrd:     ["/crm", "/awq/ppm"],               // ENRD: CRM + PPM compartilhados (BI vive sob /crm)
+  enrd:     ["/crm", "/awq/ppm", "/awq/bpm"],   // ENRD: CRM + PPM + BPM (BI vive sob /crm)
   jacqes:   ["/jacqes", "/crm", "/csops"],      // JACQES BU + CRM + CS Ops compartilhados
 };
 

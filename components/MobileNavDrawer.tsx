@@ -704,6 +704,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
                 <NavLink href="/awq/ppm/gantt"      icon={GanttChart}   label="Gantt"        active={isActive("/awq/ppm/gantt")}      onNavigate={onClose} />
                 <NavLink href="/awq/ppm/tasks"      icon={ClipboardList}label="Tarefas"      active={isActive("/awq/ppm/tasks")}      onNavigate={onClose} />
               </div>
+              <SectionLabel>BPM · Workflows & Aprovações</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/awq/bpm/tasks"      icon={ClipboardList}label="Minha Fila"   active={isActive("/awq/bpm/tasks")}      onNavigate={onClose} />
+                <NavLink href="/awq/bpm/processes"  icon={Activity}     label="Processos"    active={isActive("/awq/bpm/processes")}  onNavigate={onClose} />
+                <NavLink href="/awq/bpm/instances"  icon={Layers}       label="Instâncias"   active={isActive("/awq/bpm/instances")}  onNavigate={onClose} />
+              </div>
               <SectionLabel>BI · Analytics & Relatórios</SectionLabel>
               <div className="space-y-0.5">
                 <NavLink href="/crm/analytics" icon={BarChart3} label="Analytics"  active={isActive("/crm/analytics")} onNavigate={onClose} />
