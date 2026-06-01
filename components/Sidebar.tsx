@@ -484,12 +484,6 @@ const JACQES_MODULES: BUModule[] = [
         { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
         { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
     ]},
-    { id: "bpm",  label: "BPM",    description: "Processos & Workflows",    icon: Activity,   items: [
-        { label: "Minha Fila", href: "/awq/bpm/tasks",                 icon: ClipboardList },
-        { label: "Processos",  href: "/awq/bpm/processes",             icon: Activity      },
-        { label: "Instâncias", href: "/awq/bpm/instances",             icon: Layers        },
-        { label: "Analytics",  href: "/awq/bpm/analytics/performance", icon: BarChart3     },
-    ]},
     { id: "ops",  label: "Gestão", description: "Carreira & Operações",     icon: Briefcase,  items: [
         { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
     ]},

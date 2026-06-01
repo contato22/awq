@@ -88,8 +88,9 @@ export const USERS: AuthUser[] = [
 //   cs-ops:  ["/"]                           — full access (permissive, MVP)
 //   caza:    ["/caza-vision", "/crm"]        — Caza Vision BU only; no holding, no other BUs
 //   enrd:    ["/enrd", "/crm", "/awq/ppm"]  — ENRD BU + CRM + PPM compartilhados
-//   jacqes:  ["/jacqes", "/crm", "/csops", "/awq/bpm", "/awq/ppm"]
-//                                          — JACQES BU + CRM + CS Ops + BPM + PPM compartilhados
+//   jacqes:  ["/jacqes", "/crm", "/csops", "/awq/ppm"]
+//                                          — JACQES BU + CRM + CS Ops + PPM compartilhado
+//                                          (BPM bloqueado: schema sem bu_code, vazaria Holding)
 //
 // CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza", "enrd" and "jacqes".
 //
@@ -100,7 +101,9 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
   caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
   enrd:     ["/crm", "/awq/ppm", "/awq/bpm"],   // ENRD: CRM + PPM + BPM (BI vive sob /crm)
-  jacqes:   ["/jacqes", "/crm", "/csops", "/awq/bpm", "/awq/ppm"], // JACQES BU + CRM + CS Ops + BPM/PPM compartilhados
+  // NOTA: /awq/bpm fora porque BPM ainda não tem coluna bu_code — liberar
+  // significa vazar workflows/tasks da Holding para Danilo.
+  jacqes:   ["/jacqes", "/crm", "/csops", "/awq/ppm"], // JACQES BU + CRM + CS Ops + PPM compartilhado
 };
 
 // Routes denied to specific roles even when within an allowed prefix.

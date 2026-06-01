@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listMilestones, createMilestone } from "@/lib/ppm-db";
+import type { BuCode } from "@/lib/ppm-types";
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
+    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
     const project_id = req.nextUrl.searchParams.get("project_id") ?? undefined;
-    const milestones = await listMilestones(project_id);
+    const milestones = await listMilestones(project_id, { bu_code: lockedBU });
     return ok(milestones);
   } catch (e) {
     return err((e as Error).message, 500);
