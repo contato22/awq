@@ -121,6 +121,10 @@ async function run(req: NextRequest) {
           issue_date:    isoFirstOfMonth(m),
           due_date:      dueDate,
           gross_amount:  r.ticket,
+          // Sem retenções para os retainers da JACQES (decisão do owner da BU).
+          iss_rate:      0,
+          pis_rate:      0,
+          cofins_rate:   0,
           source_system: "seed-jacqes-ar",
           created_by:    OWNER_EMAIL,
         });
