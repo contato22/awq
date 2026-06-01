@@ -70,7 +70,7 @@ export async function apiGuard(
 }
 
 // Mapa de role → BU forçado (isolamento de dados por BU)
-const BU_FOR_ROLE: Record<string, string> = { caza: "CAZA" };
+const BU_FOR_ROLE: Record<string, string> = { caza: "CAZA", enrd: "ENRD", jacqes: "JACQES" };
 
 /**
  * Retorna o BU forçado para o usuário autenticado, ou null se não houver restrição.

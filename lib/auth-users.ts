@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd";
+export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd" | "jacqes";
 
 export interface AuthUser {
   id: string;
@@ -67,6 +67,15 @@ export const USERS: AuthUser[] = [
     role: "enrd",
     homeRoute: "/awq/ppm",
   },
+  {
+    // Owner da BU JACQES — corresponde à conta Cora "JACQES" (entity JACQES em lib/cora-api.ts).
+    id: "8",
+    name: "Danilo Jaques Jacinto",
+    email: "awqmac@gmail.com",
+    passwordHash: "$2b$10$yND0CGXI9V34.YNNAQMZceFgQd75ORehzXwgz2WXRHlUPbXLC1yvy",
+    role: "jacqes",
+    homeRoute: "/jacqes",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
@@ -79,8 +88,9 @@ export const USERS: AuthUser[] = [
 //   cs-ops:  ["/"]                           — full access (permissive, MVP)
 //   caza:    ["/caza-vision", "/crm"]        — Caza Vision BU only; no holding, no other BUs
 //   enrd:    ["/enrd", "/crm", "/awq/ppm"]  — ENRD BU + CRM + PPM compartilhados
+//   jacqes:  ["/jacqes", "/crm", "/csops"]  — JACQES BU + CRM + CS Ops compartilhados
 //
-// CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza" and "enrd".
+// CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza", "enrd" and "jacqes".
 //
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   owner:    ["/"],             // unrestricted
@@ -89,6 +99,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
   caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
   enrd:     ["/crm", "/awq/ppm"],               // ENRD: CRM + PPM compartilhados (BI vive sob /crm)
+  jacqes:   ["/jacqes", "/crm", "/csops"],      // JACQES BU + CRM + CS Ops compartilhados
 };
 
 // Routes denied to specific roles even when within an allowed prefix.
