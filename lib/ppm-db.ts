@@ -570,10 +570,12 @@ export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at
 
 // ─── Portfolio Metrics ────────────────────────────────────────────────────────
 
-export async function getPortfolioMetrics(): Promise<PpmPortfolioMetrics> {
-  const projects = await listProjects();
+export async function getPortfolioMetrics(filter?: { bu_code?: BuCode }): Promise<PpmPortfolioMetrics> {
+  const projects = await listProjects(filter ? { bu_code: filter.bu_code } : undefined);
   const active   = projects.filter(p => p.status === "active");
-  const tasks    = await listTasks();
+  const projectIds = new Set(projects.map(p => p.project_id));
+  const allTasks = await listTasks();
+  const tasks    = filter?.bu_code ? allTasks.filter(t => projectIds.has(t.project_id)) : allTasks;
   const overdue  = tasks.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date < today());
 
   return {
@@ -590,7 +592,7 @@ export async function getPortfolioMetrics(): Promise<PpmPortfolioMetrics> {
     green_count:        projects.filter(p => p.health_status === "green").length,
     yellow_count:       projects.filter(p => p.health_status === "yellow").length,
     red_count:          projects.filter(p => p.health_status === "red").length,
-    total_team_members: [...new Set(_allocations.filter(a => a.status === "active").map(a => a.user_id))].length,
+    total_team_members: [...new Set(_allocations.filter(a => a.status === "active" && (!filter?.bu_code || projectIds.has(a.project_id))).map(a => a.user_id))].length,
     overdue_tasks:      overdue.length,
   };
 }

@@ -293,6 +293,7 @@ export default function PpmPortfolioPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { href: "/awq/ppm",              label: "Portfolio",     icon: Briefcase,     desc: "Visão geral dos projetos",   color: "text-brand-600",   bg: "bg-brand-50"   },
+              { href: "/awq/ppm/calendar",      label: "Calendário",    icon: Calendar,      desc: "Início e entregas por mês",  color: "text-violet-600",  bg: "bg-violet-50"  },
               { href: "/awq/ppm/gantt",         label: "Gantt",         icon: GanttChart,    desc: "Linha do tempo e marcos",    color: "text-brand-600",  bg: "bg-brand-50"  },
               { href: "/awq/ppm/tasks",         label: "Tarefas",       icon: ClipboardList, desc: "Kanban e gestão de tarefas", color: "text-amber-700",   bg: "bg-amber-50"   },
               { href: "/awq/ppm/timesheets",    label: "Timesheets",    icon: Clock,         desc: "Apontamento de horas",       color: "text-cyan-700",    bg: "bg-cyan-50"    },

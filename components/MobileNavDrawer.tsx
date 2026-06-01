@@ -390,11 +390,13 @@ function BUContextBar({
   sub,
   colorClass,
   onNavigate,
+  hideBack,
 }: {
   label: string;
   sub: string;
   colorClass: string;
   onNavigate: () => void;
+  hideBack?: boolean;
 }) {
   return (
     <div className="px-3 pt-3">
@@ -404,14 +406,16 @@ function BUContextBar({
           <div className="text-xs opacity-70 truncate">{sub}</div>
         </div>
       </div>
-      <Link
-        href="/business-units"
-        onClick={onNavigate}
-        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-2 px-1"
-      >
-        <ChevronLeft size={12} />
-        Voltar para AWQ Group
-      </Link>
+      {!hideBack && (
+        <Link
+          href="/business-units"
+          onClick={onNavigate}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-2 px-1"
+        >
+          <ChevronLeft size={12} />
+          Voltar para AWQ Group
+        </Link>
+      )}
     </div>
   );
 }
@@ -505,6 +509,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         sub="Agência Solar · AWQ Group"
         colorClass="bg-orange-50 border-orange-200 text-orange-700"
         onNavigate={onClose}
+        hideBack={userRole === "enrd"}
       />
     );
   } else if (crmMode) {
@@ -933,11 +938,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         <div className="px-4 py-4 border-t border-gray-100 shrink-0">
           <div className="flex items-center gap-3 px-1">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-              AD
+              {((session?.user as { name?: string } | undefined)?.name ?? "AD")
+                .split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-gray-800">Admin</span>
-              <div className="text-xs text-gray-400">Administrador</div>
+              <span className="text-sm font-semibold text-gray-800">{(session?.user as { name?: string } | undefined)?.name ?? "Admin"}</span>
+              <div className="text-xs text-gray-400 capitalize">{userRole ?? "Administrador"}</div>
             </div>
           </div>
         </div>

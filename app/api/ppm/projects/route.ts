@@ -11,15 +11,16 @@ export async function GET(req: NextRequest) {
     const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
 
     const p = req.nextUrl.searchParams;
+    const buFilter = lockedBU ?? ((p.get("bu_code") ?? undefined) as BuCode | undefined);
     const [projects, metrics] = await Promise.all([
       listProjects({
-        bu_code:      lockedBU ?? ((p.get("bu_code") ?? undefined) as BuCode | undefined),
+        bu_code:      buFilter,
         status:       (p.get("status")       ?? undefined) as ProjectStatus | undefined,
         health_status:(p.get("health_status") ?? undefined) as HealthStatus | undefined,
         project_type: (p.get("project_type") ?? undefined) as ProjectType | undefined,
         search:        p.get("search")       ?? undefined,
       }),
-      getPortfolioMetrics(),
+      getPortfolioMetrics({ bu_code: buFilter }),
     ]);
     return ok({ projects, metrics });
   } catch (e) {
