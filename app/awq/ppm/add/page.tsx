@@ -301,7 +301,7 @@ function AddProjectPageInner() {
             </div>
             {form.project_type === "retainer" && (
               <div className="bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 text-xs text-violet-700">
-                Em projetos retainer, o "Revenue Mensal" é o MRR. O valor total do contrato é calculado como MRR × meses entre início e término.
+                Em projetos retainer, o &ldquo;Revenue Mensal&rdquo; é o MRR. O valor total do contrato é calculado como MRR × meses entre início e término.
               </div>
             )}
             {marginPct && (
