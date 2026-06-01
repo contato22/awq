@@ -86,6 +86,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
   const force       = body.force === true;
 
+  // BU isolation: usuário BU-locked só pode sincronizar a conta Cora da própria BU.
+  // Ex.: role=jacqes só pode pedir entity=JACQES (não pode disparar sync da AWQ Holding).
+  const lockedBU = req.headers.get("x-bu-lock");
+  if (lockedBU && entity !== lockedBU) {
+    return NextResponse.json(
+      { error: `Operação bloqueada: usuário ${lockedBU} não pode sincronizar entity=${entity}` },
+      { status: 403 },
+    );
+  }
+
   // ── Guard: credenciais por empresa — nunca misturar ————————————————————————
   if (entity === "ENERDY" && !isCoraEnerdyConfigured()) {
     return NextResponse.json(
