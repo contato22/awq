@@ -102,6 +102,19 @@ function AddProjectPageInner() {
     }
   }, [searchParams]);
 
+  // Re-apply session-derived defaults once the client session arrives
+  // (initial SSR render has no session, so defaultBU/defaultPM fall back to CAZA/Miguel).
+  useEffect(() => {
+    if (!sessionUser) return;
+    const buFromUrl = searchParams?.get("bu");
+    setForm(f => ({
+      ...f,
+      bu_code: buFromUrl ?? (sessionUser.role === "enrd" ? "ENRD" : f.bu_code),
+      project_manager: f.project_manager === "Miguel" && sessionUser.name ? sessionUser.name : f.project_manager,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser?.role, sessionUser?.name]);
+
   if (IS_STATIC) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
