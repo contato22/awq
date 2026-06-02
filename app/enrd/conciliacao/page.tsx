@@ -9,6 +9,7 @@ import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import Header from "@/components/Header";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
+import BalanceDailyMonthlyChart from "@/components/BalanceDailyMonthlyChart";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { isCoraEnerdyConfigured } from "@/lib/cora-api";
@@ -27,9 +28,6 @@ const BankReconciliationBoard = nextDynamic(
   () => import("@/components/BankReconciliationBoard"),
   { ssr: false }
 );
-
-// Direct import — SVG/CSS only, no browser-only APIs
-import BalanceDailyMonthlyChart from "@/components/BalanceDailyMonthlyChart";
 
 export const dynamic = "force-dynamic";
 

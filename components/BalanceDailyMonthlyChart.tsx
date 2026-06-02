@@ -1,5 +1,4 @@
-"use client";
-
+// Server Component — SVG/CSS only, no hooks, no browser APIs needed
 import type { BankTransaction } from "@/lib/financial-db";
 
 // ── Formatters ────────────────────────────────────────────────────────────────
