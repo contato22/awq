@@ -28,6 +28,11 @@ const BankReconciliationBoard = nextDynamic(
   { ssr: false }
 );
 
+const BalanceDailyMonthlyChart = nextDynamic(
+  () => import("@/components/BalanceDailyMonthlyChart"),
+  { ssr: false }
+);
+
 export const dynamic = "force-dynamic";
 
 function fmt(n: number) {
@@ -142,6 +147,11 @@ export default async function EnrdConciliacaoPage() {
             </div>
           ))}
         </div>
+
+        {/* ── Gráficos de saldo ───────────────────────────────────────── */}
+        {transactions.length > 0 && (
+          <BalanceDailyMonthlyChart transactions={transactions} />
+        )}
 
         {/* ── Cora Enerdy sync panel ───────────────────────────────────── */}
         {coraConfigured && (
