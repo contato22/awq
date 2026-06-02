@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -155,12 +156,28 @@ function ChartEmptyState({ title, subtitle }: { title: string; subtitle: string 
   );
 }
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function ChartSkeleton() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="card p-5 h-[272px] animate-pulse bg-gray-50" />
+      <div className="card p-5 h-[272px] animate-pulse bg-gray-50" />
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function BalanceDailyMonthlyChart({
   transactions,
 }: {
   transactions: BankTransaction[];
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Show skeleton until recharts is ready on the client
+  if (!mounted) return <ChartSkeleton />;
+
   const dailyData   = buildDailyData(transactions);
   const monthlyData = buildMonthlyData(transactions);
 
