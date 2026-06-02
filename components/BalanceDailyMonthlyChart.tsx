@@ -198,6 +198,14 @@ export default function BalanceDailyMonthlyChart({
 }: {
   transactions: BankTransaction[];
 }) {
+  return (
+    <div style={{ background: "#f97316", padding: "16px", borderRadius: "12px", margin: "8px 0" }}>
+      <strong style={{ color: "white", fontSize: "14px" }}>
+        DIAGNÓSTICO: componente renderiza ✓ — {transactions?.length ?? 0} transações recebidas
+      </strong>
+    </div>
+  );
+
   const daily   = buildDailyData(transactions);
   const monthly = buildMonthlyData(transactions);
   const display = daily.length > 60 ? daily.slice(-60) : daily;
