@@ -95,9 +95,10 @@ function fmtK(v: number) {
   if (abs >= 1_000)     return `${v < 0 ? "-" : ""}R$${Math.round(Math.abs(v) / 1000)}k`;
   return `R$${Math.round(v)}`;
 }
-function today() { return new Date().toISOString().slice(0, 10); }
+const BRT = "America/Sao_Paulo";
+function today() { return new Date().toLocaleDateString("sv", { timeZone: BRT }); }
 function dateAgo(days: number) {
-  return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  return new Date(Date.now() - days * 86_400_000).toLocaleDateString("sv", { timeZone: BRT });
 }
 
 function prevMonth(m: string): string {
@@ -260,7 +261,7 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
       label: String(parseInt(date.slice(8))),
       recebimentos:  Math.round(inc),
       pagamentos:   -Math.round(out),  // negative → bars go below zero
-      saldo:         Math.round(runningSaldo),
+      saldo:         Math.max(0, Math.round(runningSaldo)),
     };
   });
 
@@ -306,7 +307,7 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResu
       label: `${MONTH_NAMES_SHORT[mi]}/${yr.slice(2)}`,
       recebimentos:  Math.round(inc),
       pagamentos:   -Math.round(out),
-      saldo:         Math.round(runningSaldo),
+      saldo:         Math.max(0, Math.round(runningSaldo)),
     };
   });
 
@@ -441,7 +442,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     })
     .reduce((s, t) => s + t.amount, 0);
 
-  const totalBalance = accounts.reduce((s, a) => s + (a.balance ?? 0), 0);
+  const totalBalance = accounts.filter((a) => a.key !== "ENERDY").reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
   const txAccounts = useMemo(() => Array.from(
@@ -677,6 +678,10 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tickLine={false}
                 tickFormatter={fmtK}
                 width={56}
+                domain={[
+                  (dataMin: number) => Math.min(0, Math.floor(dataMin / 1000) * 1000),
+                  "auto",
+                ]}
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />

@@ -2,6 +2,9 @@ name: Auditoria Cora vs Banco
 
 on:
   workflow_dispatch:
+  schedule:
+    # Auditoria automática a cada 6 horas — verifica gap Cora vs Supabase e auto-sincroniza
+    - cron: "0 */6 * * *"
   push:
     branches:
       - main
@@ -9,6 +12,7 @@ on:
       - '.github/workflows/cora-audit.yml'
       - 'app/api/cora/audit-probe/**'
       - 'app/api/cora/sync-probe/**'
+      - 'app/api/cora/cron-sync/**'
       - 'middleware.ts'
 
 permissions:

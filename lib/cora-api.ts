@@ -181,7 +181,14 @@ type CoraRawEntry = Record<string, unknown>;
 
 function parseDate(raw: unknown): string {
   if (typeof raw !== "string") return "";
+  // Timestamp completo (com T) → converter para data em BRT antes de cortar
+  // Ex: "2026-05-28T01:00:00Z" (UTC) → "2026-05-27" (BRT, UTC-3)
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
+    return new Date(raw).toLocaleDateString("sv", { timeZone: "America/Sao_Paulo" });
+  }
+  // Apenas data YYYY-MM-DD → já no formato correto (Cora envia em BRT)
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  // Formato DD/MM/YYYY → converter
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
     const [d, m, y] = raw.split("/");
     return `${y}-${m}-${d}`;

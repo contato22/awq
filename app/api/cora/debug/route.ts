@@ -3,6 +3,7 @@
 
 import https from "node:https";
 import { NextRequest, NextResponse } from "next/server";
+import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,8 +99,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     try { results.balance_raw = JSON.parse(balRes.body); } catch { results.balance_body = balRes.body; }
 
     // 3. Get statement (raw, last 30 days) — try both date formats
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const monthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+    const todayIso = todayBRT();
+    const monthAgoIso = daysAgoBRT(30);
     const stmtRes = await httpsRequest(
       "GET",
       `${BASE}/bank-statement/statement?start=${monthAgoIso}&end=${todayIso}&perPage=5`,

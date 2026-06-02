@@ -18,6 +18,7 @@ import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
+import { todayBRT, daysAheadBRT } from "@/lib/date-brt";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -52,7 +53,7 @@ export default async function ConciliacaoPage() {
   try {
     await initAPARDB();
     const arItems = await getAllAR();
-    const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const horizon = daysAheadBRT(30);
     arPending = arItems
       .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date <= horizon)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
@@ -82,7 +83,8 @@ export default async function ConciliacaoPage() {
   const docsDone   = documents.filter((d) => d.status === "done").length;
 
   const openingBalance = documents
-    .filter((d) => d.status === "done" && d.openingBalance != null)
+    .filter((d) => d.status === "done" && d.openingBalance != null
+      && d.entity !== "ENERDY")
     .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
 
   return (
@@ -169,7 +171,7 @@ export default async function ConciliacaoPage() {
             </div>
             <div className="grid gap-1">
               {arPending.map((item) => {
-                const todayDate = new Date().toISOString().slice(0, 10);
+                const todayDate = todayBRT();
                 const overdue = item.due_date < todayDate;
                 const [y, m, d] = item.due_date.split("-");
                 return (

@@ -14,14 +14,11 @@ import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
+import { todayBRT } from "@/lib/date-brt";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function isValidDate(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -47,7 +44,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const body = await req.json().catch(() => ({})) as { startDate?: string; endDate?: string };
   const startDate = isValidDate(body.startDate ?? "") ? body.startDate! : "2026-01-01";
-  const endDate   = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
+  const endDate   = isValidDate(body.endDate   ?? "") ? body.endDate!   : todayBRT();
 
   const accounts: Array<{ entity: EntityLayer; accountName: string }> = [
     { entity: "AWQ_Holding", accountName: "Conta PJ AWQ Holding" },
@@ -61,7 +58,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
-  const existingIds = new Set(existing.map((t) => t.id));
+  // Map id → transactionDate para detectar e corrigir datas UTC gravadas erradas
+  const existingDates = new Map(existing.map((t) => [t.id, t.transactionDate]));
 
   const now    = new Date().toISOString();
   const results: AccountResult[] = [];
@@ -78,7 +76,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       for (const entry of coraEntries) {
         const txId = `cora-${entry.id}`;
-        if (existingIds.has(txId)) { skipped++; continue; }
+        const storedDate = existingDates.get(txId);
+        if (storedDate !== undefined && storedDate === entry.date) { skipped++; continue; }
+        // storedDate !== entry.date → data UTC gravada errada, corrigir via upsert
 
         const cls = classifyTransaction(entry.description, entry.amount, entry.direction, acc.entity);
 
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           classifiedAt:            cls.category !== "unclassified" ? now : null,
         });
 
-        existingIds.add(txId);
+        existingDates.set(txId, entry.date);
       }
 
       if (newTxns.length > 0) {

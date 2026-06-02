@@ -25,17 +25,10 @@ import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
+import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
 
 export const runtime    = "nodejs";
 export const maxDuration = 60; // sync de períodos longos (até 5+ meses)
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function daysAgo(n: number) {
-  return new Date(Date.now() - n * 24 * 3600_000).toISOString().slice(0, 10);
-}
 
 function isValidDate(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -82,8 +75,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const accountName = body.accountName ?? "Conta PJ AWQ Holding";
   const entity      = (body.entity ?? "AWQ_Holding") as EntityLayer;
-  const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgo(30);
-  const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
+  const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgoBRT(30);
+  const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : todayBRT();
   const force       = body.force === true;
 
   // BU isolation: usuário BU-locked só pode sincronizar a conta Cora da própria BU.
@@ -124,7 +117,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Deduplication ———————————————————————————————————————————————————————————
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
-  const existingIds = new Set(existing.map((t) => t.id));
+  const existingDates = new Map(existing.map((t) => [t.id, t.transactionDate]));
 
   const docId = `cora-api-${startDate}-${endDate}`;
   const now   = new Date().toISOString();
@@ -134,8 +127,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   for (const entry of coraEntries) {
     const txId = `cora-${entry.id}`;
-    // force=true bypasses dedup so existing Cora entries are re-imported with correct values
-    if (!force && existingIds.has(txId)) { skipped++; continue; }
+    // force=true ou data errada (UTC vs BRT) → upsert para corrigir
+    const storedDate = existingDates.get(txId);
+    if (!force && storedDate !== undefined && storedDate === entry.date) { skipped++; continue; }
 
     const classification = classifyTransaction(
       entry.description,

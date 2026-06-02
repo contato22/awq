@@ -8,14 +8,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions } from "@/lib/financial-db";
+import { todayBRT } from "@/lib/date-brt";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function isValidDate(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -38,7 +35,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const { searchParams } = new URL(req.url);
   const startDate = isValidDate(searchParams.get("startDate") ?? "") ? searchParams.get("startDate")! : "2026-01-01";
-  const endDate   = isValidDate(searchParams.get("endDate")   ?? "") ? searchParams.get("endDate")!   : today();
+  const endDate   = isValidDate(searchParams.get("endDate")   ?? "") ? searchParams.get("endDate")!   : todayBRT();
 
   const accounts: Array<{ entity: "AWQ_Holding" | "JACQES"; accountName: string }> = [
     { entity: "AWQ_Holding", accountName: "Conta PJ AWQ Holding" },
