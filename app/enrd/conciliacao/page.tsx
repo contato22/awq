@@ -9,6 +9,7 @@ import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import Header from "@/components/Header";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
+import EnrdFlowChartClient from "@/components/EnrdFlowChartClient";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { isCoraEnerdyConfigured } from "@/lib/cora-api";
@@ -25,11 +26,6 @@ import {
 
 const BankReconciliationBoard = nextDynamic(
   () => import("@/components/BankReconciliationBoard"),
-  { ssr: false }
-);
-
-const EnrdFlowChart = nextDynamic(
-  () => import("@/components/EnrdFlowChart"),
   { ssr: false }
 );
 
@@ -149,7 +145,7 @@ export default async function EnrdConciliacaoPage() {
         </div>
 
         {/* ── Fluxo de Caixa Cora Enerdy ──────────────────────────────── */}
-        <EnrdFlowChart transactions={transactions} coraConfigured={coraConfigured} />
+        <EnrdFlowChartClient transactions={transactions} coraConfigured={coraConfigured} />
 
         {/* ── Cora Enerdy sync panel ───────────────────────────────────── */}
         {coraConfigured && (

@@ -1,27 +1,344 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Bar, CartesianGrid, ComposedChart, Line, ReferenceLine,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 
-// STRIP TEST — sem hooks, sem recharts, sem cálculos
-export default function EnrdFlowChart({
-  transactions,
-}: {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface CoraBalance { available: number; error?: string }
+
+interface FlowRow {
+  label: string;
+  recebimentos: number;
+  pagamentos: number;
+  saldo: number;
+}
+
+interface FlowResult {
+  data: FlowRow[];
+  totalIn: number;
+  totalOut: number;
+  net: number;
+  hasData: boolean;
+}
+
+interface Props {
   transactions: BankTransaction[];
   coraConfigured: boolean;
-}) {
+}
+
+type ViewMode = "diario" | "mensal";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmtBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function fmtK(v: number) {
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000) return `${v < 0 ? "-" : ""}R$${(Math.abs(v) / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000)     return `${v < 0 ? "-" : ""}R$${Math.round(Math.abs(v) / 1000)}k`;
+  return `R$${Math.round(v)}`;
+}
+const BRT = "America/Sao_Paulo";
+function today() { return new Date().toLocaleDateString("sv", { timeZone: BRT }); }
+
+function prevMonth(m: string) {
+  const [y, mo] = m.split("-").map(Number);
+  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
+}
+function nextMonth(m: string) {
+  const [y, mo] = m.split("-").map(Number);
+  return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
+}
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+const MONTH_PT    = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+// ─── Build flow data ──────────────────────────────────────────────────────────
+
+function buildFlowDaily(txns: BankTransaction[], month: string, startBal: number): FlowResult {
+  const year  = parseInt(month.slice(0, 4));
+  const mon   = parseInt(month.slice(5, 7));
+  const nDays = daysInMonth(year, mon);
+  const from  = `${month}-01`;
+  const to    = `${month}-${String(nDays).padStart(2, "0")}`;
+
+  const dayMap = new Map<string, { i: number; o: number }>();
+  for (let d = 1; d <= nDays; d++) {
+    dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { i: 0, o: 0 });
+  }
+
+  for (const t of txns) {
+    if (t.entity !== "ENERDY" || !t.transactionDate) continue;
+    if (t.transactionDate < from || t.transactionDate > to) continue;
+    const b = dayMap.get(t.transactionDate);
+    if (!b) continue;
+    const amt = Number(t.amount) || 0;
+    if (t.direction === "credit") b.i += amt; else b.o += amt;
+  }
+
+  let rs = startBal, ti = 0, to_ = 0;
+  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { i, o }]) => {
+    rs += i - o; ti += i; to_ += o;
+    return {
+      label:        String(parseInt(date.slice(8))),
+      recebimentos: Math.round(i),
+      pagamentos:  -Math.round(o),
+      saldo:        Math.max(0, Math.round(rs)),
+    };
+  });
+  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
+}
+
+function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
+  const elig = txns.filter((t) => t.entity === "ENERDY" && t.transactionDate);
+  if (!elig.length) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
+
+  const minMonth = elig.reduce(
+    (min, t) => { const mk = t.transactionDate!.slice(0, 7); return mk < min ? mk : min; },
+    elig[0].transactionDate!.slice(0, 7)
+  );
+  const curMonth = today().slice(0, 7);
+
+  const mmap = new Map<string, { i: number; o: number }>();
+  let m = minMonth;
+  while (m <= curMonth) { mmap.set(m, { i: 0, o: 0 }); m = nextMonth(m); }
+
+  for (const t of elig) {
+    const mk = t.transactionDate!.slice(0, 7);
+    const b = mmap.get(mk);
+    if (!b) continue;
+    const amt = Number(t.amount) || 0;
+    if (t.direction === "credit") b.i += amt; else b.o += amt;
+  }
+
+  let allNet = 0;
+  for (const t of elig) { const amt = Number(t.amount) || 0; allNet += t.direction === "credit" ? amt : -amt; }
+  let rs = coraBalance !== null ? coraBalance - allNet : 0;
+  let ti = 0, to_ = 0;
+
+  const data: FlowRow[] = Array.from(mmap.entries()).map(([mk, { i, o }]) => {
+    rs += i - o; ti += i; to_ += o;
+    const mi = parseInt(mk.slice(5)) - 1;
+    return {
+      label:        `${MONTH_SHORT[mi]}/${mk.slice(2, 4)}`,
+      recebimentos: Math.round(i),
+      pagamentos:  -Math.round(o),
+      saldo:        Math.max(0, Math.round(rs)),
+    };
+  });
+  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
+}
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+
+function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number }>; label?: string }) {
+  if (!active || !payload?.length) return null;
+  const meta: Record<string, { name: string; color: string }> = {
+    recebimentos: { name: "Recebimentos", color: "#16a34a" },
+    pagamentos:   { name: "Pagamentos",   color: "#dc2626" },
+    saldo:        { name: "Saldo",        color: "#7c3aed" },
+  };
   return (
-    <div
-      style={{
-        background: "#7c3aed",
-        padding: "20px",
-        borderRadius: "12px",
-        color: "white",
-        fontWeight: "bold",
-        fontSize: "14px",
-        margin: "8px 0",
-      }}
-    >
-      STRIP TEST — EnrdFlowChart monta ✓ · {transactions.length} transações ENERDY
+    <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[190px] overflow-hidden">
+      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+        <p className="font-bold text-gray-900">Cora Enerdy · {label}</p>
+      </div>
+      <div className="p-3 space-y-2">
+        {payload.map((p) => {
+          const m = meta[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
+          return (
+            <div key={p.dataKey} className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color }} />
+                <span className="font-bold text-gray-800">{m.name}</span>
+              </div>
+              <span className="font-bold tabular-nums" style={{ color: m.color }}>
+                {fmtBRL(Math.abs(p.value))}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
+  const [viewMode, setViewMode] = useState<ViewMode>("diario");
+  const [monthNav, setMonthNav] = useState(() => today().slice(0, 7));
+  const [balance,  setBalance]  = useState<number | null>(null);
+  const [loading,  setLoading]  = useState(coraConfigured);
+  const [balErr,   setBalErr]   = useState<string | null>(null);
+
+  const loadBalance = useCallback(async () => {
+    setLoading(true); setBalErr(null);
+    try {
+      const res  = await fetch("/api/cora/balance?account=ENERDY");
+      const data = await res.json() as CoraBalance;
+      if (res.ok) setBalance(data.available);
+      else setBalErr(data.error ?? "Erro");
+    } catch { setBalErr("Falha na conexão"); }
+    finally  { setLoading(false); }
+  }, []);
+
+  useEffect(() => { if (coraConfigured) void loadBalance(); }, [coraConfigured, loadBalance]);
+
+  const startBal = useMemo(() => {
+    const elig = transactions.filter((t) => t.entity === "ENERDY");
+    const from = `${monthNav}-01`;
+    if (balance !== null) {
+      let allNet = 0;
+      for (const t of elig) { const a = Number(t.amount) || 0; allNet += t.direction === "credit" ? a : -a; }
+      let pre = 0;
+      for (const t of elig) {
+        if ((t.transactionDate ?? "") < from) { const a = Number(t.amount) || 0; pre += t.direction === "credit" ? a : -a; }
+      }
+      return (balance - allNet) + pre;
+    }
+    let pre = 0;
+    for (const t of elig) {
+      if ((t.transactionDate ?? "") < from) { const a = Number(t.amount) || 0; pre += t.direction === "credit" ? a : -a; }
+    }
+    return pre;
+  }, [transactions, balance, monthNav]);
+
+  const flowResult = useMemo(() =>
+    viewMode === "diario"
+      ? buildFlowDaily(transactions, monthNav, startBal)
+      : buildFlowMonthly(transactions, balance),
+  [transactions, viewMode, monthNav, startBal, balance]);
+
+  const totalIn  = transactions.filter((t) => t.entity === "ENERDY" && t.direction === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const totalOut = transactions.filter((t) => t.entity === "ENERDY" && t.direction === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const net      = totalIn - totalOut;
+
+  const monthLabel     = `${MONTH_PT[parseInt(monthNav.slice(5)) - 1]} ${monthNav.slice(0, 4)}`;
+  const isCurrentMonth = monthNav >= today().slice(0, 7);
+  const maxBarSz       = viewMode === "diario" ? 18 : 36;
+  const saldoDisplay   = balance ?? net;
+  const saldoLabel     = balance !== null ? "Saldo real Cora" : "Fluxo acumulado";
+
+  return (
+    <div className="card overflow-visible">
+
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa · Cora Enerdy</h3>
+          <p className="text-[10px] text-gray-400 mt-0.5">Recebimentos e pagamentos · conta Cora ENRD</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
+            {(["diario", "mensal"] as ViewMode[]).map((v) => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={`px-3 py-1.5 transition-colors ${v !== "diario" ? "border-l border-gray-200" : ""} ${viewMode === v ? "bg-violet-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
+                {v === "diario" ? "Diário" : "Mensal"}
+              </button>
+            ))}
+          </div>
+          {viewMode === "diario" && (
+            <div className="flex items-center gap-0.5 border border-gray-200 rounded-lg bg-white overflow-hidden text-[11px] font-semibold text-gray-700">
+              <button onClick={() => setMonthNav(prevMonth(monthNav))} className="px-2 py-1.5 hover:bg-gray-50 text-gray-400 hover:text-gray-700"><ChevronLeft size={13} /></button>
+              <span className="px-2 py-1.5 min-w-[130px] text-center tabular-nums">{monthLabel}</span>
+              <button onClick={() => setMonthNav(nextMonth(monthNav))} disabled={isCurrentMonth} className="px-2 py-1.5 hover:bg-gray-50 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight size={13} /></button>
+            </div>
+          )}
+          {coraConfigured && (
+            <button onClick={() => void loadBalance()} title="Atualizar saldo Cora"
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 transition-colors">
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-4 divide-x divide-gray-100 border-t border-b border-gray-100">
+        {[
+          { label: "Recebimentos", value: flowResult.totalIn, color: "text-emerald-700", dot: "bg-emerald-500", sub: viewMode === "diario" ? monthLabel : "Histórico" },
+          { label: "Pagamentos",   value: flowResult.totalOut, color: "text-red-700",     dot: "bg-red-500",    sub: viewMode === "diario" ? monthLabel : "Histórico" },
+          { label: "Saldo líquido",value: flowResult.net,      color: flowResult.net >= 0 ? "text-violet-700" : "text-red-600", dot: "bg-violet-600", sub: "Receb − Pagto" },
+          { label: "Saldo Cora",   value: saldoDisplay,        color: saldoDisplay >= 0 ? "text-amber-600" : "text-red-600",    dot: "bg-amber-500",  sub: balErr ?? saldoLabel },
+        ].map(({ label, value, color, dot, sub }) => (
+          <div key={label} className="px-4 py-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
+              {label === "Saldo Cora" && loading && <span className="text-[9px] text-gray-300 animate-pulse">•••</span>}
+            </div>
+            <p className={`text-base font-bold tabular-nums leading-tight ${color}`}>{fmtBRL(value)}</p>
+            <p className="text-[9px] text-gray-400 mt-0.5">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
+        <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
+          {[
+            { color: "#16a34a", label: "Recebimentos" },
+            { color: "#dc2626", label: "Pagamentos" },
+            { color: "#7c3aed", label: "Saldo", dots: true },
+          ].map(({ color, label, dots }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              {dots ? (
+                <span className="inline-flex items-center gap-0.5 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                  <span className="w-3 h-px" style={{ background: color }} />
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                </span>
+              ) : (
+                <span className="w-3 h-3 rounded-sm opacity-80 shrink-0" style={{ background: color }} />
+              )}
+              {label}
+            </div>
+          ))}
+        </div>
+
+        <ResponsiveContainer width="100%" height={230}>
+          <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false}
+              interval={viewMode === "diario" ? 4 : "preserveStartEnd"} />
+            <YAxis tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false}
+              tickFormatter={fmtK} width={56}
+              domain={[(dataMin: number) => Math.min(0, Math.floor(dataMin / 1000) * 1000), "auto"]} />
+            <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
+            <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
+            <Bar dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
+            {(!coraConfigured || !loading) && (
+              <Line type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
+                dot={{ r: 3, fill: "#7c3aed", stroke: "#fff", strokeWidth: 1.5 }}
+                activeDot={{ r: 5, fill: "#7c3aed", stroke: "#fff", strokeWidth: 2 }} />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+
+        {!flowResult.hasData && (
+          <p className="text-center text-[11px] text-gray-400 -mt-2 mb-1">
+            Sem movimentações {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"}
+            {viewMode === "diario" && (
+              <> · <button onClick={() => setViewMode("mensal")} className="text-violet-500 hover:underline">ver histórico</button></>
+            )}
+          </p>
+        )}
+        {coraConfigured && loading && (
+          <p className="text-center text-[10px] text-gray-300 animate-pulse -mt-1 mb-1">Calculando posição de caixa…</p>
+        )}
+      </div>
     </div>
   );
 }
