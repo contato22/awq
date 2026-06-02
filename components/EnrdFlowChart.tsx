@@ -256,6 +256,16 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const saldoDisplay = balance !== null ? balance : netAll;
   const saldoLabel   = balance !== null ? "Saldo real Cora" : "Fluxo acumulado";
 
+  // DIAGNÓSTICO — remover após confirmar render
+  return (
+    <div style={{ background: "#7c3aed", padding: "16px", borderRadius: "12px" }}>
+      <strong style={{ color: "white", fontSize: "14px" }}>
+        EnrdFlowChart monta ✓ — {transactions.length} txns · {flowResult.data.length} dias · saldo {saldoDisplay.toFixed(2)}
+      </strong>
+    </div>
+  );
+
+  // eslint-disable-next-line no-unreachable
   return (
     <div className="card overflow-visible">
 
