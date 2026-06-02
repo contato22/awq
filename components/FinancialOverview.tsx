@@ -391,9 +391,28 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     [transactions, genRange, openingBalance]);
 
   const flowResult = useMemo(() => {
-    if (viewMode === "diario") return buildFlowDaily(transactions, monthNav, openingBalance);
-    return buildFlowMonthly(transactions, openingBalance);
-  }, [transactions, viewMode, monthNav, openingBalance]);
+    // When Cora balance is available use it to anchor the saldo line to the real
+    // cash position: effectiveOpeningBal = coraBalance - allHistoricalNet
+    // This corrects for missing transaction history that makes the naive
+    // openingBal + prePeriodNet calculation produce a wrong (negative) figure.
+    const coraBalance = coraConfigured
+      ? accounts.filter((a) => a.key !== "ENERDY" && !a.loading && a.balance !== null)
+                .reduce((s, a) => s + (a.balance ?? 0), 0)
+      : 0;
+
+    let effectiveOpeningBal = openingBalance;
+    if (coraBalance > 0) {
+      let allNet = 0;
+      for (const t of transactions) {
+        if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+        allNet += t.direction === "credit" ? t.amount : -t.amount;
+      }
+      effectiveOpeningBal = coraBalance - allNet;
+    }
+
+    if (viewMode === "diario") return buildFlowDaily(transactions, monthNav, effectiveOpeningBal);
+    return buildFlowMonthly(transactions, effectiveOpeningBal);
+  }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
   const loadBalance = useCallback(async (key: string) => {
     try {
