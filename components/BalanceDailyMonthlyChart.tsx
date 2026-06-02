@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -31,39 +30,39 @@ function fmtBRLFull(v: number) {
 
 // ── Build daily data ──────────────────────────────────────────────────────────
 function buildDailyData(txns: BankTransaction[]) {
-  const sorted = [...txns].sort((a, b) =>
-    a.transactionDate.localeCompare(b.transactionDate)
+  const valid  = txns.filter((t) => t.transactionDate);
+  const sorted = [...valid].sort((a, b) =>
+    (a.transactionDate ?? "").localeCompare(b.transactionDate ?? "")
   );
+
+  const makeLabel = (date: string) => {
+    const parts = date.split("-");
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}` : date;
+  };
 
   // If runningBalance is available on most transactions, use it directly
   const withBalance = sorted.filter((t) => t.runningBalance != null);
-  if (withBalance.length >= sorted.length * 0.8) {
-    // Collapse to one point per day (last runningBalance of that day)
+  if (withBalance.length >= sorted.length * 0.8 && sorted.length > 0) {
     const byDay: Record<string, number> = {};
     for (const t of sorted) {
       if (t.runningBalance != null) byDay[t.transactionDate] = t.runningBalance;
     }
     return Object.entries(byDay)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, saldo]) => {
-        const [y, m, d] = date.split("-");
-        return { date, label: `${d}/${m}`, saldo };
-      });
+      .map(([date, saldo]) => ({ date, label: makeLabel(date), saldo }));
   }
 
   // Otherwise accumulate from credits/debits
   let running = 0;
   const byDay: Record<string, number> = {};
   for (const t of sorted) {
-    running += t.direction === "credit" ? t.amount : -t.amount;
+    const amt = Number(t.amount) || 0;
+    running += t.direction === "credit" ? amt : -amt;
     byDay[t.transactionDate] = running;
   }
   return Object.entries(byDay)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, saldo]) => {
-      const [y, m, d] = date.split("-");
-      return { date, label: `${d}/${m}`, saldo };
-    });
+    .map(([date, saldo]) => ({ date, label: makeLabel(date), saldo }));
 }
 
 // ── Build monthly data ────────────────────────────────────────────────────────
@@ -76,10 +75,12 @@ const MONTH_LABELS: Record<string, string> = {
 function buildMonthlyData(txns: BankTransaction[]) {
   const map: Record<string, { entradas: number; saidas: number }> = {};
   for (const t of txns) {
+    if (!t.transactionDate) continue;
     const month = t.transactionDate.slice(0, 7); // YYYY-MM
     if (!map[month]) map[month] = { entradas: 0, saidas: 0 };
-    if (t.direction === "credit") map[month].entradas += t.amount;
-    else map[month].saidas += t.amount;
+    const amt = Number(t.amount) || 0;
+    if (t.direction === "credit") map[month].entradas += amt;
+    else map[month].saidas += amt;
   }
   return Object.entries(map)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -156,28 +157,12 @@ function ChartEmptyState({ title, subtitle }: { title: string; subtitle: string 
   );
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-function ChartSkeleton() {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="card p-5 h-[272px] animate-pulse bg-gray-50" />
-      <div className="card p-5 h-[272px] animate-pulse bg-gray-50" />
-    </div>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 export default function BalanceDailyMonthlyChart({
   transactions,
 }: {
   transactions: BankTransaction[];
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
-  // Show skeleton until recharts is ready on the client
-  if (!mounted) return <ChartSkeleton />;
-
   const dailyData   = buildDailyData(transactions);
   const monthlyData = buildMonthlyData(transactions);
 
