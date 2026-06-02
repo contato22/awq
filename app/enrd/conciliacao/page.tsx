@@ -30,7 +30,15 @@ const BankReconciliationBoard = nextDynamic(
 
 const BalanceDailyMonthlyChart = nextDynamic(
   () => import("@/components/BalanceDailyMonthlyChart"),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="card p-5 h-[272px] animate-pulse bg-gray-50" />
+        <div className="card p-5 h-[272px] animate-pulse bg-gray-50" />
+      </div>
+    ),
+  }
 );
 
 export const dynamic = "force-dynamic";
@@ -149,9 +157,7 @@ export default async function EnrdConciliacaoPage() {
         </div>
 
         {/* ── Gráficos de saldo ───────────────────────────────────────── */}
-        {transactions.length > 0 && (
-          <BalanceDailyMonthlyChart transactions={transactions} />
-        )}
+        <BalanceDailyMonthlyChart transactions={transactions} />
 
         {/* ── Cora Enerdy sync panel ───────────────────────────────────── */}
         {coraConfigured && (
