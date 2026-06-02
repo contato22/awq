@@ -7,6 +7,7 @@ import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
 } from "@/lib/crm-types";
+import { listLegacyOpportunities } from "@/lib/crm-legacy-bridge";
 
 const db = erpAdmin ?? erpAnon;
 
@@ -286,7 +287,22 @@ export async function listOpportunities(filters?: {
   if (error) throw new Error(error.message);
 
   const rows = data ?? [];
-  if (!rows.length) return [];
+
+  async function unionLegacy(canonical: CrmOpportunity[]): Promise<CrmOpportunity[]> {
+    let legacy: CrmOpportunity[] = [];
+    try {
+      legacy = await listLegacyOpportunities();
+      if (filters?.stage)      legacy = legacy.filter(o => o.stage === filters.stage);
+      if (filters?.bu)         legacy = legacy.filter(o => o.bu === filters.bu);
+      if (filters?.owner)      legacy = legacy.filter(o => o.owner === filters.owner);
+      if (filters?.account_id) legacy = [];
+    } catch {
+      legacy = [];
+    }
+    return [...canonical, ...legacy];
+  }
+
+  if (!rows.length) return unionLegacy([]);
 
   const accountIds = [...new Set(rows.map(o => o.account_id).filter(Boolean))];
   const contactIds = [...new Set(rows.map(o => o.contact_id).filter(Boolean))];
@@ -301,11 +317,13 @@ export async function listOpportunities(filters?: {
   const accMap = new Map((accRes.data ?? []).map(a => [a.account_id, a.account_name]));
   const conMap = new Map((conRes.data ?? []).map(c => [c.contact_id, c.full_name]));
 
-  return rows.map(o => ({
+  const canonical = rows.map(o => ({
     ...o,
     account_name: accMap.get(o.account_id) ?? undefined,
     contact_name: conMap.get(o.contact_id) ?? null,
   })) as CrmOpportunity[];
+
+  return unionLegacy(canonical);
 }
 
 export async function getOpportunity(id: string): Promise<CrmOpportunity | null> {
