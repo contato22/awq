@@ -28,11 +28,8 @@ const BankReconciliationBoard = nextDynamic(
   { ssr: false }
 );
 
-// ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
-const BalanceDailyMonthlyChart = nextDynamic(
-  () => import("@/components/BalanceDailyMonthlyChart"),
-  { ssr: false }
-);
+// Direct import — SVG/CSS only, no browser-only APIs
+import BalanceDailyMonthlyChart from "@/components/BalanceDailyMonthlyChart";
 
 export const dynamic = "force-dynamic";
 
