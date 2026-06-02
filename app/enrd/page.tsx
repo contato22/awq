@@ -1,14 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
 import {
   Zap, Users, DollarSign, TrendingUp, ChevronRight,
   LineChart, Scale, Target, PieChart,
   ArrowDownLeft, ArrowUpRight, ListOrdered,
   Landmark, Activity, Package, Lock,
-  LayoutGrid, Briefcase, BarChart3,
+  LayoutGrid, Briefcase, BarChart3, CheckCircle2,
 } from "lucide-react";
 
-const EPM_MODULES = [
+const BASE_EPM_MODULES = [
   { label: "Financial (ENRD)",    sub: "Dados da BU · Estruturação",   href: "/enrd/financial",              color: "text-orange-600",  bg: "bg-orange-50"  },
   { label: "P&L (DRE)",          sub: "Demonstração de Resultado",     href: "/awq/epm/pl",                  color: "text-emerald-600", bg: "bg-emerald-50" },
   { label: "Balanço Patrimonial",sub: "Ativo = Passivo + PL",          href: "/awq/epm/balance-sheet",       color: "text-brand-600",   bg: "bg-brand-50"   },
@@ -24,6 +27,8 @@ const EPM_MODULES = [
   { label: "Fechamento Períodos",sub: "Open → Reviewing → Locked",     href: "/awq/epm/periods",             color: "text-gray-700",    bg: "bg-gray-100"   },
 ];
 
+const CORA_MODULE = { label: "Cora · Conciliação", sub: "Sync bancário Cora · ENRD", href: "/awq/conciliacao", color: "text-cyan-700", bg: "bg-cyan-50" };
+
 const iconMap: Record<string, React.ElementType> = {
   "/enrd/financial":              DollarSign,
   "/awq/epm/pl":                  LineChart,
@@ -34,6 +39,7 @@ const iconMap: Record<string, React.ElementType> = {
   "/awq/epm/ar":                  ArrowUpRight,
   "/awq/epm/gl":                  ListOrdered,
   "/awq/epm/bank-reconciliation": Landmark,
+  "/awq/conciliacao":             CheckCircle2,
   "/awq/epm/forecast":            Activity,
   "/awq/epm/fixed-assets":        Package,
   "/awq/epm/cost-centers":        LayoutGrid,
@@ -41,6 +47,13 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export default function EnrdPage() {
+  const { data: session } = useSession();
+  const isEnrdOnly = (session?.user as { role?: string } | undefined)?.role === "enrd";
+
+  const EPM_MODULES = isEnrdOnly
+    ? BASE_EPM_MODULES
+    : [...BASE_EPM_MODULES.slice(0, 9), CORA_MODULE, ...BASE_EPM_MODULES.slice(9)];
+
   const kpis = [
     { label: "Receita YTD",   value: "—", icon: DollarSign },
     { label: "Clientes",      value: "—", icon: Users      },

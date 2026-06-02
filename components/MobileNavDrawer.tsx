@@ -446,10 +446,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-
   const { data: session } = useSession();
   const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const isEnrdOnly = userRole === "enrd";
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
   const jacqesMode   = isJacqesRoute(pathname) || userRole === "jacqes";
   const cazaMode     = isCazaRoute(pathname);
   const advisorMode  = isAdvisorRoute(pathname);
@@ -691,6 +693,27 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── ENRD ─────────────────────────────────────── */}
           {enrdMode && (
             <>
+              {!isEnrdOnly && (
+                <>
+                  <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
+                  <div className="space-y-0.5">
+                    <NavLink href="/enrd/financial"              icon={DollarSign}    label="Financial (ENRD)"    active={isActive("/enrd/financial")}              onNavigate={onClose} />
+                    <NavLink href="/awq/epm/pl"                  icon={LineChart}     label="P&L (DRE)"           active={isActive("/awq/epm/pl")}                  onNavigate={onClose} />
+                    <NavLink href="/awq/epm/balance-sheet"       icon={Scale}         label="Balanço Patrimonial" active={isActive("/awq/epm/balance-sheet")}       onNavigate={onClose} />
+                    <NavLink href="/awq/epm/budget"              icon={Target}        label="Budget vs Actual"    active={isActive("/awq/epm/budget")}              onNavigate={onClose} />
+                    <NavLink href="/awq/epm/kpis"                icon={PieChart}      label="KPI Dashboard"       active={isActive("/awq/epm/kpis")}                onNavigate={onClose} />
+                    <NavLink href="/awq/epm/ap"                  icon={ArrowDownLeft} label="Contas a Pagar"      active={isActive("/awq/epm/ap")}                  onNavigate={onClose} />
+                    <NavLink href="/awq/epm/ar"                  icon={ArrowUpRight}  label="Contas a Receber"    active={isActive("/awq/epm/ar")}                  onNavigate={onClose} />
+                    <NavLink href="/awq/epm/gl"                  icon={ListOrdered}   label="Razão Geral (GL)"    active={isActive("/awq/epm/gl")}                  onNavigate={onClose} />
+                    <NavLink href="/awq/epm/bank-reconciliation" icon={Landmark}      label="Conciliação"         active={isActive("/awq/epm/bank-reconciliation")} onNavigate={onClose} />
+                    <NavLink href="/awq/conciliacao"             icon={CheckCircle2}  label="Cora · Conciliação"  active={isActive("/awq/conciliacao")}             onNavigate={onClose} />
+                    <NavLink href="/awq/epm/forecast"            icon={Activity}      label="Forecast"            active={isActive("/awq/epm/forecast")}            onNavigate={onClose} />
+                    <NavLink href="/awq/epm/fixed-assets"        icon={Package}       label="Ativo Imobilizado"   active={isActive("/awq/epm/fixed-assets")}        onNavigate={onClose} />
+                    <NavLink href="/awq/epm/cost-centers"        icon={LayoutGrid}    label="Centros de Custo"    active={isActive("/awq/epm/cost-centers")}        onNavigate={onClose} />
+                    <NavLink href="/awq/epm/periods"             icon={Lock}          label="Períodos"            active={isActive("/awq/epm/periods")}             onNavigate={onClose} />
+                  </div>
+                </>
+              )}
               <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
               <div className="space-y-0.5">
                 <NavLink href="/crm"               icon={Target}   label="Dashboard CRM" active={isActive("/crm")}               onNavigate={onClose} />
@@ -720,7 +743,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* ── CRM Tower ────────────────────────────────── */}
-          {crmMode && (
+          {crmMode && !enrdMode && (
             <>
               <SectionLabel>CRM · Navegação</SectionLabel>
               <div className="space-y-0.5">
@@ -732,7 +755,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* ── EPM Tower ────────────────────────────────── */}
-          {epmMode && (
+          {epmMode && !enrdMode && (
             <>
               <SectionLabel>FP&A</SectionLabel>
               <div className="space-y-0.5">
@@ -768,7 +791,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* ── PPM Tower ────────────────────────────────── */}
-          {ppmMode && (
+          {ppmMode && !enrdMode && (
             <>
               <SectionLabel>PPM · Navegação</SectionLabel>
               <div className="space-y-0.5">
@@ -780,7 +803,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* ── BI Tower ─────────────────────────────────── */}
-          {biMode && (
+          {biMode && !enrdMode && (
             <>
               <SectionLabel>BI · Navegação</SectionLabel>
               <div className="space-y-0.5">
