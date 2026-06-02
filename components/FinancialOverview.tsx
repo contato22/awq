@@ -270,14 +270,15 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
            net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
 }
 
-function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResult {
+function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth?: string): FlowResult {
   const eligible = txns.filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated);
   if (eligible.length === 0) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
 
-  const minMonth = eligible.reduce(
+  const earliestMonth = eligible.reduce(
     (min, t) => { const mk = t.transactionDate.slice(0, 7); return mk < min ? mk : min; },
     eligible[0].transactionDate.slice(0, 7)
   );
+  const minMonth = fromMonth && fromMonth > earliestMonth ? fromMonth : earliestMonth;
   const curMonth = today().slice(0, 7);
 
   const monthMap = new Map<string, { in: number; out: number }>();
@@ -391,27 +392,45 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     [transactions, genRange, openingBalance]);
 
   const flowResult = useMemo(() => {
-    // When Cora balance is available use it to anchor the saldo line to the real
-    // cash position: effectiveOpeningBal = coraBalance - allHistoricalNet
-    // This corrects for missing transaction history that makes the naive
-    // openingBal + prePeriodNet calculation produce a wrong (negative) figure.
+    // When Cora balance is available, anchor the saldo line to the real cash position.
+    // effectiveOpeningBal = coraBalance - periodNet ensures the line ends at coraBalance.
     const coraBalance = coraConfigured
       ? accounts.filter((a) => a.key !== "ENERDY" && !a.loading && a.balance !== null)
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
       : 0;
 
-    let effectiveOpeningBal = openingBalance;
-    if (coraBalance > 0) {
-      let allNet = 0;
-      for (const t of transactions) {
-        if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
-        allNet += t.direction === "credit" ? t.amount : -t.amount;
+    if (viewMode === "diario") {
+      let effectiveOpeningBal = openingBalance;
+      if (coraBalance > 0) {
+        let allNet = 0;
+        for (const t of transactions) {
+          if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+          allNet += t.direction === "credit" ? t.amount : -t.amount;
+        }
+        effectiveOpeningBal = coraBalance - allNet;
       }
-      effectiveOpeningBal = coraBalance - allNet;
+      return buildFlowDaily(transactions, monthNav, effectiveOpeningBal);
     }
 
-    if (viewMode === "diario") return buildFlowDaily(transactions, monthNav, effectiveOpeningBal);
-    return buildFlowMonthly(transactions, effectiveOpeningBal);
+    // Monthly view: limit to last 12 months so the chart starts at a meaningful
+    // value instead of all zeros (incomplete historical data makes allNet >> coraBalance).
+    // 12 months ago — same month, previous year
+    const curYM     = today().slice(0, 7);
+    const [cy, cm]  = curYM.split("-").map(Number);
+    const fromMonth = `${cy - 1}-${String(cm).padStart(2, "0")}`;
+
+    let effectiveOpeningBal = openingBalance;
+    if (coraBalance > 0) {
+      // Anchor using only the 12-month window so openingBal stays positive
+      let recentNet = 0;
+      for (const t of transactions) {
+        if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+        if (t.transactionDate.slice(0, 7) >= fromMonth)
+          recentNet += t.direction === "credit" ? t.amount : -t.amount;
+      }
+      effectiveOpeningBal = coraBalance - recentNet;
+    }
+    return buildFlowMonthly(transactions, effectiveOpeningBal, fromMonth);
   }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
   const loadBalance = useCallback(async (key: string) => {
@@ -729,8 +748,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               />
 
               {/* Saldo — navy line with small dots (like Conta Azul).
-                  Hide while Cora is still fetching to avoid showing wrong anchoring. */}
-              {!hidden.has("total") && (!coraConfigured || !anyLoading) && (
+                  Hide until AWQ_Holding balance loads — don't wait for ENERDY. */}
+              {!hidden.has("total") && (!coraConfigured || holdingLoaded) && (
                 <Line
                   type="monotone"
                   dataKey="saldo"
@@ -753,8 +772,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             </p>
           )}
 
-          {/* Saldo loading hint — while Cora balance fetches */}
-          {coraConfigured && anyLoading && (
+          {/* Saldo loading hint — only until AWQ_Holding balance loads */}
+          {coraConfigured && !holdingLoaded && (
             <p className="text-center text-[10px] text-gray-300 animate-pulse -mt-1 mb-1">
               Calculando posição de caixa…
             </p>
