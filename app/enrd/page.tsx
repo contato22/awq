@@ -27,7 +27,7 @@ const BASE_EPM_MODULES = [
   { label: "Fechamento Períodos",sub: "Open → Reviewing → Locked",     href: "/awq/epm/periods",             color: "text-gray-700",    bg: "bg-gray-100"   },
 ];
 
-const CORA_MODULE = { label: "Cora · Conciliação", sub: "Sync bancário Cora · ENRD", href: "/awq/conciliacao", color: "text-cyan-700", bg: "bg-cyan-50" };
+const CORA_MODULE = { label: "Cora · Conciliação", sub: "Sync bancário Cora · ENRD", href: "/enrd/conciliacao", color: "text-cyan-700", bg: "bg-cyan-50" };
 
 const iconMap: Record<string, React.ElementType> = {
   "/enrd/financial":              DollarSign,
@@ -39,7 +39,7 @@ const iconMap: Record<string, React.ElementType> = {
   "/awq/epm/ar":                  ArrowUpRight,
   "/awq/epm/gl":                  ListOrdered,
   "/awq/epm/bank-reconciliation": Landmark,
-  "/awq/conciliacao":             CheckCircle2,
+  "/enrd/conciliacao":            CheckCircle2,
   "/awq/epm/forecast":            Activity,
   "/awq/epm/fixed-assets":        Package,
   "/awq/epm/cost-centers":        LayoutGrid,

@@ -121,8 +121,10 @@ function today() {
 
 export default function CoraStatusPanel({
   transactions,
+  onlyAccounts,
 }: {
   transactions: BankTransaction[];
+  onlyAccounts?: AccountKey[];
 }) {
   const [balances, setBalances]             = useState<Record<AccountKey, CoraBalance | null>>({ AWQ_Holding: null, ENERDY: null });
   const [balanceErrors, setBalanceErrors]   = useState<Record<AccountKey, string | null>>({ AWQ_Holding: null, ENERDY: null });
@@ -336,7 +338,7 @@ export default function CoraStatusPanel({
 
       {/* Account cards — side by side */}
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {ACCOUNTS.map((acc) => {
+        {(onlyAccounts ? ACCOUNTS.filter((a) => onlyAccounts.includes(a.key)) : ACCOUNTS).map((acc) => {
           const c          = acc.color;
           const bal        = balances[acc.key];
           const balErr     = balanceErrors[acc.key];

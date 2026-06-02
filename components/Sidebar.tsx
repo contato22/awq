@@ -550,7 +550,7 @@ const ENRD_MODULES: BUModule[] = [
         { label: "Contas a Receber",    href: "/awq/epm/ar",                  icon: ArrowUpRight  },
         { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
         { label: "Conciliação",         href: "/awq/epm/bank-reconciliation", icon: Landmark      },
-        { label: "Cora · Conciliação",  href: "/awq/conciliacao",             icon: CheckCircle2  },
+        { label: "Cora · Conciliação",  href: "/enrd/conciliacao",            icon: CheckCircle2  },
         { label: "Forecast",            href: "/awq/epm/forecast",            icon: Activity      },
         { label: "Ativo Imobilizado",   href: "/awq/epm/fixed-assets",        icon: Package       },
         { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },

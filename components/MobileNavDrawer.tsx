@@ -706,7 +706,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
                     <NavLink href="/awq/epm/ar"                  icon={ArrowUpRight}  label="Contas a Receber"    active={isActive("/awq/epm/ar")}                  onNavigate={onClose} />
                     <NavLink href="/awq/epm/gl"                  icon={ListOrdered}   label="Razão Geral (GL)"    active={isActive("/awq/epm/gl")}                  onNavigate={onClose} />
                     <NavLink href="/awq/epm/bank-reconciliation" icon={Landmark}      label="Conciliação"         active={isActive("/awq/epm/bank-reconciliation")} onNavigate={onClose} />
-                    <NavLink href="/awq/conciliacao"             icon={CheckCircle2}  label="Cora · Conciliação"  active={isActive("/awq/conciliacao")}             onNavigate={onClose} />
+                    <NavLink href="/enrd/conciliacao"            icon={CheckCircle2}  label="Cora · Conciliação"  active={isActive("/enrd/conciliacao")}            onNavigate={onClose} />
                     <NavLink href="/awq/epm/forecast"            icon={Activity}      label="Forecast"            active={isActive("/awq/epm/forecast")}            onNavigate={onClose} />
                     <NavLink href="/awq/epm/fixed-assets"        icon={Package}       label="Ativo Imobilizado"   active={isActive("/awq/epm/fixed-assets")}        onNavigate={onClose} />
                     <NavLink href="/awq/epm/cost-centers"        icon={LayoutGrid}    label="Centros de Custo"    active={isActive("/awq/epm/cost-centers")}        onNavigate={onClose} />
