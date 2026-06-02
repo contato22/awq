@@ -5,7 +5,12 @@
 // DO NOT import in client components.
 
 import { randomUUID } from "crypto";
-import { supabase } from "@/lib/supabase";
+import { supabase as supabaseDefault, erpAdmin } from "@/lib/supabase";
+
+// Em produção, apenas ERP_SUPABASE_SERVICE_ROLE_KEY está setada — usar erpAdmin
+// como cliente primário (o tradicional SUPABASE_SERVICE_ROLE_KEY não existe).
+// Fallback para o cliente default quando estiver disponível.
+const supabase = erpAdmin ?? supabaseDefault;
 import type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
   PpmRisk, PpmIssue, PpmPortfolioMetrics, BuCode,
