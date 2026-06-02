@@ -257,11 +257,12 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     runningSaldo += inc - out;
     totalIn  += inc;
     totalOut += out;
+    const saldoSnap = Math.max(0, Math.round(runningSaldo));
     return {
       label: String(parseInt(date.slice(8))),
       recebimentos:  Math.round(inc),
-      pagamentos:   -Math.round(out),  // negative → bars go below zero
-      saldo:         Math.max(0, Math.round(runningSaldo)),
+      pagamentos:   -Math.round(out),
+      saldo:         saldoSnap,
     };
   });
 
@@ -312,7 +313,7 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResu
   });
 
   return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+    net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
