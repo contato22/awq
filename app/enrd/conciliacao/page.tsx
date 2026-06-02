@@ -9,7 +9,6 @@ import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import Header from "@/components/Header";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
-import BalanceDailyMonthlyChart from "@/components/BalanceDailyMonthlyChart";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { isCoraEnerdyConfigured } from "@/lib/cora-api";
@@ -26,6 +25,11 @@ import {
 
 const BankReconciliationBoard = nextDynamic(
   () => import("@/components/BankReconciliationBoard"),
+  { ssr: false }
+);
+
+const EnrdFlowChart = nextDynamic(
+  () => import("@/components/EnrdFlowChart"),
   { ssr: false }
 );
 
@@ -127,10 +131,10 @@ export default async function EnrdConciliacaoPage() {
         {/* ── KPIs ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total de Transações", value: total.toString(),         icon: Landmark,   color: "text-brand-700",   bg: "bg-brand-50"   },
-            { label: "Conciliadas",          value: `${conciliado} (${pct}%)`, icon: CheckCircle2,color: "text-emerald-700", bg: "bg-emerald-50" },
-            { label: "Pendentes",            value: pendente.toString(),       icon: RefreshCw,  color: "text-amber-700",   bg: "bg-amber-50"   },
-            { label: "Saldo Líquido",        value: fmt(credito - debito),     icon: Zap,        color: "text-orange-700",  bg: "bg-orange-50"  },
+            { label: "Total de Transações", value: total.toString(),           icon: Landmark,    color: "text-brand-700",   bg: "bg-brand-50"   },
+            { label: "Conciliadas",          value: `${conciliado} (${pct}%)`, icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50" },
+            { label: "Pendentes",            value: pendente.toString(),        icon: RefreshCw,   color: "text-amber-700",   bg: "bg-amber-50"   },
+            { label: "Saldo Líquido",        value: fmt(credito - debito),      icon: Zap,         color: "text-orange-700",  bg: "bg-orange-50"  },
           ].map((kpi) => (
             <div key={kpi.label} className="card p-4 flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center shrink-0`}>
@@ -144,8 +148,8 @@ export default async function EnrdConciliacaoPage() {
           ))}
         </div>
 
-        {/* ── Gráficos de saldo ───────────────────────────────────────── */}
-        <BalanceDailyMonthlyChart transactions={transactions} />
+        {/* ── Fluxo de Caixa Cora Enerdy ──────────────────────────────── */}
+        <EnrdFlowChart transactions={transactions} coraConfigured={coraConfigured} />
 
         {/* ── Cora Enerdy sync panel ───────────────────────────────────── */}
         {coraConfigured && (
