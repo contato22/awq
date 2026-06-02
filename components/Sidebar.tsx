@@ -1186,6 +1186,25 @@ export default function Sidebar() {
     const { data: session } = useSession();
     const role = (session?.user as { role?: string } | undefined)?.role;
 
+    // Preserve BU context via sessionStorage so owners navigating from /enrd
+    // to shared routes (/awq/epm/*, /crm/*, /awq/ppm/*) keep the ENRD sidebar.
+    const [buCtx, setBuCtx] = useState<string | null>(() =>
+        typeof window !== "undefined" ? sessionStorage.getItem("awq-bu-ctx") : null
+    );
+
+    useEffect(() => {
+        if (isEnrdRoute(pathname)) {
+            sessionStorage.setItem("awq-bu-ctx", "enrd");
+            setBuCtx("enrd");
+        } else if (!isEpmRoute(pathname) && !isCrmRoute(pathname) && !isPpmRoute(pathname)) {
+            // Leaving shared routes into a clearly different context — clear BU ctx
+            sessionStorage.removeItem("awq-bu-ctx");
+            setBuCtx(null);
+        } else {
+            setBuCtx(sessionStorage.getItem("awq-bu-ctx"));
+        }
+    }, [pathname]);
+
     if (role === "enrd")          return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
     if (role === "jacqes")        return <div className="flex flex-col h-full"><JacqesSidebar pathname={pathname} /></div>;
     if (isJacqesRoute(pathname))  return <div className="flex flex-col h-full"><JacqesSidebar pathname={pathname} /></div>;
@@ -1193,6 +1212,11 @@ export default function Sidebar() {
     if (isAdvisorRoute(pathname)) return <div className="flex flex-col h-full"><AdvisorSidebar pathname={pathname} /></div>;
     if (isVentureRoute(pathname)) return <div className="flex flex-col h-full"><AwqVentureSidebar pathname={pathname} /></div>;
     if (isEnrdRoute(pathname))    return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
+
+    // Owner/admin navigating from ENRD hub to a shared route — keep ENRD sidebar
+    if (buCtx === "enrd" && (isEpmRoute(pathname) || isCrmRoute(pathname) || isPpmRoute(pathname))) {
+        return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
+    }
 
     return <div className="flex flex-col h-full"><AwqSidebar pathname={pathname} /></div>;
 }

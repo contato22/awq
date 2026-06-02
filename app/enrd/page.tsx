@@ -68,7 +68,6 @@ export default function EnrdPage() {
         {/* Quick access pills */}
         <section className="flex flex-wrap gap-2">
           {[
-            { label: "EPM",           href: "/awq/epm",              icon: BarChart3,    color: "text-orange-600",  bg: "bg-orange-50"  },
             { label: "Financial",     href: "/enrd/financial",        icon: DollarSign,   color: "text-orange-600",  bg: "bg-orange-50"  },
             { label: "CRM Clientes",  href: "/enrd/customers",        icon: Users,        color: "text-brand-600",   bg: "bg-brand-50"   },
             { label: "Leads",         href: "/crm/leads?bu=ENRD",     icon: TrendingUp,   color: "text-emerald-600", bg: "bg-emerald-50" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -450,13 +450,31 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isEnrdOnly = userRole === "enrd";
 
+  // Preserve BU context via sessionStorage (mirrors Sidebar.tsx logic)
+  const [buCtx, setBuCtx] = useState<string | null>(() =>
+    typeof window !== "undefined" ? sessionStorage.getItem("awq-bu-ctx") : null
+  );
+
+  useEffect(() => {
+    if (isEnrdRoute(pathname)) {
+      sessionStorage.setItem("awq-bu-ctx", "enrd");
+      setBuCtx("enrd");
+    } else if (!isEpmRoute(pathname) && !isCrmRoute(pathname) && !isPpmRoute(pathname)) {
+      sessionStorage.removeItem("awq-bu-ctx");
+      setBuCtx(null);
+    } else {
+      setBuCtx(sessionStorage.getItem("awq-bu-ctx"));
+    }
+  }, [pathname]);
+
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const jacqesMode   = isJacqesRoute(pathname) || userRole === "jacqes";
   const cazaMode     = isCazaRoute(pathname);
   const advisorMode  = isAdvisorRoute(pathname);
   const ventureMode  = isVentureRoute(pathname);
-  const enrdMode     = isEnrdRoute(pathname) || userRole === "enrd";
+  const enrdMode     = isEnrdRoute(pathname) || userRole === "enrd" ||
+    (buCtx === "enrd" && (isEpmRoute(pathname) || isCrmRoute(pathname) || isPpmRoute(pathname)));
   const crmMode      = isCrmRoute(pathname);
   const epmMode      = isEpmRoute(pathname);
   const ppmMode      = isPpmRoute(pathname);
