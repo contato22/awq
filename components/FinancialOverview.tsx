@@ -81,6 +81,13 @@ const ACCOUNTS_CFG = [
   { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "Banco Integrado · BU ENRD", initials: "ENRD", bgClass: "bg-violet-600" },
 ];
 
+// Bank accounts that should always appear as cards in "Contas bancárias",
+// even before any extract is imported. Used to surface onboarding targets.
+const STATIC_BANK_CARDS: { bank: string; name: string; entity: EntityKey }[] = [
+  { bank: "Itaú",         name: "Conta PJ AWQ Itaú",  entity: "AWQ_Holding" },
+  { bank: "BTG Empresas", name: "Conta PJ AWQ BTG",   entity: "AWQ_Holding" },
+];
+
 const MONTH_NAMES_PT   = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MONTH_NAMES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -484,12 +491,17 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const totalBalance = accounts.filter((a) => a.key !== "ENERDY").reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
-  const txAccounts = useMemo(() => Array.from(
-    new Map(transactions.map((t) => [
+  const txAccounts = useMemo(() => {
+    const map = new Map(transactions.map((t) => [
       `${t.bank}::${t.accountName}`,
-      { bank: t.bank, name: t.accountName, entity: t.entity },
-    ])).values()
-  ), [transactions]);
+      { bank: t.bank as string, name: t.accountName, entity: t.entity as EntityKey | string },
+    ]));
+    for (const s of STATIC_BANK_CARDS) {
+      const hasBank = Array.from(map.values()).some((a) => a.bank.toLowerCase() === s.bank.toLowerCase());
+      if (!hasBank) map.set(`${s.bank}::${s.name}`, s);
+    }
+    return Array.from(map.values());
+  }, [transactions]);
 
   // Only entities with movements in the selected period
   const activeEntities = ENTITY_CFG.filter(
@@ -815,8 +827,17 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             {txAccounts.map((acc) => {
               const coraAcc = accounts.find((a) => a.key === acc.entity);
               const cfg = ENTITY_CFG.find((e) => e.key === acc.entity);
-              const initials = acc.entity === "ENERDY" ? "ENRD" : (cfg?.initials ?? "AWQ");
-              const bg = acc.entity === "ENERDY" ? "bg-violet-600" : (cfg?.bg ?? "bg-brand-600");
+              const bankLower = (acc.bank ?? "").toLowerCase();
+              const isItau = bankLower.includes("itaú") || bankLower.includes("itau");
+              const isBtg  = bankLower.includes("btg");
+              const initials = acc.entity === "ENERDY" ? "ENRD"
+                : isItau ? "ITAU"
+                : isBtg ? "BTG"
+                : (cfg?.initials ?? "AWQ");
+              const bg = acc.entity === "ENERDY" ? "bg-violet-600"
+                : isItau ? "bg-orange-600"
+                : isBtg ? "bg-slate-800"
+                : (cfg?.bg ?? "bg-brand-600");
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
               const entityNet = acc.entity in genResult.byEntity
                 ? genResult.byEntity[acc.entity as EntityKey].net
