@@ -492,12 +492,14 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     return net;
   }, [transactions]);
 
-  const caixaTotal = coraConfigured && !anyLoading && totalBalance > 0
+  // Use AWQ_Holding Cora balance as soon as it loads (don't wait for ENERDY)
+  const holdingLoaded = accounts.filter((a) => a.key !== "ENERDY").every((a) => !a.loading);
+  const caixaTotal = coraConfigured && holdingLoaded && totalBalance > 0
     ? totalBalance
     : openingBalance > 0
       ? openingBalance + allTimeNet
       : allTimeNet;
-  const caixaLabel = coraConfigured && !anyLoading && totalBalance > 0
+  const caixaLabel = coraConfigured && holdingLoaded && totalBalance > 0
     ? "Saldo real (Cora)"
     : openingBalance > 0 ? "Estimado" : "Fluxo acumulado";
 
@@ -726,8 +728,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 radius={[0, 0, 2, 2]}
               />
 
-              {/* Saldo — navy line with small dots (like Conta Azul) */}
-              {!hidden.has("total") && (
+              {/* Saldo — navy line with small dots (like Conta Azul).
+                  Hide while Cora is still fetching to avoid showing wrong anchoring. */}
+              {!hidden.has("total") && (!coraConfigured || !anyLoading) && (
                 <Line
                   type="monotone"
                   dataKey="saldo"
@@ -747,6 +750,13 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <button onClick={() => setViewMode("mensal")}
                   className="text-brand-500 hover:underline">ver todo o histórico</button>
               )}
+            </p>
+          )}
+
+          {/* Saldo loading hint — while Cora balance fetches */}
+          {coraConfigured && anyLoading && (
+            <p className="text-center text-[10px] text-gray-300 animate-pulse -mt-1 mb-1">
+              Calculando posição de caixa…
             </p>
           )}
 
