@@ -434,7 +434,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     let cum = 0;
     const data = raw.data.map((d) => {
       cum += d.recebimentos - d.pagamentos;
-      return { ...d, saldo: Math.round(openingDay1 + cum) };
+      return { ...d, saldo: Math.max(0, Math.round(openingDay1 + cum)) };
     });
 
     if (typeof window !== "undefined" && data.length > 0) {
@@ -752,6 +752,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tickFormatter={(v: number) => v < 0 ? "" : fmtK(v)}
                 width={56}
                 domain={[0, "auto"]}
+                allowDataOverflow
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
