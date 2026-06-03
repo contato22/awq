@@ -17,15 +17,15 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200/80 flex items-center justify-between gap-4 px-6 lg:px-8 py-3.5"
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200/80 flex items-center justify-between gap-4 px-4 lg:px-8 py-3"
         style={{ borderTop: "2.5px solid #0487D9" }}
       >
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight truncate" style={{ color: "#023373" }}>
+          <h1 className="text-base lg:text-lg font-bold tracking-tight truncate" style={{ color: "#023373" }}>
             {title}
           </h1>
           {subtitle && (
-            <p className="text-xs text-gray-400 mt-0.5 font-medium truncate tracking-wide">
+            <p className="text-[11px] text-gray-400 mt-0.5 font-medium truncate tracking-wide hidden sm:block">
               {subtitle}
             </p>
           )}

@@ -116,7 +116,7 @@ function AwqBottomNav({ pathname }: { pathname: string }) {
 
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 safe-area-bottom">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 safe-area-bottom shadow-[0_-1px_12px_rgba(0,0,0,0.06)]">
         <div className="flex items-stretch relative">
           {AWQ_LEFT_TABS.map((tab) => (
             <NavLink key={tab.href} tab={tab} pathname={pathname} />
@@ -134,7 +134,7 @@ function AwqBottomNav({ pathname }: { pathname: string }) {
             type="button"
             onClick={() => setSheetOpen(true)}
             aria-label="Ações rápidas"
-            className="absolute left-1/2 -translate-x-1/2 -top-5 w-14 h-14 rounded-full bg-brand-600 active:bg-brand-700 text-white flex items-center justify-center shadow-lg shadow-brand-600/30 active:scale-95 transition-transform"
+            className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-brand-600 active:bg-brand-700 text-white flex items-center justify-center shadow-xl shadow-brand-600/40 active:scale-95 transition-transform ring-4 ring-white"
           >
             <Plus size={26} strokeWidth={2.5} />
           </button>
@@ -161,7 +161,7 @@ export default function BottomNavigation() {
 
   if (role === "enrd") {
     return (
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 safe-area-bottom">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 safe-area-bottom shadow-[0_-1px_12px_rgba(0,0,0,0.06)]">
         <div className="flex items-stretch">
           {ENRD_TABS.map((tab) => (
             <NavLink key={tab.href} tab={tab} pathname={pathname} />
@@ -179,7 +179,7 @@ export default function BottomNavigation() {
 
   const tabs = getNavTabs(ctx);
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 safe-area-bottom shadow-[0_-1px_12px_rgba(0,0,0,0.06)]">
       <div className="flex items-stretch">
         {tabs.map((tab) => (
           <NavLink key={tab.href} tab={tab} pathname={pathname} />

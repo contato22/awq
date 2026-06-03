@@ -634,7 +634,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-[10px] text-gray-400 mt-0.5 hidden sm:block">
               Recebimentos e pagamentos · soma bruta de todas as contas (exceto ENERDY)
             </p>
           </div>
@@ -680,13 +680,91 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           </div>
         </div>
 
-        {/* KPI strip — Recebimentos / Pagamentos / Saldo líquido / Caixa Total */}
-        <div className={`grid divide-x divide-gray-100 border-t border-b border-gray-100 ${
+        {/* ── KPI strip ─────────────────────────────────────────────────── */}
+
+        {/* Mobile: entity pills — horizontal scroll row */}
+        {activeEntities.length > 0 && (
+          <div className="lg:hidden border-t border-gray-100 overflow-x-auto">
+            <div className="flex gap-2 px-4 py-2.5 min-w-max">
+              {activeEntities.map((e) => {
+                const stats = genResult.byEntity[e.key];
+                return (
+                  <button key={e.key} onClick={() => toggle(e.key)}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all ${
+                      hidden.has(e.key)
+                        ? "bg-gray-50 border-gray-100 opacity-40"
+                        : "bg-white border-gray-200 shadow-sm"
+                    }`}>
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: e.color }} />
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 leading-none mb-0.5">{e.label}</p>
+                      <p className={`text-sm font-bold tabular-nums leading-tight ${stats.net >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                        {fmtBRL(stats.net)}
+                      </p>
+                      <p className="text-[9px] text-gray-400 tabular-nums mt-0.5">+{fmtK(stats.revenue)} / −{fmtK(stats.expenses)}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile: 2×2 KPI grid */}
+        <div className="lg:hidden grid grid-cols-2 divide-x divide-y divide-gray-100 border-t border-b border-gray-100">
+          <div className="px-4 py-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">AR · Recebimentos</span>
+            </div>
+            <p className="text-base font-bold tabular-nums leading-tight text-emerald-700">{fmtBRL(flowResult.totalIn)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{viewMode === "diario" ? monthLabel : "Histórico"} · realizado</p>
+          </div>
+          <div className="px-4 py-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">AP · Pagamentos</span>
+            </div>
+            <p className="text-base font-bold tabular-nums leading-tight text-red-700">{fmtBRL(flowResult.totalOut)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{viewMode === "diario" ? monthLabel : "Histórico"} · realizado</p>
+          </div>
+          <button onClick={() => toggle("total")}
+            className={`px-4 py-3 text-left active:bg-gray-50 transition-all ${hidden.has("total") ? "opacity-35" : ""}`}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#1e3a5f] shrink-0" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Saldo Líquido</span>
+              {netPct && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${genResult.totalNet >= 0 ? "bg-brand-50 text-brand-700" : "bg-red-50 text-red-600"}`}>
+                  {netPct}%
+                </span>
+              )}
+            </div>
+            <p className={`text-base font-bold tabular-nums leading-tight ${flowResult.net >= 0 ? "text-[#1e3a5f]" : "text-red-600"}`}>
+              {fmtBRL(flowResult.net)}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Receb − Pagto</p>
+          </button>
+          <button onClick={() => toggle("caixa")}
+            className={`px-4 py-3 text-left active:bg-amber-50/60 transition-all ${hidden.has("caixa") ? "opacity-35" : ""}`}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Caixa Total</span>
+              {anyLoading && <span className="text-[9px] text-gray-300 animate-pulse">•••</span>}
+            </div>
+            <p className={`text-base font-bold tabular-nums leading-tight ${caixaTotal >= 0 ? "text-amber-600" : "text-red-600"}`}>
+              {fmtBRL(caixaTotal)}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{caixaLabel}</p>
+          </button>
+        </div>
+
+        {/* Desktop: flexible multi-column grid */}
+        <div className={`hidden lg:grid divide-x divide-gray-100 border-t border-b border-gray-100 ${
           activeEntities.length === 0 ? "grid-cols-3" :
           activeEntities.length === 1 ? "grid-cols-4" :
           activeEntities.length === 2 ? "grid-cols-5" : "grid-cols-6"
         }`}>
-          {/* Entity pills (hidden by default from KPI; can toggle) */}
+          {/* Entity pills */}
           {activeEntities.map((e) => {
             const stats = genResult.byEntity[e.key];
             return (
@@ -773,7 +851,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         </div>
 
         {/* Chart — Conta Azul style */}
-        <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
+        <div className="bg-gray-50/40 lg:bg-[#fafaf8] rounded-b-xl px-3 lg:px-4 pb-4 pt-3">
 
           {/* Legend at top-right — matches Conta Azul layout */}
           <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
@@ -787,7 +865,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={230}>
+          <ResponsiveContainer width="100%" height={200} minHeight={180}>
             <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
               barCategoryGap="30%">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
@@ -844,7 +922,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
 
           {/* Bottom legend row — entity toggles only */}
           {activeEntities.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 pt-2 border-t border-[#ece8df] text-[10px] font-medium text-gray-500">
+            <div className="hidden lg:flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 pt-2 border-t border-[#ece8df] text-[10px] font-medium text-gray-500">
               <span className="text-[9px] text-gray-300 uppercase tracking-wide">Por entidade:</span>
               {activeEntities.map((e) => (
                 <button key={e.key} onClick={() => toggle(e.key)}

@@ -247,12 +247,12 @@
 
   /* ── Page Layout ───────────────────────────────────────────── */
   .page-container {
-    @apply px-6 py-6 space-y-6;
+    @apply px-4 py-5 space-y-5;
   }
 
   @screen lg {
     .page-container {
-      @apply px-8;
+      @apply px-8 py-6 space-y-6;
     }
   }
 
