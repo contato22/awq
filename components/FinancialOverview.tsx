@@ -405,15 +405,13 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
       : 0;
 
-    const chartTxns = (() => {
-      if (coraBalance <= 0) return transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
-      const coraEntitySet = new Set(
-        accounts
-          .filter(a => a.key !== "ENERDY" && !a.loading && a.balance !== null)
-          .map(a => a.key)
-      );
-      return transactions.filter(t => coraEntitySet.has(t.entity));
-    })();
+    // Escopo do chart = todas as entidades operacionais da Holding (AWQ_Holding,
+    // JACQES, Caza_Vision). Inclui Itaú/BTG (entity=AWQ_Holding) além do Cora.
+    // O filtro anterior restringia a entidades com saldo Cora carregado, mas
+    // isso ficou obsoleto quando a linha de saldo foi removida (PR #297) —
+    // qualquer transação Itaú/BTG cuja entity não fosse exatamente "AWQ_Holding"
+    // sumia dos KPIs AR/AP.
+    const chartTxns = transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
 
     let raw: FlowResult;
     if (viewMode === "diario") {
