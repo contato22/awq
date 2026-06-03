@@ -16,6 +16,7 @@ import nextDynamic from "next/dynamic";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
+import OfflineBanksPanel from "@/components/OfflineBanksPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { todayBRT, daysAheadBRT } from "@/lib/date-brt";
@@ -148,6 +149,9 @@ export default async function ConciliacaoPage() {
           {CORA_CONFIGURED && (
             <CoraStatusPanel transactions={transactions} />
           )}
+
+          {/* Outros bancos da Holding — sem integração API */}
+          <OfflineBanksPanel transactions={transactions} />
 
           {/* Board principal */}
           <BankReconciliationBoard
