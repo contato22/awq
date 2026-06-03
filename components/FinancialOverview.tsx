@@ -264,12 +264,11 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     runningSaldo += inc - out;
     totalIn  += inc;
     totalOut += out;
-    const saldoSnap = Math.max(0, Math.round(runningSaldo));
     return {
       label: String(parseInt(date.slice(8))),
       recebimentos:  Math.round(inc),
       pagamentos:   -Math.round(out),
-      saldo:         saldoSnap,
+      saldo:         Math.round(runningSaldo),
     };
   });
 
@@ -316,7 +315,7 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
       label: `${MONTH_NAMES_SHORT[mi]}/${yr.slice(2)}`,
       recebimentos:  Math.round(inc),
       pagamentos:   -Math.round(out),
-      saldo:         Math.max(0, Math.round(runningSaldo)),
+      saldo:         Math.round(runningSaldo),
     };
   });
 
@@ -743,10 +742,12 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tick={{ fontSize: 10, fill: "#b5b0a8" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => v < 0 ? "" : fmtK(v)}
+                tickFormatter={(v: number) => fmtK(v)}
                 width={56}
-                domain={[0, "auto"]}
-                allowDataOverflow
+                domain={[
+                  (dataMin: number) => Math.min(0, Math.floor(dataMin / 1000) * 1000),
+                  (dataMax: number) => Math.max(0, Math.ceil(dataMax / 1000) * 1000),
+                ]}
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
