@@ -18,22 +18,6 @@ const nextConfig = {
     typescript: { ignoreBuildErrors: true },
     eslint:     { ignoreDuringBuilds: true },
 
-    // Prevent Vercel edge CDN from caching the FinancialOverview chunk.
-    // The dynamic import generates a separate JS chunk; without this header
-    // the edge can serve a stale bundle even after a new deploy.
-    ...(!isStaticExport ? {
-        async headers() {
-            return [
-                {
-                    source: "/_next/static/chunks/:path*FinancialOverview*",
-                    headers: [
-                        { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
-                    ],
-                },
-            ];
-        },
-    } : {}),
-
     ...(isStaticExport
             ? {
                       output: "export",
