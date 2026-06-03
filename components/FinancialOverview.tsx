@@ -406,17 +406,31 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
       : 0;
 
+    // When anchoring to Cora, only include transactions from entities whose
+    // Cora balance is counted in coraBalance. Including other BUs (JACQES,
+    // Caza_Vision) in allNet without their corresponding Cora balances makes
+    // effectiveOpeningBal = coraBalance - allNet deeply negative.
+    const chartTxns = (() => {
+      if (coraBalance <= 0) return transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
+      const coraEntitySet = new Set(
+        accounts
+          .filter(a => a.key !== "ENERDY" && !a.loading && a.balance !== null)
+          .map(a => a.key)
+      );
+      return transactions.filter(t => coraEntitySet.has(t.entity));
+    })();
+
     if (viewMode === "diario") {
       let effectiveOpeningBal = openingBalance;
       if (coraBalance > 0) {
         let allNet = 0;
-        for (const t of transactions) {
-          if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+        for (const t of chartTxns) {
+          if (t.excludedFromConsolidated) continue;
           allNet += t.direction === "credit" ? t.amount : -t.amount;
         }
         effectiveOpeningBal = coraBalance - allNet;
       }
-      return buildFlowDaily(transactions, monthNav, effectiveOpeningBal);
+      return buildFlowDaily(chartTxns, monthNav, effectiveOpeningBal);
     }
 
     // Monthly view: limit to last 12 months so the chart starts at a meaningful
@@ -430,14 +444,14 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     if (coraBalance > 0) {
       // Anchor using only the 12-month window so openingBal stays positive
       let recentNet = 0;
-      for (const t of transactions) {
-        if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+      for (const t of chartTxns) {
+        if (t.excludedFromConsolidated) continue;
         if (t.transactionDate.slice(0, 7) >= fromMonth)
           recentNet += t.direction === "credit" ? t.amount : -t.amount;
       }
       effectiveOpeningBal = coraBalance - recentNet;
     }
-    return buildFlowMonthly(transactions, effectiveOpeningBal, fromMonth);
+    return buildFlowMonthly(chartTxns, effectiveOpeningBal, fromMonth);
   }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
   const loadBalance = useCallback(async (key: string) => {
