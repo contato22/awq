@@ -81,6 +81,13 @@ const ACCOUNTS_CFG = [
   { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "Banco Integrado · BU ENRD", initials: "ENRD", bgClass: "bg-violet-600" },
 ];
 
+// Bank accounts that should always appear as cards in "Contas bancárias",
+// even before any extract is imported. Used to surface onboarding targets.
+const STATIC_BANK_CARDS: { bank: string; name: string; entity: EntityKey }[] = [
+  { bank: "Itaú",         name: "Conta PJ AWQ Itaú",  entity: "AWQ_Holding" },
+  { bank: "BTG Empresas", name: "Conta PJ AWQ BTG",   entity: "AWQ_Holding" },
+];
+
 const MONTH_NAMES_PT   = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MONTH_NAMES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -257,11 +264,12 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     runningSaldo += inc - out;
     totalIn  += inc;
     totalOut += out;
+    const saldoSnap = Math.max(0, Math.round(runningSaldo));
     return {
       label: String(parseInt(date.slice(8))),
       recebimentos:  Math.round(inc),
-      pagamentos:   -Math.round(out),  // negative → bars go below zero
-      saldo:         Math.max(0, Math.round(runningSaldo)),
+      pagamentos:   -Math.round(out),
+      saldo:         saldoSnap,
     };
   });
 
@@ -269,14 +277,15 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
            net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
 }
 
-function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResult {
+function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth?: string): FlowResult {
   const eligible = txns.filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated);
   if (eligible.length === 0) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
 
-  const minMonth = eligible.reduce(
+  const earliestMonth = eligible.reduce(
     (min, t) => { const mk = t.transactionDate.slice(0, 7); return mk < min ? mk : min; },
     eligible[0].transactionDate.slice(0, 7)
   );
+  const minMonth = fromMonth && fromMonth > earliestMonth ? fromMonth : earliestMonth;
   const curMonth = today().slice(0, 7);
 
   const monthMap = new Map<string, { in: number; out: number }>();
@@ -312,7 +321,7 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResu
   });
 
   return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+    net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -390,9 +399,60 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     [transactions, genRange, openingBalance]);
 
   const flowResult = useMemo(() => {
-    if (viewMode === "diario") return buildFlowDaily(transactions, monthNav, openingBalance);
-    return buildFlowMonthly(transactions, openingBalance);
-  }, [transactions, viewMode, monthNav, openingBalance]);
+    // When Cora balance is available, anchor the saldo line to the real cash position.
+    // effectiveOpeningBal = coraBalance - periodNet ensures the line ends at coraBalance.
+    const coraBalance = coraConfigured
+      ? accounts.filter((a) => a.key !== "ENERDY" && !a.loading && a.balance !== null)
+                .reduce((s, a) => s + (a.balance ?? 0), 0)
+      : 0;
+
+    // When anchoring to Cora, only include transactions from entities whose
+    // Cora balance is counted in coraBalance. Including other BUs (JACQES,
+    // Caza_Vision) in allNet without their corresponding Cora balances makes
+    // effectiveOpeningBal = coraBalance - allNet deeply negative.
+    const chartTxns = (() => {
+      if (coraBalance <= 0) return transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
+      const coraEntitySet = new Set(
+        accounts
+          .filter(a => a.key !== "ENERDY" && !a.loading && a.balance !== null)
+          .map(a => a.key)
+      );
+      return transactions.filter(t => coraEntitySet.has(t.entity));
+    })();
+
+    if (viewMode === "diario") {
+      let effectiveOpeningBal = openingBalance;
+      if (coraBalance > 0) {
+        let allNet = 0;
+        for (const t of chartTxns) {
+          if (t.excludedFromConsolidated) continue;
+          allNet += t.direction === "credit" ? t.amount : -t.amount;
+        }
+        effectiveOpeningBal = coraBalance - allNet;
+      }
+      return buildFlowDaily(chartTxns, monthNav, effectiveOpeningBal);
+    }
+
+    // Monthly view: limit to last 12 months so the chart starts at a meaningful
+    // value instead of all zeros (incomplete historical data makes allNet >> coraBalance).
+    // 12 months ago — same month, previous year
+    const curYM     = today().slice(0, 7);
+    const [cy, cm]  = curYM.split("-").map(Number);
+    const fromMonth = `${cy - 1}-${String(cm).padStart(2, "0")}`;
+
+    let effectiveOpeningBal = openingBalance;
+    if (coraBalance > 0) {
+      // Anchor using only the 12-month window so openingBal stays positive
+      let recentNet = 0;
+      for (const t of chartTxns) {
+        if (t.excludedFromConsolidated) continue;
+        if (t.transactionDate.slice(0, 7) >= fromMonth)
+          recentNet += t.direction === "credit" ? t.amount : -t.amount;
+      }
+      effectiveOpeningBal = coraBalance - recentNet;
+    }
+    return buildFlowMonthly(chartTxns, effectiveOpeningBal, fromMonth);
+  }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
   const loadBalance = useCallback(async (key: string) => {
     try {
@@ -445,12 +505,17 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const totalBalance = accounts.filter((a) => a.key !== "ENERDY").reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
-  const txAccounts = useMemo(() => Array.from(
-    new Map(transactions.map((t) => [
+  const txAccounts = useMemo(() => {
+    const map = new Map(transactions.map((t) => [
       `${t.bank}::${t.accountName}`,
-      { bank: t.bank, name: t.accountName, entity: t.entity },
-    ])).values()
-  ), [transactions]);
+      { bank: t.bank as string, name: t.accountName, entity: t.entity as EntityKey | string },
+    ]));
+    for (const s of STATIC_BANK_CARDS) {
+      const hasBank = Array.from(map.values()).some((a) => a.bank.toLowerCase() === s.bank.toLowerCase());
+      if (!hasBank) map.set(`${s.bank}::${s.name}`, s);
+    }
+    return Array.from(map.values());
+  }, [transactions]);
 
   // Only entities with movements in the selected period
   const activeEntities = ENTITY_CFG.filter(
@@ -472,12 +537,14 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     return net;
   }, [transactions]);
 
-  const caixaTotal = coraConfigured && !anyLoading && totalBalance > 0
+  // Use AWQ_Holding Cora balance as soon as it loads (don't wait for ENERDY)
+  const holdingLoaded = accounts.filter((a) => a.key !== "ENERDY").every((a) => !a.loading);
+  const caixaTotal = coraConfigured && holdingLoaded && totalBalance > 0
     ? totalBalance
     : openingBalance > 0
       ? openingBalance + allTimeNet
       : allTimeNet;
-  const caixaLabel = coraConfigured && !anyLoading && totalBalance > 0
+  const caixaLabel = coraConfigured && holdingLoaded && totalBalance > 0
     ? "Saldo real (Cora)"
     : openingBalance > 0 ? "Estimado" : "Fluxo acumulado";
 
@@ -676,12 +743,10 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tick={{ fontSize: 10, fill: "#b5b0a8" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={fmtK}
+                tickFormatter={(v: number) => v < 0 ? "" : fmtK(v)}
                 width={56}
-                domain={[
-                  (dataMin: number) => Math.min(0, Math.floor(dataMin / 1000) * 1000),
-                  "auto",
-                ]}
+                domain={[0, "auto"]}
+                allowDataOverflow
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
@@ -706,8 +771,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 radius={[0, 0, 2, 2]}
               />
 
-              {/* Saldo — navy line with small dots (like Conta Azul) */}
-              {!hidden.has("total") && (
+              {/* Saldo — navy line with small dots (like Conta Azul).
+                  Hide until AWQ_Holding balance loads — don't wait for ENERDY. */}
+              {!hidden.has("total") && (!coraConfigured || holdingLoaded) && (
                 <Line
                   type="monotone"
                   dataKey="saldo"
@@ -727,6 +793,13 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <button onClick={() => setViewMode("mensal")}
                   className="text-brand-500 hover:underline">ver todo o histórico</button>
               )}
+            </p>
+          )}
+
+          {/* Saldo loading hint — only until AWQ_Holding balance loads */}
+          {coraConfigured && !holdingLoaded && (
+            <p className="text-center text-[10px] text-gray-300 animate-pulse -mt-1 mb-1">
+              Calculando posição de caixa…
             </p>
           )}
 
@@ -768,8 +841,17 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             {txAccounts.map((acc) => {
               const coraAcc = accounts.find((a) => a.key === acc.entity);
               const cfg = ENTITY_CFG.find((e) => e.key === acc.entity);
-              const initials = acc.entity === "ENERDY" ? "ENRD" : (cfg?.initials ?? "AWQ");
-              const bg = acc.entity === "ENERDY" ? "bg-violet-600" : (cfg?.bg ?? "bg-brand-600");
+              const bankLower = (acc.bank ?? "").toLowerCase();
+              const isItau = bankLower.includes("itaú") || bankLower.includes("itau");
+              const isBtg  = bankLower.includes("btg");
+              const initials = acc.entity === "ENERDY" ? "ENRD"
+                : isItau ? "ITAU"
+                : isBtg ? "BTG"
+                : (cfg?.initials ?? "AWQ");
+              const bg = acc.entity === "ENERDY" ? "bg-violet-600"
+                : isItau ? "bg-orange-600"
+                : isBtg ? "bg-slate-800"
+                : (cfg?.bg ?? "bg-brand-600");
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
               const entityNet = acc.entity in genResult.byEntity
                 ? genResult.byEntity[acc.entity as EntityKey].net
