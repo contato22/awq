@@ -97,6 +97,10 @@ const MONTH_NAMES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set"
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+// Arredonda para 2 casas decimais — evita ruído de ponto flutuante em somas.
+function round2(v: number) {
+  return Math.round(v * 100) / 100;
+}
 function fmtK(v: number) {
   const abs = Math.abs(v);
   if (abs >= 1_000_000) return `${v < 0 ? "-" : ""}R$${(Math.abs(v) / 1_000_000).toFixed(1)}M`;
@@ -271,8 +275,15 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     };
   });
 
-  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+  // Aggregates preservam centavos (round2). Bar values em FlowRow seguem
+  // arredondados pra inteiros — chart bars não precisam de precisão de cents.
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
 }
 
 function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth?: string): FlowResult {
@@ -319,8 +330,13 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
     };
   });
 
-  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-    net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -514,15 +530,17 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     return map;
   }, [transactions, genRange]);
 
-  // Tx + pending counts per (bank, accountName).
+  // Tx + pending counts + coverage period per (bank, accountName).
   const statsByAccount = useMemo(() => {
-    const map = new Map<string, { total: number; pending: number; reconciled: number }>();
+    const map = new Map<string, { total: number; pending: number; reconciled: number; firstDate: string | null; lastDate: string | null }>();
     for (const t of transactions) {
       const k = `${t.bank}::${t.accountName}`;
-      const cur = map.get(k) ?? { total: 0, pending: 0, reconciled: 0 };
+      const cur = map.get(k) ?? { total: 0, pending: 0, reconciled: 0, firstDate: null, lastDate: null };
       cur.total += 1;
       if (t.reconciliationStatus === "pendente" || t.reconciliationStatus === "em_revisao") cur.pending += 1;
       if (t.reconciliationStatus === "conciliado") cur.reconciled += 1;
+      if (!cur.firstDate || t.transactionDate < cur.firstDate) cur.firstDate = t.transactionDate;
+      if (!cur.lastDate  || t.transactionDate > cur.lastDate)  cur.lastDate  = t.transactionDate;
       map.set(k, cur);
     }
     return map;
@@ -551,7 +569,16 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       const hasBank = Array.from(map.values()).some((a) => a.bank.toLowerCase() === s.bank.toLowerCase());
       if (!hasBank) map.set(`${s.bank}::${s.name}`, s);
     }
-    return Array.from(map.values());
+    // Ordem estável: Cora primeiro (live), depois outros banks. Dentro de cada grupo,
+    // por tx count desc — contas mais ativas no topo.
+    return Array.from(map.values()).sort((a, b) => {
+      const aCora = a.bank.toLowerCase().includes("cora") ? 0 : 1;
+      const bCora = b.bank.toLowerCase().includes("cora") ? 0 : 1;
+      if (aCora !== bCora) return aCora - bCora;
+      const aTx = transactions.filter((t) => t.bank === a.bank && t.accountName === a.name).length;
+      const bTx = transactions.filter((t) => t.bank === b.bank && t.accountName === b.name).length;
+      return bTx - aTx;
+    });
   }, [transactions]);
 
   // Only entities with movements in the selected period
