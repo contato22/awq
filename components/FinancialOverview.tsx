@@ -232,10 +232,9 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
   const from  = `${month}-01`;
   const to    = `${month}-${String(nDays).padStart(2, "0")}`;
 
-  // Balance at start of this month
+  // Balance at start of this month (txns ja vem pre-filtrado pelo caller)
   let prePeriodNet = 0;
   for (const t of txns) {
-    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
     if (t.transactionDate < from) {
       prePeriodNet += t.direction === "credit" ? t.amount : -t.amount;
     }
@@ -249,7 +248,6 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
   }
 
   for (const t of txns) {
-    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
     if (t.transactionDate < from || t.transactionDate > to) continue;
     const bucket = dayMap.get(t.transactionDate);
     if (!bucket) continue;
@@ -277,7 +275,8 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
 }
 
 function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth?: string): FlowResult {
-  const eligible = txns.filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated);
+  // txns ja vem pre-filtrado pelo caller (todas as contas exceto ENERDY)
+  const eligible = txns;
   if (eligible.length === 0) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
 
   const earliestMonth = eligible.reduce(
@@ -405,13 +404,11 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
       : 0;
 
-    // Escopo do chart = todas as entidades operacionais da Holding (AWQ_Holding,
-    // JACQES, Caza_Vision). Inclui Itaú/BTG (entity=AWQ_Holding) além do Cora.
-    // O filtro anterior restringia a entidades com saldo Cora carregado, mas
-    // isso ficou obsoleto quando a linha de saldo foi removida (PR #297) —
-    // qualquer transação Itaú/BTG cuja entity não fosse exatamente "AWQ_Holding"
-    // sumia dos KPIs AR/AP.
-    const chartTxns = transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
+    // Escopo do chart = todas as contas (exceto ENERDY). Inclui intercompany e
+    // aplicacoes financeiras — soma bruta de AR (creditos) e AP (debitos) em
+    // todas as contas bancarias da Holding (AWQ Cora + Itau + BTG + JACQES +
+    // Caza_Vision), igual ao extrato consolidado da Holding.
+    const chartTxns = transactions.filter(t => t.entity !== "ENERDY");
 
     let raw: FlowResult;
     if (viewMode === "diario") {
@@ -591,7 +588,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa</h3>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              Recebimentos e pagamentos realizados · exclui intercompany e aplicações
+              Recebimentos e pagamentos · soma bruta de todas as contas (exceto ENERDY)
             </p>
           </div>
 
