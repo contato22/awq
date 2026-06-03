@@ -743,10 +743,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tick={{ fontSize: 10, fill: "#b5b0a8" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => v < 0 ? "" : fmtK(v)}
+                tickFormatter={(v: number) => fmtK(v)}
                 width={56}
-                domain={[0, "auto"]}
-                allowDataOverflow
+                domain={[(dataMin: number) => Math.min(0, dataMin), "auto"]}
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
