@@ -564,6 +564,13 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
+      {/* SMOKE TEST — REMOVER DEPOIS DE CONFIRMAR VISUALMENTE */}
+      <div style={{
+        background: "red", color: "white", fontSize: 14, fontWeight: 700,
+        padding: 10, borderRadius: 8, textAlign: "center"
+      }}>
+        🔴 BUILD 08f6f98 — SEM LINHA DE SALDO — {new Date().toISOString()}
+      </div>
 
       {/* ── 1. Fluxo de Caixa (Conta Azul style) ─────────────────────────── */}
       <div className="card overflow-visible">
