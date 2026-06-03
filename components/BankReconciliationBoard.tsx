@@ -386,6 +386,19 @@ export default function BankReconciliationBoard({
         map.set(k, { label, bank: t.bank ?? "", entity: t.entity ?? "" });
       }
     }
+    // Static onboarding accounts — banks da Holding ainda sem extrato ingerido.
+    const staticAccounts: { bank: string; name: string; entity: string }[] = [
+      { bank: "Itaú",         name: "Conta PJ AWQ Itaú", entity: "AWQ_Holding" },
+      { bank: "BTG Empresas", name: "Conta PJ AWQ BTG",  entity: "AWQ_Holding" },
+    ];
+    for (const s of staticAccounts) {
+      const hasBank = Array.from(map.values()).some((a) => a.bank.toLowerCase() === s.bank.toLowerCase());
+      if (!hasBank) {
+        const k = `${s.bank}::${s.name}`;
+        const label = s.name.replace(/^Conta\s+PJ\s+/i, "").trim();
+        map.set(k, { label, bank: s.bank, entity: s.entity });
+      }
+    }
     return [
       { key: "todos", label: "Todas as contas", bank: "", entity: "" },
       ...Array.from(map.entries()).map(([key, v]) => ({ key, label: v.label, bank: v.bank, entity: v.entity })),
