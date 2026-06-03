@@ -97,6 +97,10 @@ const MONTH_NAMES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set"
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+// Arredonda para 2 casas decimais — evita ruído de ponto flutuante em somas.
+function round2(v: number) {
+  return Math.round(v * 100) / 100;
+}
 function fmtK(v: number) {
   const abs = Math.abs(v);
   if (abs >= 1_000_000) return `${v < 0 ? "-" : ""}R$${(Math.abs(v) / 1_000_000).toFixed(1)}M`;
@@ -271,8 +275,15 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     };
   });
 
-  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+  // Aggregates preservam centavos (round2). Bar values em FlowRow seguem
+  // arredondados pra inteiros — chart bars não precisam de precisão de cents.
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
 }
 
 function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth?: string): FlowResult {
@@ -319,8 +330,13 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
     };
   });
 
-  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-    net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
