@@ -789,7 +789,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
 
           <ResponsiveContainer width="100%" height={230}>
             <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-              barCategoryGap="30%">
+              barCategoryGap="30%" stackOffset="sign">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
               <XAxis
                 dataKey="label"
