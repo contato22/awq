@@ -1,14 +1,15 @@
-// ─── Seed PPM ENRD: Coral Home — one-shot idempotente ───────────────────────
+// ─── Seed PPM ENRD: Coral Home — one-shot, atualiza se já existir ────────────
 // GET /api/enrd/seed-coral-home-project
 //
-// Cria o projeto PPM da Coral Home como retainer mensal R$1.500 (BU=ENRD)
-// com o escopo completo (12 vídeos/mês, captação + edição, 1 reunião de
-// alinhamento). PM = Gabriel Cazadem. Acesso restrito a Gabriel ou Miguel.
-// Idempotente por nome do projeto.
+// Cria (ou atualiza) o projeto PPM da Coral Home como retainer mensal R$1.790
+// (BU=ENRD) com o escopo completo da proposta: 12 vídeos/mês, captação +
+// edição, 1 reunião de alinhamento. PM = Gabriel Cazadem.
+// Acesso restrito a Gabriel ou Miguel. Idempotente por nome — se já existir,
+// faz PATCH com os valores canônicos atuais.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { createProject, listProjects } from "@/lib/ppm-db";
+import { createProject, listProjects, updateProject } from "@/lib/ppm-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +21,8 @@ const ALLOWED_EMAILS = new Set([
 const OWNER_NAME  = "Gabriel Cazadem";
 
 const PROJECT_NAME = "Coral Home — Retainer Social Media";
-const MRR          = 1500;     // valor com desconto fechado (tabela R$1.790)
-const MONTHLY_COST = 600;      // estimativa de custo interno de entrega (≈40% do MRR)
+const MRR          = 1790;     // valor mensal da proposta vigente
+const MONTHLY_COST = 720;      // ≈40% do MRR — placeholder, editável pelo /awq/ppm/[id]
 const MONTHLY_HOURS = 26;      // média declarada no escopo (23h-30h)
 
 const TODAY = new Date();
@@ -34,19 +35,49 @@ const END   = (() => {
 
 const SCOPE_DESCRIPTION = `Retainer de social media — 12 vídeos/mês (3 por semana). Produção end-to-end por Gabriel Cazadem: roteiro, captação, edição, legenda, correção de cor e finalização de áudio.
 
-Rotina:
-• 1 dia fixo/semana presencial no cliente
-• Manhã — captação dos 3 vídeos da semana (2-3h)
-• Tarde — edição completa (3h30-4h)
-• 1x/mês — reunião de alinhamento (1-2h)
+O que entregamos:
+• 12 vídeos completos por mês (3 por semana)
+• Roteiro desenvolvido pela agência
+• Captação de conteúdo
+• Edição completa, legenda, correção de cor, finalização de áudio
+• Produção com câmera profissional para eventos especiais — alinhar valor com a agência
 
-Tempo total mensal: ~23h-30h dedicadas (gravação 8-12h + edição 14-16h + alinhamento 1-2h).
+Como funciona — 1 dia fixo/semana presencial no cliente:
+• Manhã (2-3h) — captação dos 3 vídeos da semana no espaço da empresa
+• Tarde (3h30-4h) — edição completa (corte, legenda, cor, áudio)
+• 1x/mês (1-2h) — reunião de alinhamento: metas, calendário comercial, promoções, lançamentos e direcionamento
 
-Comercial: R$1.500/mês (tabela cheia R$1.790, desconto R$290 negociado no fechamento). Tráfego pago, câmera profissional para eventos, atendimento no Direct, SDR, apresentador e carrosséis não inclusos — contratáveis em separado.`;
+Tempo mensal dedicado ao cliente: 23h-30h
+• Gravação semanal (4x/mês) — 8-12h
+• Edição completa (4x/mês) — 14-16h
+• Alinhamento mensal — 1-2h
 
-const SCOPE_OBJECTIVES = "12 vídeos por mês (3 por semana), produção completa do roteiro à entrega. Posicionamento consistente da marca Coral Home em social media.";
+Não incluso (contratável em separado): produção com câmera profissional, atendimento no Direct, SDR, tráfego pago, apresentador nos vídeos, carrosséis.`;
 
-const SCOPE_NOTES = "MRR R$1.500 · tabela R$1.790 · desconto R$290 · 1 dia/semana presencial · 23-30h/mês · ~12 vídeos/mês.";
+const SCOPE_OBJECTIVES = "12 vídeos por mês (3 por semana), produção completa do roteiro à entrega. Posicionamento consistente da marca Coral Home em social media. Alinhamento, estratégia e consistência para construir o posicionamento mês a mês.";
+
+const SCOPE_NOTES = "MRR R$1.790/mês · 12 vídeos/mês · 1 dia/semana presencial · 23-30h/mês dedicadas · tráfego pago e câmera profissional não inclusos.";
+
+const PROJECT_PATCH = {
+  project_name:      PROJECT_NAME,
+  customer_name:     "Coral Home",
+  bu_code:           "ENRD" as const,
+  project_type:      "retainer" as const,
+  service_category:  "social_media" as const,
+  contract_type:     "retainer" as const,
+  budget_revenue:    MRR,
+  budget_cost:       MONTHLY_COST,
+  budget_hours:      MONTHLY_HOURS,
+  billing_frequency: "monthly" as const,
+  project_manager:   OWNER_NAME,
+  description:       SCOPE_DESCRIPTION,
+  objectives:        SCOPE_OBJECTIVES,
+  notes:             SCOPE_NOTES,
+  phase:             "execution" as const,
+  status:            "active" as const,
+  health_status:     "green" as const,
+  priority:          "medium" as const,
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -67,66 +98,62 @@ async function runSeed(req: NextRequest) {
       { status: 403 },
     );
   }
-
   const runBy = token.email;
 
-  // Idempotência
-  let existingNames = new Set<string>();
+  // Localiza por nome (case-insensitive) para decidir create vs update
+  let existing: Awaited<ReturnType<typeof listProjects>>[number] | undefined;
   let listErr: string | undefined;
   try {
-    const existing = await listProjects({ bu_code: "ENRD" });
-    existingNames = new Set(existing.map(p => p.project_name.toLowerCase().trim()));
+    const rows = await listProjects({ bu_code: "ENRD" });
+    existing = rows.find(p => p.project_name.toLowerCase().trim() === PROJECT_NAME.toLowerCase().trim());
   } catch (err) { listErr = String(err); }
 
-  const key = PROJECT_NAME.toLowerCase().trim();
-  if (existingNames.has(key)) {
-    return NextResponse.json({
-      ok: true,
-      runBy,
-      runAt: new Date().toISOString(),
-      result: "skipped (projeto já existe)",
-      diagnostics: listErr ? { listProjects: listErr } : undefined,
-    });
-  }
-
   try {
-    const project = await createProject({
-      project_name:      PROJECT_NAME,
-      customer_name:     "Coral Home",
-      bu_code:           "ENRD",
-      project_type:      "retainer",
-      service_category:  "social_media",
-      contract_type:     "retainer",
-      start_date:        START,
-      planned_end_date:  END,
-      budget_revenue:    MRR,          // MRR — multiplicado por meses em contractValue()
-      budget_cost:       MONTHLY_COST,
-      budget_hours:      MONTHLY_HOURS,
-      billing_frequency: "monthly",
-      project_manager:   OWNER_NAME,
-      description:       SCOPE_DESCRIPTION,
-      objectives:        SCOPE_OBJECTIVES,
-      notes:             SCOPE_NOTES,
-      phase:             "execution",
-      status:            "active",
-      health_status:     "green",
-      priority:          "medium",
-    });
+    if (existing) {
+      const updated = await updateProject(existing.project_id, PROJECT_PATCH);
+      if (!updated) throw new Error("updateProject returned null");
+      return NextResponse.json({
+        ok: true,
+        runBy,
+        runAt: new Date().toISOString(),
+        action: "updated",
+        result: {
+          project_id:       updated.project_id,
+          project_code:     updated.project_code,
+          project_name:     updated.project_name,
+          bu_code:          updated.bu_code,
+          mrr:              updated.budget_revenue,
+          budget_cost:      updated.budget_cost,
+          start_date:       updated.start_date,
+          planned_end_date: updated.planned_end_date,
+          contract_total_estimate_12mo: MRR * 12,
+        },
+        diagnostics: listErr ? { listProjects: listErr } : undefined,
+      });
+    }
 
+    const project = await createProject({
+      ...PROJECT_PATCH,
+      start_date:       START,
+      planned_end_date: END,
+    });
     return NextResponse.json({
       ok: true,
       runBy,
       runAt: new Date().toISOString(),
+      action: "created",
       result: {
-        project_id:    project.project_id,
-        project_code:  project.project_code,
-        bu_code:       project.bu_code,
-        project_name:  project.project_name,
-        mrr:           project.budget_revenue,
-        contract_total_estimate: MRR * 12,
-        start_date:    project.start_date,
+        project_id:       project.project_id,
+        project_code:     project.project_code,
+        project_name:     project.project_name,
+        bu_code:          project.bu_code,
+        mrr:              project.budget_revenue,
+        budget_cost:      project.budget_cost,
+        start_date:       project.start_date,
         planned_end_date: project.planned_end_date,
+        contract_total_estimate_12mo: MRR * 12,
       },
+      diagnostics: listErr ? { listProjects: listErr } : undefined,
     });
   } catch (err) {
     return NextResponse.json(
