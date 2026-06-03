@@ -723,15 +723,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               <span className="w-3 h-3 rounded-sm bg-[#dc2626] opacity-75 shrink-0" />
               AP · Pagamentos
             </div>
-            <button onClick={() => toggle("total")}
-              className={`flex items-center gap-1.5 transition-opacity ${hidden.has("total") ? "opacity-30" : ""}`}>
-              <span className="inline-flex items-center gap-0.5 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1e3a5f]" />
-                <span className="w-3 h-px bg-[#1e3a5f]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1e3a5f]" />
-              </span>
-              Saldo
-            </button>
           </div>
 
           <ResponsiveContainer width="100%" height={230}>
@@ -767,7 +758,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 radius={[2, 2, 0, 0]}
               />
 
-              {/* AP — red bars going DOWN from 0 (negative values, same stackId) */}
+              {/* AP — red bars stacked above AR (both positive) */}
               <Bar
                 dataKey="pagamentos"
                 stackId="flow"
@@ -776,19 +767,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 maxBarSize={maxBarSz}
                 radius={[0, 0, 2, 2]}
               />
-
-              {/* Saldo — navy line with small dots (like Conta Azul).
-                  Hide until AWQ_Holding balance loads — don't wait for ENERDY. */}
-              {!hidden.has("total") && (!coraConfigured || holdingLoaded) && (
-                <Line
-                  type="monotone"
-                  dataKey="saldo"
-                  stroke="#1e3a5f"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#1e3a5f", stroke: "#fff", strokeWidth: 1.5 }}
-                  activeDot={{ r: 5, fill: "#1e3a5f", stroke: "#fff", strokeWidth: 2 }}
-                />
-              )}
             </ComposedChart>
           </ResponsiveContainer>
 
@@ -799,13 +777,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <button onClick={() => setViewMode("mensal")}
                   className="text-brand-500 hover:underline">ver todo o histórico</button>
               )}
-            </p>
-          )}
-
-          {/* Saldo loading hint — only until AWQ_Holding balance loads */}
-          {coraConfigured && !holdingLoaded && (
-            <p className="text-center text-[10px] text-gray-300 animate-pulse -mt-1 mb-1">
-              Calculando posição de caixa…
             </p>
           )}
 
