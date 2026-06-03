@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bar, CartesianGrid, ComposedChart, Line, ReferenceLine,
+  Bar, CartesianGrid, ComposedChart, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
@@ -385,7 +385,7 @@ function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function FinancialOverview({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
+export default function FinancialOverviewV2({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
   const todayStr = today();
 
   const [viewMode,  setViewMode]  = useState<ViewMode>("diario");
@@ -446,7 +446,12 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     let cum = 0;
     const data = raw.data.map((d) => {
       cum += d.recebimentos - d.pagamentos;
-      return { ...d, saldo: Math.max(0, Math.round(openingDay1 + cum)) };
+      return {
+        ...d,
+        // AP rendered as negative so the bar grows downward from y=0
+        pagamentos: -d.pagamentos,
+        saldo: Math.max(0, Math.round(openingDay1 + cum)),
+      };
     });
 
     return { ...raw, data };
@@ -797,9 +802,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tick={{ fontSize: 10, fill: "#b5b0a8" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => v < 0 ? "" : fmtK(v)}
+                tickFormatter={(v: number) => fmtK(Math.abs(v))}
                 width={56}
-                domain={[0, "auto"]}
+                domain={["auto", "auto"]}
                 allowDataOverflow
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />

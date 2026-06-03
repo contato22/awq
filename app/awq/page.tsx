@@ -21,7 +21,7 @@ import {
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import { getAllAR, getAllAP, initAPARDB } from "@/lib/ap-ar-db";
 
-const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
+const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverviewV2"), { ssr: false });
 const MobileHomeAwq = nextDynamic(() => import("@/components/MobileHomeAwq"), { ssr: false });
 
 const CORA_CONFIGURED = !!(

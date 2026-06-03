@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 
 // ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
-const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
+const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverviewV2"), { ssr: false });
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
