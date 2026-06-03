@@ -486,8 +486,49 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     })
     .reduce((s, t) => s + t.amount, 0);
 
-  const totalBalance = accounts.filter((a) => a.key !== "ENERDY").reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
+
+  // Latest runningBalance per (bank, accountName) — used for non-Cora cards
+  // whose balance isn't fetched from a live API.
+  const closingByAccount = useMemo(() => {
+    const map = new Map<string, { balance: number | null; date: string }>();
+    for (const t of transactions) {
+      if (t.runningBalance == null) continue;
+      const k = `${t.bank}::${t.accountName}`;
+      const prev = map.get(k);
+      if (!prev || t.transactionDate > prev.date) {
+        map.set(k, { balance: t.runningBalance, date: t.transactionDate });
+      }
+    }
+    return map;
+  }, [transactions]);
+
+  // Net per (bank, accountName) over the genRange period (matches "gerado" KPI).
+  const netByAccount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.excludedFromConsolidated) continue;
+      if (t.transactionDate < genRange.from || t.transactionDate > genRange.to) continue;
+      const k = `${t.bank}::${t.accountName}`;
+      const delta = t.direction === "credit" ? t.amount : -t.amount;
+      map.set(k, (map.get(k) ?? 0) + delta);
+    }
+    return map;
+  }, [transactions, genRange]);
+
+  // Saldo total = Cora Holding live balance + closings das outras contas Holding
+  // (exclui Cora Enerdy, que é BU ENRD).
+  const totalBalance = useMemo(() => {
+    let sum = accounts.find((a) => a.key === "AWQ_Holding")?.balance ?? 0;
+    for (const [k, v] of closingByAccount) {
+      const [bank] = k.split("::");
+      if (bank.toLowerCase().includes("cora")) continue;
+      // Only Holding-entity transactions; figure entity from first tx with that key
+      const firstTx = transactions.find((t) => `${t.bank}::${t.accountName}` === k);
+      if (firstTx?.entity === "AWQ_Holding" && v.balance != null) sum += v.balance;
+    }
+    return sum;
+  }, [accounts, closingByAccount, transactions]);
 
   const txAccounts = useMemo(() => {
     const map = new Map(transactions.map((t) => [
@@ -807,11 +848,16 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 : isBtg ? "bg-slate-800"
                 : (cfg?.bg ?? "bg-brand-600");
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
-              const entityNet = acc.entity in genResult.byEntity
-                ? genResult.byEntity[acc.entity as EntityKey].net
-                : null;
+              const isCoraBank = bankLower.includes("cora");
+              const accountKey = `${acc.bank}::${acc.name}`;
+              // Cora cards usam saldo live; outros usam runningBalance do extrato.
+              const displayBalance: number | null = isCoraBank
+                ? (coraAcc?.balance ?? null)
+                : (closingByAccount.get(accountKey)?.balance ?? null);
+              const balanceLoading = isCoraBank && !!coraAcc?.loading;
+              const accountNet = netByAccount.get(accountKey) ?? null;
               return (
-                <div key={`${acc.bank}::${acc.name}`} className="rounded-xl border border-gray-100 p-3 hover:border-gray-200 transition-colors">
+                <div key={accountKey} className="rounded-xl border border-gray-100 p-3 hover:border-gray-200 transition-colors">
                   <div className="flex items-center gap-2.5 mb-2">
                     <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-[10px] font-bold text-white tracking-wide shrink-0`}>
                       {initials}
@@ -821,13 +867,14 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                       <div className="text-[10px] text-gray-400">{acc.bank}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      {coraAcc && !coraAcc.loading && coraAcc.balance !== null && (
-                        <div className="text-sm font-bold text-gray-900 tabular-nums">{fmtBRL(coraAcc.balance)}</div>
-                      )}
-                      {coraAcc?.loading && <div className="text-[10px] text-gray-300 animate-pulse">…</div>}
-                      {entityNet !== null && (
-                        <div className={`text-[10px] font-semibold tabular-nums ${entityNet >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                          {entityNet >= 0 ? "+" : ""}{fmtK(entityNet)} gerado
+                      {balanceLoading ? (
+                        <div className="text-[10px] text-gray-300 animate-pulse">…</div>
+                      ) : displayBalance !== null ? (
+                        <div className="text-sm font-bold text-gray-900 tabular-nums">{fmtBRL(displayBalance)}</div>
+                      ) : null}
+                      {accountNet !== null && accountNet !== 0 && (
+                        <div className={`text-[10px] font-semibold tabular-nums ${accountNet >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {accountNet >= 0 ? "+" : ""}{fmtK(accountNet)} gerado
                         </div>
                       )}
                     </div>
