@@ -267,7 +267,7 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     return {
       label: String(parseInt(date.slice(8))),
       recebimentos:  Math.round(inc),
-      pagamentos:   -Math.round(out),
+      pagamentos:    Math.round(out),
       saldo:         Math.round(runningSaldo),
     };
   });
@@ -314,7 +314,7 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
     return {
       label: `${MONTH_NAMES_SHORT[mi]}/${yr.slice(2)}`,
       recebimentos:  Math.round(inc),
-      pagamentos:   -Math.round(out),
+      pagamentos:    Math.round(out),
       saldo:         Math.round(runningSaldo),
     };
   });
@@ -398,10 +398,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     [transactions, genRange, openingBalance]);
 
   const flowResult = useMemo(() => {
-    // Build raw flow data with openingBal=0, then anchor the saldo series so
-    // that "today" (or the latest data point) equals the real cash position
-    // (coraBalance). This guarantees the saldo line passes ABOVE the AR/AP
-    // bars and stays positive when the actual cash position is positive.
+    // PASSO 4 — anchor saldo no caixa real (coraBalance) reconstruindo a serie
+    // diretamente, sem depender do prePeriodNet computado dentro de buildFlowDaily.
     const coraBalance = coraConfigured
       ? accounts.filter((a) => a.key !== "ENERDY" && !a.loading && a.balance !== null)
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
@@ -417,34 +415,49 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       return transactions.filter(t => coraEntitySet.has(t.entity));
     })();
 
-    let result: FlowResult;
-    let anchorIdx: number;
-
+    let raw: FlowResult;
     if (viewMode === "diario") {
-      result = buildFlowDaily(chartTxns, monthNav, 0);
-      const todayStr = today();
-      const isCurrentMonth = todayStr.slice(0, 7) === monthNav;
-      anchorIdx = isCurrentMonth
-        ? Math.max(0, Math.min(result.data.length - 1, parseInt(todayStr.slice(8)) - 1))
-        : result.data.length - 1;
+      raw = buildFlowDaily(chartTxns, monthNav, 0);
     } else {
       const curYM     = today().slice(0, 7);
       const [cy, cm]  = curYM.split("-").map(Number);
       const fromMonth = `${cy - 1}-${String(cm).padStart(2, "0")}`;
-      result = buildFlowMonthly(chartTxns, 0, fromMonth);
-      anchorIdx = result.data.length - 1;
+      raw = buildFlowMonthly(chartTxns, 0, fromMonth);
     }
 
-    const targetSaldo = coraBalance > 0 ? coraBalance : openingBalance;
-    if (result.data.length > 0 && targetSaldo > 0 && anchorIdx >= 0) {
-      const shift = targetSaldo - result.data[anchorIdx].saldo;
-      result = {
-        ...result,
-        data: result.data.map((d) => ({ ...d, saldo: d.saldo + shift })),
-      };
+    // Anchor: saldo no fim do periodo visivel = coraBalance (fallback: openingBalance).
+    // openingDay1 = targetEndSaldo - netDoPeriodo. Acumula forward a partir dai.
+    const targetEndSaldo = coraBalance > 0 ? coraBalance : (openingBalance > 0 ? openingBalance : 0);
+    const periodNet = raw.totalIn - raw.totalOut;
+    const openingDay1 = targetEndSaldo - periodNet;
+
+    let cum = 0;
+    const data = raw.data.map((d) => {
+      cum += d.recebimentos - d.pagamentos;
+      return { ...d, saldo: Math.round(openingDay1 + cum) };
+    });
+
+    if (typeof window !== "undefined" && data.length > 0) {
+      const last = data[data.length - 1].saldo;
+      console.log("[CASHFLOW DEBUG]", {
+        coraBalance,
+        chartTxnsCount: chartTxns.length,
+        viewMode,
+        monthNav,
+        totalAR: raw.totalIn,
+        totalAP: raw.totalOut,
+        periodNet,
+        targetEndSaldo,
+        openingDay1,
+        saldoFirst: data[0].saldo,
+        saldoLast: last,
+      });
+      if (targetEndSaldo > 0 && Math.abs(last - targetEndSaldo) > 1) {
+        console.error(`[CASHFLOW ASSERT] saldo final ${last} != targetEndSaldo ${targetEndSaldo}`);
+      }
     }
 
-    return result;
+    return { ...raw, data };
   }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
   const loadBalance = useCallback(async (key: string) => {
@@ -736,12 +749,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 tick={{ fontSize: 10, fill: "#b5b0a8" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => fmtK(v)}
+                tickFormatter={(v: number) => v < 0 ? "" : fmtK(v)}
                 width={56}
-                domain={[
-                  (dataMin: number) => Math.min(0, Math.floor(dataMin / 1000) * 1000),
-                  (dataMax: number) => Math.max(0, Math.ceil(dataMax / 1000) * 1000),
-                ]}
+                domain={[0, "auto"]}
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
