@@ -369,7 +369,7 @@ function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function FinancialOverview({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
+export default function FinancialOverviewV2({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
   const todayStr = today();
 
   const [viewMode,  setViewMode]  = useState<ViewMode>("diario");
