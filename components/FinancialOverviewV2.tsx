@@ -9,6 +9,7 @@ import type { BankTransaction } from "@/lib/financial-db";
 import {
   ArrowDownLeft, ArrowUpRight, ChevronLeft, ChevronRight,
   FileUp, RefreshCw, TrendingDown, TrendingUp,
+  Activity, CheckCircle2, Clock, FileText, WifiOff,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -95,6 +96,10 @@ const MONTH_NAMES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set"
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+// Arredonda para 2 casas decimais — evita ruído de ponto flutuante em somas.
+function round2(v: number) {
+  return Math.round(v * 100) / 100;
 }
 function fmtK(v: number) {
   const abs = Math.abs(v);
@@ -232,10 +237,9 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
   const from  = `${month}-01`;
   const to    = `${month}-${String(nDays).padStart(2, "0")}`;
 
-  // Balance at start of this month
+  // Balance at start of this month (txns ja vem pre-filtrado pelo caller)
   let prePeriodNet = 0;
   for (const t of txns) {
-    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
     if (t.transactionDate < from) {
       prePeriodNet += t.direction === "credit" ? t.amount : -t.amount;
     }
@@ -249,7 +253,6 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
   }
 
   for (const t of txns) {
-    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
     if (t.transactionDate < from || t.transactionDate > to) continue;
     const bucket = dayMap.get(t.transactionDate);
     if (!bucket) continue;
@@ -272,12 +275,20 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     };
   });
 
-  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+  // Aggregates preservam centavos (round2). Bar values em FlowRow seguem
+  // arredondados pra inteiros — chart bars não precisam de precisão de cents.
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
 }
 
 function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth?: string): FlowResult {
-  const eligible = txns.filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated);
+  // txns ja vem pre-filtrado pelo caller (todas as contas exceto ENERDY)
+  const eligible = txns;
   if (eligible.length === 0) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
 
   const earliestMonth = eligible.reduce(
@@ -319,8 +330,13 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
     };
   });
 
-  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
-    net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -405,15 +421,11 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
       : 0;
 
-    const chartTxns = (() => {
-      if (coraBalance <= 0) return transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
-      const coraEntitySet = new Set(
-        accounts
-          .filter(a => a.key !== "ENERDY" && !a.loading && a.balance !== null)
-          .map(a => a.key)
-      );
-      return transactions.filter(t => coraEntitySet.has(t.entity));
-    })();
+    // Escopo do chart = todas as contas (exceto ENERDY). Inclui intercompany e
+    // aplicacoes financeiras — soma bruta de AR (creditos) e AP (debitos) em
+    // todas as contas bancarias da Holding (AWQ Cora + Itau + BTG + JACQES +
+    // Caza_Vision), igual ao extrato consolidado da Holding.
+    const chartTxns = transactions.filter(t => t.entity !== "ENERDY");
 
     let raw: FlowResult;
     if (viewMode === "diario") {
@@ -493,8 +505,65 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     })
     .reduce((s, t) => s + t.amount, 0);
 
-  const totalBalance = accounts.filter((a) => a.key !== "ENERDY").reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
+
+  // Latest runningBalance per (bank, accountName) — used for non-Cora cards
+  // whose balance isn't fetched from a live API.
+  const closingByAccount = useMemo(() => {
+    const map = new Map<string, { balance: number | null; date: string }>();
+    for (const t of transactions) {
+      if (t.runningBalance == null) continue;
+      const k = `${t.bank}::${t.accountName}`;
+      const prev = map.get(k);
+      if (!prev || t.transactionDate > prev.date) {
+        map.set(k, { balance: t.runningBalance, date: t.transactionDate });
+      }
+    }
+    return map;
+  }, [transactions]);
+
+  // Net per (bank, accountName) over the genRange period (matches "gerado" KPI).
+  const netByAccount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.excludedFromConsolidated) continue;
+      if (t.transactionDate < genRange.from || t.transactionDate > genRange.to) continue;
+      const k = `${t.bank}::${t.accountName}`;
+      const delta = t.direction === "credit" ? t.amount : -t.amount;
+      map.set(k, (map.get(k) ?? 0) + delta);
+    }
+    return map;
+  }, [transactions, genRange]);
+
+  // Tx + pending counts + coverage period per (bank, accountName).
+  const statsByAccount = useMemo(() => {
+    const map = new Map<string, { total: number; pending: number; reconciled: number; firstDate: string | null; lastDate: string | null }>();
+    for (const t of transactions) {
+      const k = `${t.bank}::${t.accountName}`;
+      const cur = map.get(k) ?? { total: 0, pending: 0, reconciled: 0, firstDate: null, lastDate: null };
+      cur.total += 1;
+      if (t.reconciliationStatus === "pendente" || t.reconciliationStatus === "em_revisao") cur.pending += 1;
+      if (t.reconciliationStatus === "conciliado") cur.reconciled += 1;
+      if (!cur.firstDate || t.transactionDate < cur.firstDate) cur.firstDate = t.transactionDate;
+      if (!cur.lastDate  || t.transactionDate > cur.lastDate)  cur.lastDate  = t.transactionDate;
+      map.set(k, cur);
+    }
+    return map;
+  }, [transactions]);
+
+  // Saldo total = Cora Holding live balance + closings das outras contas Holding
+  // (exclui Cora Enerdy, que é BU ENRD).
+  const totalBalance = useMemo(() => {
+    let sum = accounts.find((a) => a.key === "AWQ_Holding")?.balance ?? 0;
+    for (const [k, v] of closingByAccount) {
+      const [bank] = k.split("::");
+      if (bank.toLowerCase().includes("cora")) continue;
+      // Only Holding-entity transactions; figure entity from first tx with that key
+      const firstTx = transactions.find((t) => `${t.bank}::${t.accountName}` === k);
+      if (firstTx?.entity === "AWQ_Holding" && v.balance != null) sum += v.balance;
+    }
+    return sum;
+  }, [accounts, closingByAccount, transactions]);
 
   const txAccounts = useMemo(() => {
     const map = new Map(transactions.map((t) => [
@@ -505,7 +574,16 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       const hasBank = Array.from(map.values()).some((a) => a.bank.toLowerCase() === s.bank.toLowerCase());
       if (!hasBank) map.set(`${s.bank}::${s.name}`, s);
     }
-    return Array.from(map.values());
+    // Ordem estável: Cora primeiro (live), depois outros banks. Dentro de cada grupo,
+    // por tx count desc — contas mais ativas no topo.
+    return Array.from(map.values()).sort((a, b) => {
+      const aCora = a.bank.toLowerCase().includes("cora") ? 0 : 1;
+      const bCora = b.bank.toLowerCase().includes("cora") ? 0 : 1;
+      if (aCora !== bCora) return aCora - bCora;
+      const aTx = transactions.filter((t) => t.bank === a.bank && t.accountName === a.name).length;
+      const bTx = transactions.filter((t) => t.bank === b.bank && t.accountName === b.name).length;
+      return bTx - aTx;
+    });
   }, [transactions]);
 
   // Only entities with movements in the selected period
@@ -557,7 +635,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa</h3>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              Recebimentos e pagamentos realizados · exclui intercompany e aplicações
+              Recebimentos e pagamentos · soma bruta de todas as contas (exceto ENERDY)
             </p>
           </div>
 
@@ -805,6 +883,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
               const bankLower = (acc.bank ?? "").toLowerCase();
               const isItau = bankLower.includes("itaú") || bankLower.includes("itau");
               const isBtg  = bankLower.includes("btg");
+              const isCoraBank = bankLower.includes("cora");
               const initials = acc.entity === "ENERDY" ? "ENRD"
                 : isItau ? "ITAU"
                 : isBtg ? "BTG"
@@ -813,34 +892,118 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 : isItau ? "bg-orange-600"
                 : isBtg ? "bg-slate-800"
                 : (cfg?.bg ?? "bg-brand-600");
-              const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
-              const entityNet = acc.entity in genResult.byEntity
-                ? genResult.byEntity[acc.entity as EntityKey].net
+              const ring = acc.entity === "ENERDY" ? "ring-violet-100"
+                : isItau ? "ring-orange-100"
+                : isBtg ? "ring-slate-100"
+                : "ring-brand-100";
+              // Label limpo: tira "Conta [PJ] " do começo e "AWQ" do fim.
+              const label = (acc.name ?? acc.bank ?? "")
+                .replace(/^Conta\s+(PJ\s+)?/i, "")
+                .replace(/\s+AWQ$/i, "")
+                .trim();
+              const accountKey = `${acc.bank}::${acc.name}`;
+              const displayBalance: number | null = isCoraBank
+                ? (coraAcc?.balance ?? null)
+                : (closingByAccount.get(accountKey)?.balance ?? null);
+              const balanceLoading = isCoraBank && !!coraAcc?.loading;
+              const accountNet = netByAccount.get(accountKey) ?? null;
+              const stats = statsByAccount.get(accountKey) ?? { total: 0, pending: 0, reconciled: 0 };
+              const lastDate = closingByAccount.get(accountKey)?.date ?? null;
+              const daysSince = lastDate
+                ? Math.floor((Date.now() - new Date(lastDate).getTime()) / 86_400_000)
                 : null;
+              const lastLabel = daysSince == null ? null
+                : daysSince === 0 ? "hoje"
+                : daysSince === 1 ? "ontem"
+                : daysSince < 30 ? `há ${daysSince}d`
+                : daysSince < 365 ? `há ${Math.floor(daysSince / 30)}mês`
+                : `há ${Math.floor(daysSince / 365)}a`;
               return (
-                <div key={`${acc.bank}::${acc.name}`} className="rounded-xl border border-gray-100 p-3 hover:border-gray-200 transition-colors">
-                  <div className="flex items-center gap-2.5 mb-2">
-                    <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-[10px] font-bold text-white tracking-wide shrink-0`}>
+                <div key={accountKey} className="group rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all overflow-hidden">
+
+                  {/* ── Top: badge + name + balance ── */}
+                  <div className="flex items-start gap-2.5 p-3 pb-2">
+                    <span className={`w-9 h-9 rounded-lg ${bg} ring-4 ${ring} flex items-center justify-center text-[10px] font-bold text-white tracking-wide shrink-0`}>
                       {initials}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-gray-900 truncate">{label}</div>
-                      <div className="text-[10px] text-gray-400">{acc.bank}</div>
+                      <div className="text-xs font-semibold text-gray-900 truncate" title={acc.name}>{label}</div>
+                      <div className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+                        <span className="truncate">{acc.bank}</span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-gray-300 shrink-0" />
+                        {isCoraBank ? (
+                          <span className="flex items-center gap-0.5 text-emerald-600 font-semibold shrink-0">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                            Live
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-0.5 text-gray-400 shrink-0">
+                            <WifiOff size={8} /> Manual
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right shrink-0">
-                      {coraAcc && !coraAcc.loading && coraAcc.balance !== null && (
-                        <div className="text-sm font-bold text-gray-900 tabular-nums">{fmtBRL(coraAcc.balance)}</div>
+                      {balanceLoading ? (
+                        <div className="text-[10px] text-gray-300 animate-pulse">…</div>
+                      ) : displayBalance !== null ? (
+                        <div className="text-sm font-bold text-gray-900 tabular-nums leading-tight">{fmtBRL(displayBalance)}</div>
+                      ) : (
+                        <div className="text-[10px] text-gray-300 italic">—</div>
                       )}
-                      {coraAcc?.loading && <div className="text-[10px] text-gray-300 animate-pulse">…</div>}
-                      {entityNet !== null && (
-                        <div className={`text-[10px] font-semibold tabular-nums ${entityNet >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                          {entityNet >= 0 ? "+" : ""}{fmtK(entityNet)} gerado
+                      {accountNet !== null && accountNet !== 0 && (
+                        <div className={`text-[10px] font-semibold tabular-nums leading-tight mt-0.5 ${accountNet >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {accountNet >= 0 ? "+" : ""}{fmtK(accountNet)}
                         </div>
                       )}
                     </div>
                   </div>
-                  <button className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-700 hover:underline transition-colors">
-                    <FileUp size={11} /> Importe seu extrato
+
+                  {/* ── Stats row ── */}
+                  {(stats.total > 0 || lastLabel) && (
+                    <div className="px-3 pb-2 flex items-center gap-1.5 text-[10px] flex-wrap">
+                      {stats.pending > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-amber-700 font-semibold tabular-nums">
+                          {stats.pending} pendente{stats.pending > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {stats.pending === 0 && stats.total > 0 && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 font-semibold">
+                          <CheckCircle2 size={9} /> em dia
+                        </span>
+                      )}
+                      {stats.total > 0 && (
+                        <span className="text-gray-400 tabular-nums">{stats.total} tx</span>
+                      )}
+                      {lastLabel && (
+                        <span className="flex items-center gap-0.5 text-gray-400 ml-auto">
+                          <Clock size={9} /> {lastLabel}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Footer CTA ── */}
+                  <button
+                    className={`w-full flex items-center justify-center gap-1 px-3 py-2 text-[11px] font-medium border-t transition-colors ${
+                      stats.total > 0
+                        ? "border-gray-50 text-gray-500 hover:text-brand-600 hover:bg-brand-50/40"
+                        : "border-gray-50 text-brand-600 hover:bg-brand-50/60"
+                    }`}
+                    title={stats.total > 0 ? "Ver transações" : "Importar extrato"}
+                  >
+                    {stats.total > 0 ? (
+                      <>
+                        <FileText size={11} />
+                        Ver transações
+                        <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </>
+                    ) : (
+                      <>
+                        <FileUp size={11} />
+                        Importar extrato
+                      </>
+                    )}
                   </button>
                 </div>
               );
@@ -848,9 +1011,12 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           </div>
 
           {coraConfigured && !anyLoading && totalBalance > 0 && (
-            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-              <span className="text-xs font-semibold text-gray-500">Saldo total</span>
-              <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtBRL(totalBalance)}</span>
+            <div className="rounded-lg bg-gradient-to-r from-brand-50 to-emerald-50 border border-brand-100 px-3 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Activity size={11} className="text-brand-600" />
+                <span className="text-[10px] font-bold text-brand-700 uppercase tracking-wide">Saldo total · Holding</span>
+              </div>
+              <span className="text-base font-bold text-gray-900 tabular-nums">{fmtBRL(totalBalance)}</span>
             </div>
           )}
         </div>
