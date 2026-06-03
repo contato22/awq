@@ -398,17 +398,15 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     [transactions, genRange, openingBalance]);
 
   const flowResult = useMemo(() => {
-    // When Cora balance is available, anchor the saldo line to the real cash position.
-    // effectiveOpeningBal = coraBalance - periodNet ensures the line ends at coraBalance.
+    // Build raw flow data with openingBal=0, then anchor the saldo series so
+    // that "today" (or the latest data point) equals the real cash position
+    // (coraBalance). This guarantees the saldo line passes ABOVE the AR/AP
+    // bars and stays positive when the actual cash position is positive.
     const coraBalance = coraConfigured
       ? accounts.filter((a) => a.key !== "ENERDY" && !a.loading && a.balance !== null)
                 .reduce((s, a) => s + (a.balance ?? 0), 0)
       : 0;
 
-    // When anchoring to Cora, only include transactions from entities whose
-    // Cora balance is counted in coraBalance. Including other BUs (JACQES,
-    // Caza_Vision) in allNet without their corresponding Cora balances makes
-    // effectiveOpeningBal = coraBalance - allNet deeply negative.
     const chartTxns = (() => {
       if (coraBalance <= 0) return transactions.filter(t => OPERATIONAL_ENTITIES.has(t.entity));
       const coraEntitySet = new Set(
@@ -419,38 +417,34 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       return transactions.filter(t => coraEntitySet.has(t.entity));
     })();
 
+    let result: FlowResult;
+    let anchorIdx: number;
+
     if (viewMode === "diario") {
-      let effectiveOpeningBal = openingBalance;
-      if (coraBalance > 0) {
-        let allNet = 0;
-        for (const t of chartTxns) {
-          if (t.excludedFromConsolidated) continue;
-          allNet += t.direction === "credit" ? t.amount : -t.amount;
-        }
-        effectiveOpeningBal = coraBalance - allNet;
-      }
-      return buildFlowDaily(chartTxns, monthNav, effectiveOpeningBal);
+      result = buildFlowDaily(chartTxns, monthNav, 0);
+      const todayStr = today();
+      const isCurrentMonth = todayStr.slice(0, 7) === monthNav;
+      anchorIdx = isCurrentMonth
+        ? Math.max(0, Math.min(result.data.length - 1, parseInt(todayStr.slice(8)) - 1))
+        : result.data.length - 1;
+    } else {
+      const curYM     = today().slice(0, 7);
+      const [cy, cm]  = curYM.split("-").map(Number);
+      const fromMonth = `${cy - 1}-${String(cm).padStart(2, "0")}`;
+      result = buildFlowMonthly(chartTxns, 0, fromMonth);
+      anchorIdx = result.data.length - 1;
     }
 
-    // Monthly view: limit to last 12 months so the chart starts at a meaningful
-    // value instead of all zeros (incomplete historical data makes allNet >> coraBalance).
-    // 12 months ago — same month, previous year
-    const curYM     = today().slice(0, 7);
-    const [cy, cm]  = curYM.split("-").map(Number);
-    const fromMonth = `${cy - 1}-${String(cm).padStart(2, "0")}`;
-
-    let effectiveOpeningBal = openingBalance;
-    if (coraBalance > 0) {
-      // Anchor using only the 12-month window so openingBal stays positive
-      let recentNet = 0;
-      for (const t of chartTxns) {
-        if (t.excludedFromConsolidated) continue;
-        if (t.transactionDate.slice(0, 7) >= fromMonth)
-          recentNet += t.direction === "credit" ? t.amount : -t.amount;
-      }
-      effectiveOpeningBal = coraBalance - recentNet;
+    const targetSaldo = coraBalance > 0 ? coraBalance : openingBalance;
+    if (result.data.length > 0 && targetSaldo > 0 && anchorIdx >= 0) {
+      const shift = targetSaldo - result.data[anchorIdx].saldo;
+      result = {
+        ...result,
+        data: result.data.map((d) => ({ ...d, saldo: d.saldo + shift })),
+      };
     }
-    return buildFlowMonthly(chartTxns, effectiveOpeningBal, fromMonth);
+
+    return result;
   }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
   const loadBalance = useCallback(async (key: string) => {
