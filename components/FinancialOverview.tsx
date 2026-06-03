@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bar, CartesianGrid, ComposedChart, Line, ReferenceLine,
+  Bar, CartesianGrid, ComposedChart, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
@@ -437,26 +437,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       return { ...d, saldo: Math.max(0, Math.round(openingDay1 + cum)) };
     });
 
-    if (typeof window !== "undefined" && data.length > 0) {
-      const last = data[data.length - 1].saldo;
-      console.log("[CASHFLOW DEBUG]", {
-        coraBalance,
-        chartTxnsCount: chartTxns.length,
-        viewMode,
-        monthNav,
-        totalAR: raw.totalIn,
-        totalAP: raw.totalOut,
-        periodNet,
-        targetEndSaldo,
-        openingDay1,
-        saldoFirst: data[0].saldo,
-        saldoLast: last,
-      });
-      if (targetEndSaldo > 0 && Math.abs(last - targetEndSaldo) > 1) {
-        console.error(`[CASHFLOW ASSERT] saldo final ${last} != targetEndSaldo ${targetEndSaldo}`);
-      }
-    }
-
     return { ...raw, data };
   }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
 
@@ -564,14 +544,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* SMOKE TEST — REMOVER DEPOIS DE CONFIRMAR VISUALMENTE */}
-      <div style={{
-        background: "red", color: "white", fontSize: 14, fontWeight: 700,
-        padding: 10, borderRadius: 8, textAlign: "center"
-      }}>
-        🔴 BUILD 08f6f98 — SEM LINHA DE SALDO — {new Date().toISOString()}
-      </div>
-
       {/* ── 1. Fluxo de Caixa (Conta Azul style) ─────────────────────────── */}
       <div className="card overflow-visible">
 
