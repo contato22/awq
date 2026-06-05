@@ -65,11 +65,13 @@ const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out"
 
 // ─── Build flow data ──────────────────────────────────────────────────────────
 
-// buildFlowDaily monta os buckets diários e ancora o saldo no fim do período
-// em `endBalance` (saldo real da Cora Enerdy no fim do range visível). Com
-// zero movimentações: periodNet=0, openingDay1=endBalance, saldo flat=endBalance.
-// Se endBalance===null (balance ainda carregando), saldo é null por bucket — o
-// caller deve esconder o <Line> nesse estado pra evitar mostrar a linha em 0.
+// buildFlowDaily monta os buckets diários. Saldo da linha vem DIRETO do
+// `running_balance` que a Cora persiste em cada txn (lib/db.ts campo
+// running_balance, populado em /api/cora/sync). Para cada dia do periodo
+// visivel pega o running_balance da ULTIMA txn do dia (saldo end-of-day
+// segundo o extrato bancario). Dias sem movimento carregam o saldo do dia
+// anterior (carry-forward). O `endBalance` (saldo live da Cora API) so e
+// usado como fallback de ancora — preferencia absoluta pro saldo do extrato.
 function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: number | null): FlowResult {
   const year  = parseInt(month.slice(0, 4));
   const mon   = parseInt(month.slice(5, 7));
@@ -82,37 +84,68 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
     dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { i: 0, o: 0 });
   }
 
-  for (const t of txns) {
-    // txns ja vem pre-filtrado pela page via getTransactionsByEntity("ENERDY").
-    // NAO re-filtrar por entity aqui — qualquer divergencia de casing/whitespace
-    // no campo da DB descartaria tudo silenciosamente, com o board (que nao
-    // re-filtra) mostrando dados corretos enquanto o chart fica vazio.
-    const td = String(t.transactionDate ?? "");
-    if (!td) continue;
-    if (td < from || td > to) continue;
-    const b = dayMap.get(td);
-    if (!b) continue;
-    const amt = Number(t.amount) || 0;
-    if (t.direction === "credit") b.i += amt; else b.o += amt;
+  // Indexa, por dia, o running_balance da ULTIMA txn cronologica. Como a prop
+  // pode chegar em qualquer ordem, ordeno por (data, id) e pego o ultimo de
+  // cada dia — esse e o saldo end-of-day reportado pelo extrato Cora.
+  const sortedAll = txns
+    .filter((t) => !!t.transactionDate)
+    .sort((a, b) => {
+      const ad = String(a.transactionDate), bd = String(b.transactionDate);
+      if (ad !== bd) return ad < bd ? -1 : 1;
+      return String(a.id) < String(b.id) ? -1 : 1;
+    });
+
+  // Pre-period seed: running_balance da ultima txn ANTES do `from`. Serve pra
+  // dia 1 do periodo (caso o dia 1 nao tenha movimento).
+  let preSeed: number | null = null;
+  for (const t of sortedAll) {
+    const td = String(t.transactionDate);
+    if (td >= from) break;
+    if (t.runningBalance != null) preSeed = Number(t.runningBalance);
   }
 
-  // periodNet = soma de credit-debit dentro do período visível
+  // Per-day end-of-day running_balance dentro do periodo
+  const dayRunBal = new Map<string, number>();
+  for (const t of sortedAll) {
+    const td = String(t.transactionDate);
+    if (td < from || td > to) continue;
+    const b = dayMap.get(td);
+    if (b) {
+      const amt = Number(t.amount) || 0;
+      if (t.direction === "credit") b.i += amt; else b.o += amt;
+    }
+    if (t.runningBalance != null) dayRunBal.set(td, Number(t.runningBalance));
+  }
+
+  // Carry-forward: dia atual = ultimo running_balance conhecido <= esse dia
+  let lastKnown: number | null = preSeed;
   let ti = 0, to_ = 0;
   for (const { i, o } of dayMap.values()) { ti += i; to_ += o; }
   const periodNet = ti - to_;
 
-  // openingDay1 ancorado no endBalance: saldo no fim do período == endBalance.
-  // Quando endBalance é null (loading), saldo fica null pra Line não render flat-em-0.
+  // Fallback: se NAO ha nenhum running_balance no/antes do periodo, ancora
+  // pelo endBalance live (comportamento anterior). Isso cobre contas novas
+  // recem-sincronizadas sem historico ou periodos antes do primeiro extrato.
+  const noExtractAnchor = preSeed === null && dayRunBal.size === 0;
   const openingDay1 = endBalance !== null ? endBalance - periodNet : null;
 
   let cum = 0;
   const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { i, o }]) => {
     cum += i - o;
+    // Preferencia: saldo end-of-day do extrato. Se o dia nao tem extrato, usa
+    // o ultimo conhecido (carry-forward). Se nem isso, usa fallback derivado.
+    if (dayRunBal.has(date)) lastKnown = dayRunBal.get(date)!;
+    let saldo: number | null;
+    if (noExtractAnchor) {
+      saldo = openingDay1 !== null ? openingDay1 + cum : null;
+    } else {
+      saldo = lastKnown;
+    }
     return {
       label:        String(parseInt(date.slice(8))),
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
-      saldo:        openingDay1 !== null ? Math.round(openingDay1 + cum) : null,
+      saldo:        saldo !== null ? Math.round(saldo) : null,
     };
   });
   return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
@@ -297,6 +330,20 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       : buildFlowMonthly(transactions, monthlyAnchor),
   [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor]);
 
+  // Mes mais recente do extrato (ultima transactionDate). Usado pra mostrar
+  // botao "pular pra esse mes" quando o usuario abre num mes vazio.
+  const latestTxnMonth = useMemo(() => {
+    let latest = "";
+    for (const t of transactions) {
+      const td = String(t.transactionDate ?? "");
+      if (td && td > latest) latest = td;
+    }
+    return latest ? latest.slice(0, 7) : null;
+  }, [transactions]);
+  const latestTxnLabel = latestTxnMonth
+    ? `${MONTH_PT[parseInt(latestTxnMonth.slice(5)) - 1]} ${latestTxnMonth.slice(0, 4)}`
+    : null;
+
   // transactions ja vem pre-filtrado pela page (entity=ENERDY); confiar na prop
   const totalIn  = transactions.filter((t) => t.direction === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const totalOut = transactions.filter((t) => t.direction === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -326,6 +373,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       lastSaldo:  last?.saldo  ?? null,
       txnCountTotal:   transactions.length,
       txnCountWithDate: transactions.filter((t) => !!t.transactionDate).length,
+      txnCountWithRunBal: transactions.filter((t) => t.runningBalance != null).length,
       txnEntities: Array.from(new Set(transactions.map((t) => String(t.entity ?? "?")))).join(","),
       firstTxnDate: transactions.find((t) => !!t.transactionDate)?.transactionDate ?? "n/a",
     };
@@ -349,9 +397,10 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
           <div>viewMode: <b>{debugData.viewMode}</b> · monthNav: <b>{debugData.monthNav}</b> · data.length: <b>{debugData.dataLen}</b></div>
           <div>data[0].saldo: <b>{debugData.firstSaldo === null ? "null" : debugData.firstSaldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
           <div>data[last].saldo: <b>{debugData.lastSaldo === null ? "null" : debugData.lastSaldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
-          <div>txns recebidos como prop: <b>{debugData.txnCountTotal}</b> · com transactionDate: <b>{debugData.txnCountWithDate}</b></div>
+          <div>txns recebidos como prop: <b>{debugData.txnCountTotal}</b> · com transactionDate: <b>{debugData.txnCountWithDate}</b> · com runningBalance: <b>{debugData.txnCountWithRunBal}</b></div>
           <div>entities distintas na prop: <b>{debugData.txnEntities}</b> (esperado: ENERDY)</div>
           <div>primeira transactionDate: <b>{debugData.firstTxnDate}</b></div>
+          <div className="text-yellow-700 mt-1">Saldo na linha: agora puxa <b>running_balance</b> da ultima txn de cada dia (extrato Cora) com carry-forward. Fallback no balance live só se nao ha extrato.</div>
         </div>
       )}
 
@@ -467,7 +516,10 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
         {!flowResult.hasData && (
           <p className="text-center text-[11px] text-gray-400 -mt-2 mb-1">
             Sem movimentações {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"}
-            {viewMode === "diario" && (
+            {viewMode === "diario" && latestTxnMonth && latestTxnMonth !== monthNav && (
+              <> · <button onClick={() => setMonthNav(latestTxnMonth)} className="text-emerald-600 font-semibold hover:underline">ir para {latestTxnLabel}</button> (mês com a última txn)</>
+            )}
+            {viewMode === "diario" && (!latestTxnMonth || latestTxnMonth === monthNav) && (
               <> · <button onClick={() => setViewMode("mensal")} className="text-violet-500 hover:underline">ver histórico</button></>
             )}
           </p>
