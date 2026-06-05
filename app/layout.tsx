@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import LayoutShell from "@/components/LayoutShell";
+import BuildSHAGuard from "@/components/BuildSHAGuard";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <body>
+        <BuildSHAGuard />
         <AuthProvider>
           <LayoutShell>{children}</LayoutShell>
         </AuthProvider>
