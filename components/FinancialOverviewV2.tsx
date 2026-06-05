@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bar, CartesianGrid, ComposedChart, ReferenceLine,
+  Bar, CartesianGrid, ComposedChart, Line, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
@@ -352,7 +352,7 @@ function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
   const meta: Record<string, { name: string; sub: string; color: string }> = {
     recebimentos: { name: "AR",    sub: "Recebimentos realizados", color: "#16a34a" },
     pagamentos:   { name: "AP",    sub: "Pagamentos realizados",   color: "#dc2626" },
-    saldo:        { name: "Saldo", sub: "Posição acumulada",       color: "#1e3a5f" },
+    saldo:        { name: "Saldo", sub: "Posição acumulada",       color: "#1e293b" },
   };
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[210px] overflow-hidden">
@@ -362,7 +362,8 @@ function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
       <div className="p-3 space-y-2">
         {payload.map((p) => {
           const m = meta[p.dataKey] ?? { name: p.dataKey, sub: "", color: "#6b7280" };
-          const displayVal = Math.abs(p.value);
+          // Saldo preserva sinal (pode ser negativo). Barras AR/AP exibem em módulo.
+          const displayVal = p.dataKey === "saldo" ? p.value : Math.abs(p.value);
           return (
             <div key={p.dataKey} className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-1.5">
@@ -414,12 +415,26 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     [transactions, genRange, openingBalance]);
 
   const flowResult = useMemo(() => {
-    // PASSO 4 — anchor saldo no caixa real (coraBalance) reconstruindo a serie
-    // diretamente, sem depender do prePeriodNet computado dentro de buildFlowDaily.
-    const coraBalance = coraConfigured
-      ? accounts.filter((a) => a.key !== "ENERDY" && !a.loading && a.balance !== null)
-                .reduce((s, a) => s + (a.balance ?? 0), 0)
+    // Anchor do saldo = caixa real consolidado das contas que alimentam as barras
+    // (todas exceto Cora Enerdy). Cora Holding entra via API live; demais bancos
+    // (Itaú, BTG, etc.) entram via último runningBalance conhecido. Qualquer banco
+    // Cora* além da Holding (= Enerdy) fica de fora.
+    const coraHoldingLive = coraConfigured
+      ? (accounts.find((a) => a.key === "AWQ_Holding" && !a.loading)?.balance ?? 0)
       : 0;
+
+    const otherClosings = new Map<string, { balance: number; date: string }>();
+    for (const t of transactions) {
+      if (t.runningBalance == null) continue;
+      if ((t.bank ?? "").toLowerCase().includes("cora")) continue;
+      const k = `${t.bank}::${t.accountName}`;
+      const prev = otherClosings.get(k);
+      if (!prev || t.transactionDate > prev.date) {
+        otherClosings.set(k, { balance: t.runningBalance, date: t.transactionDate });
+      }
+    }
+    let consolidatedRealBalance = coraHoldingLive;
+    for (const v of otherClosings.values()) consolidatedRealBalance += v.balance;
 
     // Escopo do chart = todas as contas (exceto ENERDY). Inclui intercompany e
     // aplicacoes financeiras — soma bruta de AR (creditos) e AP (debitos) em
@@ -437,9 +452,12 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       raw = buildFlowMonthly(chartTxns, 0, fromMonth);
     }
 
-    // Anchor: saldo no fim do periodo visivel = coraBalance (fallback: openingBalance).
+    // Anchor: saldo no fim do periodo visivel = consolidatedRealBalance (Cora Holding +
+    // Itaú + BTG, ex-Enerdy). Fallback: openingBalance (saldos iniciais de extratos).
     // openingDay1 = targetEndSaldo - netDoPeriodo. Acumula forward a partir dai.
-    const targetEndSaldo = coraBalance > 0 ? coraBalance : (openingBalance > 0 ? openingBalance : 0);
+    const targetEndSaldo = consolidatedRealBalance !== 0
+      ? consolidatedRealBalance
+      : (openingBalance !== 0 ? openingBalance : 0);
     const periodNet = raw.totalIn - raw.totalOut;
     const openingDay1 = targetEndSaldo - periodNet;
 
@@ -450,7 +468,8 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         ...d,
         // AP rendered as negative so the bar grows downward from y=0
         pagamentos: -d.pagamentos,
-        saldo: Math.max(0, Math.round(openingDay1 + cum)),
+        // Saldo preserva sinal real (pode ficar negativo se houver overdraft)
+        saldo: Math.round(openingDay1 + cum),
       };
     });
 
@@ -785,6 +804,10 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
               <span className="w-3 h-3 rounded-sm bg-[#dc2626] opacity-75 shrink-0" />
               AP · Pagamentos
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-[2px] rounded-sm bg-[#1e293b] shrink-0" />
+              Saldo
+            </div>
           </div>
 
           <ResponsiveContainer width="100%" height={230}>
@@ -828,6 +851,18 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 fillOpacity={0.78}
                 maxBarSize={maxBarSz}
                 radius={[0, 0, 2, 2]}
+              />
+
+              {/* Saldo acumulado — linha sobreposta no MESMO eixo Y das barras */}
+              <Line
+                type="monotone"
+                dataKey="saldo"
+                name="Saldo"
+                stroke="#1e293b"
+                strokeWidth={2}
+                dot={{ r: 3, fill: "#1e293b" }}
+                activeDot={{ r: 4 }}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
