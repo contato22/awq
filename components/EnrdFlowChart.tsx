@@ -212,7 +212,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("diario");
   const [monthNav, setMonthNav] = useState(() => today().slice(0, 7));
   const [balance,  setBalance]  = useState<number | null>(null);
-  const [loading,  setLoading]  = useState(coraConfigured);
+  const [loading,  setLoading]  = useState(true);
   const [balErr,   setBalErr]   = useState<string | null>(null);
 
   // Recharts uses ResizeObserver — only render the SVG chart after mount to
@@ -230,7 +230,12 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
     finally  { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (coraConfigured) void loadBalance(); }, [coraConfigured, loadBalance]);
+  // Sempre tenta carregar o saldo no mount — fonte da verdade é a resposta da
+  // API, NÃO env vars (que viram undefined no bundle do browser por não terem
+  // prefixo NEXT_PUBLIC_). Se a Cora não estiver configurada server-side, a API
+  // retorna 501/502, o componente cai em loading→error e <Line> simplesmente
+  // não desenha (nunca flat em R$0).
+  useEffect(() => { void loadBalance(); }, [loadBalance]);
 
   // Para o diário: ajusta endBalance pra refletir o saldo no FIM do mês visível.
   // Mês atual: endBalance = saldo live - txns futuras (geralmente 0).
