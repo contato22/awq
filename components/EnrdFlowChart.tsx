@@ -16,7 +16,7 @@ interface FlowRow {
   label: string;
   recebimentos: number;
   pagamentos: number;
-  saldo: number;
+  saldo: number | null;
 }
 
 interface FlowResult {
@@ -65,7 +65,12 @@ const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out"
 
 // ─── Build flow data ──────────────────────────────────────────────────────────
 
-function buildFlowDaily(txns: BankTransaction[], month: string, startBal: number): FlowResult {
+// buildFlowDaily monta os buckets diários e ancora o saldo no fim do período
+// em `endBalance` (saldo real da Cora Enerdy no fim do range visível). Com
+// zero movimentações: periodNet=0, openingDay1=endBalance, saldo flat=endBalance.
+// Se endBalance===null (balance ainda carregando), saldo é null por bucket — o
+// caller deve esconder o <Line> nesse estado pra evitar mostrar a linha em 0.
+function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: number | null): FlowResult {
   const year  = parseInt(month.slice(0, 4));
   const mon   = parseInt(month.slice(5, 7));
   const nDays = daysInMonth(year, mon);
@@ -86,14 +91,23 @@ function buildFlowDaily(txns: BankTransaction[], month: string, startBal: number
     if (t.direction === "credit") b.i += amt; else b.o += amt;
   }
 
-  let rs = startBal, ti = 0, to_ = 0;
+  // periodNet = soma de credit-debit dentro do período visível
+  let ti = 0, to_ = 0;
+  for (const { i, o } of dayMap.values()) { ti += i; to_ += o; }
+  const periodNet = ti - to_;
+
+  // openingDay1 ancorado no endBalance: saldo no fim do período == endBalance.
+  // Quando endBalance é null (loading), saldo fica null pra Line não render flat-em-0.
+  const openingDay1 = endBalance !== null ? endBalance - periodNet : null;
+
+  let cum = 0;
   const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { i, o }]) => {
-    rs += i - o; ti += i; to_ += o;
+    cum += i - o;
     return {
       label:        String(parseInt(date.slice(8))),
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
-      saldo:        Math.round(rs),
+      saldo:        openingDay1 !== null ? Math.round(openingDay1 + cum) : null,
     };
   });
   return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
@@ -137,19 +151,21 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
     if (t.direction === "credit") b.i += amt; else b.o += amt;
   }
 
+  // Ancora o saldo no fim do período (último bucket) = coraBalance, igual ao diário.
+  // Com txns no histórico: openingPre = coraBalance - sumOfAllPeriods.
   let allNet = 0;
-  for (const t of elig) { const amt = Number(t.amount) || 0; allNet += t.direction === "credit" ? amt : -amt; }
-  let rs = coraBalance !== null ? coraBalance - allNet : 0;
-  let ti = 0, to_ = 0;
+  for (const { i, o } of mmap.values()) { allNet += i - o; }
+  const openingPre = coraBalance !== null ? coraBalance - allNet : null;
 
+  let cum = 0, ti = 0, to_ = 0;
   const data: FlowRow[] = Array.from(mmap.entries()).map(([mk, { i, o }]) => {
-    rs += i - o; ti += i; to_ += o;
+    cum += i - o; ti += i; to_ += o;
     const mi = parseInt(mk.slice(5)) - 1;
     return {
       label:        `${MONTH_SHORT[mi]}/${mk.slice(2, 4)}`,
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
-      saldo:        Math.round(rs),
+      saldo:        openingPre !== null ? Math.round(openingPre + cum) : null,
     };
   });
   return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
@@ -216,30 +232,35 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
 
   useEffect(() => { if (coraConfigured) void loadBalance(); }, [coraConfigured, loadBalance]);
 
-  const startBal = useMemo(() => {
-    const elig = transactions.filter((t) => t.entity === "ENERDY");
-    const from = `${monthNav}-01`;
-    if (balance !== null) {
-      let allNet = 0;
-      for (const t of elig) { const a = Number(t.amount) || 0; allNet += t.direction === "credit" ? a : -a; }
-      let pre = 0;
-      for (const t of elig) {
-        if ((t.transactionDate ?? "") < from) { const a = Number(t.amount) || 0; pre += t.direction === "credit" ? a : -a; }
+  // Para o diário: ajusta endBalance pra refletir o saldo no FIM do mês visível.
+  // Mês atual: endBalance = saldo live - txns futuras (geralmente 0).
+  // Mês passado: endBalance = saldo live - net das txns posteriores ao mês.
+  const endBalanceForView = useMemo(() => {
+    if (balance === null) return null;
+    const year  = parseInt(monthNav.slice(0, 4));
+    const mon   = parseInt(monthNav.slice(5, 7));
+    const lastDay = `${monthNav}-${String(new Date(year, mon, 0).getDate()).padStart(2, "0")}`;
+    let postNet = 0;
+    for (const t of transactions) {
+      if (t.entity !== "ENERDY" || !t.transactionDate) continue;
+      if (t.transactionDate > lastDay) {
+        const a = Number(t.amount) || 0;
+        postNet += t.direction === "credit" ? a : -a;
       }
-      return (balance - allNet) + pre;
     }
-    let pre = 0;
-    for (const t of elig) {
-      if ((t.transactionDate ?? "") < from) { const a = Number(t.amount) || 0; pre += t.direction === "credit" ? a : -a; }
-    }
-    return pre;
+    return balance - postNet;
   }, [transactions, balance, monthNav]);
+
+  // Anchor: quando Cora não está configurada, ancora em 0 (legacy: linha mostra
+  // fluxo acumulado partindo do zero). Quando configurada, usa o saldo real.
+  const dailyAnchor   = coraConfigured ? endBalanceForView : 0;
+  const monthlyAnchor = coraConfigured ? balance           : 0;
 
   const flowResult = useMemo(() =>
     viewMode === "diario"
-      ? buildFlowDaily(transactions, monthNav, startBal)
-      : buildFlowMonthly(transactions, balance),
-  [transactions, viewMode, monthNav, startBal, balance]);
+      ? buildFlowDaily(transactions, monthNav, dailyAnchor)
+      : buildFlowMonthly(transactions, monthlyAnchor),
+  [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor]);
 
   const totalIn  = transactions.filter((t) => t.entity === "ENERDY" && t.direction === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const totalOut = transactions.filter((t) => t.entity === "ENERDY" && t.direction === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -341,8 +362,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
               <Bar dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
               <Bar dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
-              {(!coraConfigured || !loading) && (
+              {(!coraConfigured || balance !== null) && (
                 <Line type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
+                  connectNulls={false}
                   dot={{ r: 3, fill: "#7c3aed", stroke: "#fff", strokeWidth: 1.5 }}
                   activeDot={{ r: 5, fill: "#7c3aed", stroke: "#fff", strokeWidth: 2 }} />
               )}
