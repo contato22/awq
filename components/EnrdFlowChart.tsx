@@ -83,9 +83,14 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
   }
 
   for (const t of txns) {
-    if (t.entity !== "ENERDY" || !t.transactionDate) continue;
-    if (t.transactionDate < from || t.transactionDate > to) continue;
-    const b = dayMap.get(t.transactionDate);
+    // txns ja vem pre-filtrado pela page via getTransactionsByEntity("ENERDY").
+    // NAO re-filtrar por entity aqui — qualquer divergencia de casing/whitespace
+    // no campo da DB descartaria tudo silenciosamente, com o board (que nao
+    // re-filtra) mostrando dados corretos enquanto o chart fica vazio.
+    const td = String(t.transactionDate ?? "");
+    if (!td) continue;
+    if (td < from || td > to) continue;
+    const b = dayMap.get(td);
     if (!b) continue;
     const amt = Number(t.amount) || 0;
     if (t.direction === "credit") b.i += amt; else b.o += amt;
@@ -114,7 +119,8 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
 }
 
 function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
-  const elig = txns.filter((t) => t.entity === "ENERDY" && t.transactionDate);
+  // txns ja vem pre-filtrado pela page; so descartamos os sem data
+  const elig = txns.filter((t) => !!t.transactionDate);
   if (!elig.length) {
     // Sem movimentações: ainda assim mostra linha flat ancorada no saldo real da Cora Enerdy.
     if (coraBalance !== null) {
@@ -257,9 +263,10 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
     if (lastDay >= todayStr) return balance; // mês atual ou futuro
     let postNet = 0;
     for (const t of transactions) {
-      if (t.entity !== "ENERDY" || !t.transactionDate) continue;
+      const td = String(t.transactionDate ?? "");
+      if (!td) continue;
       // só conta o que aconteceu APÓS o fim do mês visível E ATÉ hoje
-      if (t.transactionDate > lastDay && t.transactionDate <= todayStr) {
+      if (td > lastDay && td <= todayStr) {
         const a = Number(t.amount) || 0;
         postNet += t.direction === "credit" ? a : -a;
       }
@@ -279,8 +286,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       : buildFlowMonthly(transactions, monthlyAnchor),
   [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor]);
 
-  const totalIn  = transactions.filter((t) => t.entity === "ENERDY" && t.direction === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
-  const totalOut = transactions.filter((t) => t.entity === "ENERDY" && t.direction === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  // transactions ja vem pre-filtrado pela page (entity=ENERDY); confiar na prop
+  const totalIn  = transactions.filter((t) => t.direction === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const totalOut = transactions.filter((t) => t.direction === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const net      = totalIn - totalOut;
 
   const monthLabel     = `${MONTH_PT[parseInt(monthNav.slice(5)) - 1]} ${monthNav.slice(0, 4)}`;
@@ -305,7 +313,10 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       dataLen: flowResult.data.length,
       firstSaldo: first?.saldo ?? null,
       lastSaldo:  last?.saldo  ?? null,
-      txnCountENERDY: transactions.filter((t) => t.entity === "ENERDY").length,
+      txnCountTotal:   transactions.length,
+      txnCountWithDate: transactions.filter((t) => !!t.transactionDate).length,
+      txnEntities: Array.from(new Set(transactions.map((t) => String(t.entity ?? "?")))).join(","),
+      firstTxnDate: transactions.find((t) => !!t.transactionDate)?.transactionDate ?? "n/a",
     };
   }, [balance, dailyAnchor, monthlyAnchor, viewMode, monthNav, flowResult.data, transactions]);
 
@@ -327,7 +338,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
           <div>viewMode: <b>{debugData.viewMode}</b> · monthNav: <b>{debugData.monthNav}</b> · data.length: <b>{debugData.dataLen}</b></div>
           <div>data[0].saldo: <b>{debugData.firstSaldo === null ? "null" : debugData.firstSaldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
           <div>data[last].saldo: <b>{debugData.lastSaldo === null ? "null" : debugData.lastSaldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
-          <div>txns ENERDY (prop): <b>{debugData.txnCountENERDY}</b></div>
+          <div>txns recebidos como prop: <b>{debugData.txnCountTotal}</b> · com transactionDate: <b>{debugData.txnCountWithDate}</b></div>
+          <div>entities distintas na prop: <b>{debugData.txnEntities}</b> (esperado: ENERDY)</div>
+          <div>primeira transactionDate: <b>{debugData.firstTxnDate}</b></div>
         </div>
       )}
 
