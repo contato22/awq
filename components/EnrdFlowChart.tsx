@@ -420,19 +420,27 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
 
         {mounted ? (
           <ResponsiveContainer width="100%" height={230}>
-            <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }} barCategoryGap="30%" stackOffset="sign">
+            <ComposedChart data={flowResult.data} margin={{ top: 4, right: 56, bottom: 0, left: 0 }} barCategoryGap="30%" stackOffset="sign">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false}
                 interval={viewMode === "diario" ? 4 : "preserveStartEnd"} />
-              <YAxis tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false}
+              {/* Y esquerda — escala das BARRAS (recebimentos AR / pagamentos AP).
+                  Auto-scale independente do saldo: garante que mesmo com a linha
+                  ancorada em R$ 4.425,97 as colunas verdes nao virem tracinhos
+                  invisiveis. domain inclui 0 pra ReferenceLine ficar consistente. */}
+              <YAxis yAxisId="bars" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false}
                 tickFormatter={fmtK} width={56}
-                domain={[(dataMin: number) => Math.min(0, Math.floor(dataMin / 1000) * 1000), "auto"]} />
-              <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
+                domain={[(dMin: number) => Math.min(0, dMin), (dMax: number) => Math.max(0, dMax)]} />
+              {/* Y direita — escala da LINHA DE SALDO. orientation=right + hide ticks
+                  pra nao poluir. dataKey explicito pro Recharts saber o que medir. */}
+              <YAxis yAxisId="saldo" orientation="right" hide
+                domain={[(dMin: number) => Math.min(0, dMin), "auto"]} />
+              <ReferenceLine yAxisId="bars" y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
-              <Bar dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
+              <Bar yAxisId="bars" dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
+              <Bar yAxisId="bars" dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
               {balance !== null && (
-                <Line type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
+                <Line yAxisId="saldo" type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
                   connectNulls={false}
                   dot={{ r: 3, fill: "#7c3aed", stroke: "#fff", strokeWidth: 1.5 }}
                   activeDot={{ r: 5, fill: "#7c3aed", stroke: "#fff", strokeWidth: 2 }} />
