@@ -108,6 +108,21 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     ok: dbReady && coraReady,
 
+    // Build / deploy identifiers (Vercel injects these automatically on every
+    // deploy — https://vercel.com/docs/projects/environment-variables/system-environment-variables).
+    // Exposed publicly so external probes can verify which SHA is actually
+    // being served vs. what's in origin/main. If commitSha != HEAD on main,
+    // a deploy is stuck/queued/rolled-back or the prod alias is pinned.
+    build: {
+      commitSha:     process.env.VERCEL_GIT_COMMIT_SHA     ?? null,
+      commitRef:     process.env.VERCEL_GIT_COMMIT_REF     ?? null,
+      commitMessage: process.env.VERCEL_GIT_COMMIT_MESSAGE ?? null,
+      deploymentId:  process.env.VERCEL_DEPLOYMENT_ID      ?? null,
+      vercelEnv:     process.env.VERCEL_ENV                ?? null,
+      vercelUrl:     process.env.VERCEL_URL                ?? null,
+      region:        process.env.VERCEL_REGION             ?? null,
+    },
+
     // Config presence
     ...presence,
     dbAdapter,
