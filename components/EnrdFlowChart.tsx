@@ -182,9 +182,9 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
 function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number }>; label?: string }) {
   if (!active || !payload?.length) return null;
   const meta: Record<string, { name: string; color: string }> = {
-    recebimentos: { name: "Recebimentos", color: "#16a34a" },
-    pagamentos:   { name: "Pagamentos",   color: "#dc2626" },
-    saldo:        { name: "Saldo",        color: "#7c3aed" },
+    recebimentos: { name: "AR · Recebimentos", color: "#16a34a" },
+    pagamentos:   { name: "AP · Pagamentos",   color: "#dc2626" },
+    saldo:        { name: "Saldo",             color: "#7c3aed" },
   };
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[190px] overflow-hidden">
@@ -216,7 +216,18 @@ function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: A
 export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const [mounted,  setMounted]  = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("diario");
-  const [monthNav, setMonthNav] = useState(() => today().slice(0, 7));
+  // Default: mes da txn mais recente. Garante que ao abrir a pagina o usuario
+  // ja ve as colunas AR/AP do mes onde efetivamente houve movimento. Se nao
+  // houver txn nenhuma na prop, cai no mes atual. O user pode navegar pra
+  // outros meses pelas setinhas normalmente.
+  const [monthNav, setMonthNav] = useState(() => {
+    let latest = "";
+    for (const t of transactions) {
+      const td = String(t.transactionDate ?? "");
+      if (td && td > latest) latest = td;
+    }
+    return latest ? latest.slice(0, 7) : today().slice(0, 7);
+  });
   const [balance,  setBalance]  = useState<number | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [balErr,   setBalErr]   = useState<string | null>(null);
@@ -399,8 +410,8 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
         <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
           {[
-            { color: "#16a34a", label: "Recebimentos" },
-            { color: "#dc2626", label: "Pagamentos" },
+            { color: "#16a34a", label: "AR · Recebimentos" },
+            { color: "#dc2626", label: "AP · Pagamentos" },
             { color: "#7c3aed", label: "Saldo", dots: true },
           ].map(({ color, label, dots }) => (
             <div key={label} className="flex items-center gap-1.5">
