@@ -789,7 +789,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
 
           <ResponsiveContainer width="100%" height={230}>
             <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-              barCategoryGap="30%">
+              barCategoryGap="30%" stackOffset="sign">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
               <XAxis
                 dataKey="label"
@@ -810,7 +810,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
 
-              {/* AR — green bars going UP from 0 (stackId so same x pos as AP) */}
+              {/* AR — green bars going UP from 0; AP descends below 0 via stackOffset="sign" */}
               <Bar
                 dataKey="recebimentos"
                 stackId="flow"
@@ -820,7 +820,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 radius={[2, 2, 0, 0]}
               />
 
-              {/* AP — red bars stacked above AR (both positive) */}
+              {/* AP — red bars going DOWN from 0 (value pre-negated in flowResult) */}
               <Bar
                 dataKey="pagamentos"
                 stackId="flow"
