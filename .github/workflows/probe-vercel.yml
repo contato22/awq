@@ -255,6 +255,50 @@ jobs:
           echo "  hasRealData:       $HAS_REAL"
           echo "══════════════════════════════"
 
+      # ── ASSERTION: served commit SHA matches the pushed SHA ──────────────────
+      # PASS: /api/health → build.commitSha == github.sha (this push reached prod)
+      # FAIL: mismatch (Vercel is serving an older deploy — alias not promoted,
+      #       deploy queued/errored, or production branch != main)
+      # NOTE: skipped on workflow_dispatch where github.sha is the dispatch ref,
+      #       not necessarily what's deployed.
+      - name: "ASSERT — served commitSha == github.sha (deploy actually reached prod)"
+        id: assert_served_sha
+        if: github.event_name == 'push'
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          SERVED=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print((d.get('build') or {}).get('commitSha') or 'null')" 2>/dev/null || echo "null")
+          DEPLOY_ID=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print((d.get('build') or {}).get('deploymentId') or 'null')" 2>/dev/null || echo "null")
+          VERCEL_ENV=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print((d.get('build') or {}).get('vercelEnv') or 'null')" 2>/dev/null || echo "null")
+          PUSHED="${{ github.sha }}"
+          echo "served_sha=$SERVED"     >> $GITHUB_OUTPUT
+          echo "pushed_sha=$PUSHED"     >> $GITHUB_OUTPUT
+          echo "deployment_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+          echo "vercel_env=$VERCEL_ENV"   >> $GITHUB_OUTPUT
+          echo "Pushed: $PUSHED"
+          echo "Served: $SERVED"
+          echo "Deployment ID: $DEPLOY_ID"
+          echo "Vercel env: $VERCEL_ENV"
+          if [ "$SERVED" = "null" ] || [ -z "$SERVED" ]; then
+            echo "FAIL: /api/health did not expose build.commitSha"
+            echo "Either /api/health is from an older deploy (pre-instrumentation) or Vercel env vars VERCEL_GIT_COMMIT_SHA are not being injected."
+            exit 1
+          fi
+          if [ "$SERVED" != "$PUSHED" ]; then
+            echo "FAIL: production is serving an OLDER deploy."
+            echo "  Pushed SHA : $PUSHED"
+            echo "  Served SHA : $SERVED"
+            echo "  Deployment : $DEPLOY_ID ($VERCEL_ENV)"
+            echo ""
+            echo "Likely causes:"
+            echo "  - Vercel deploy queued/building/errored (check Vercel dashboard → Deployments)"
+            echo "  - Production alias 'awq-brown' pinned to an older deploy"
+            echo "  - Production Branch in Vercel project settings != main"
+            echo "  - GitHub App disconnected from the repo"
+            exit 1
+          fi
+          echo "PASS: production is serving the pushed SHA ($SERVED) — deployment $DEPLOY_ID"
+
       # ── Per-env-var ASSERTIONS — each step conclusion is machine-readable ─────
       # PASS (success): env var is configured in Vercel
       # FAIL (failure): env var is missing from Vercel
@@ -492,6 +536,9 @@ jobs:
           ERP="${{ steps.health_fetch.outputs.health_erp_ping }}"
           APP="${{ steps.assert_login.outputs.login_status }}"
           AUTH="${{ steps.assert_nextauth.outputs.csrf_status }}"
+          SERVED_SHA="${{ steps.assert_served_sha.outputs.served_sha }}"
+          DEPLOY_ID="${{ steps.assert_served_sha.outputs.deployment_id }}"
+          SHA_MATCH="${{ steps.assert_served_sha.conclusion }}"
 
           # Cria o label se ainda não existir
           gh label create "deploy-status" \
@@ -507,6 +554,8 @@ jobs:
 
           | Check | Resultado |
           |---|---|
+          | servedSha == pushedSha | $SHA_MATCH ($SERVED_SHA) |
+          | deploymentId | $DEPLOY_ID |
           | allGreen | ✅ true |
           | coraReady | $CORA |
           | syncReady | $SYNC |
