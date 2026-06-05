@@ -60,6 +60,14 @@ function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
 
+// Defesa contra "Invalid Date", "null", "undefined" e qualquer outro lixo que
+// possa chegar no campo transactionDate. Aceita SOMENTE strings que comecem
+// com YYYY-MM-DD. Retorna a string normalizada ou "" se invalida.
+function validDate(v: unknown): string {
+  const s = String(v ?? "");
+  return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : "";
+}
+
 const MONTH_PT    = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -88,26 +96,24 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
   // pode chegar em qualquer ordem, ordeno por (data, id) e pego o ultimo de
   // cada dia — esse e o saldo end-of-day reportado pelo extrato Cora.
   const sortedAll = txns
-    .filter((t) => !!t.transactionDate)
+    .map((t) => ({ t, td: validDate(t.transactionDate) }))
+    .filter((x) => !!x.td)
     .sort((a, b) => {
-      const ad = String(a.transactionDate), bd = String(b.transactionDate);
-      if (ad !== bd) return ad < bd ? -1 : 1;
-      return String(a.id) < String(b.id) ? -1 : 1;
+      if (a.td !== b.td) return a.td < b.td ? -1 : 1;
+      return String(a.t.id) < String(b.t.id) ? -1 : 1;
     });
 
   // Pre-period seed: running_balance da ultima txn ANTES do `from`. Serve pra
   // dia 1 do periodo (caso o dia 1 nao tenha movimento).
   let preSeed: number | null = null;
-  for (const t of sortedAll) {
-    const td = String(t.transactionDate);
+  for (const { t, td } of sortedAll) {
     if (td >= from) break;
     if (t.runningBalance != null) preSeed = Number(t.runningBalance);
   }
 
   // Per-day end-of-day running_balance dentro do periodo
   const dayRunBal = new Map<string, number>();
-  for (const t of sortedAll) {
-    const td = String(t.transactionDate);
+  for (const { t, td } of sortedAll) {
     if (td < from || td > to) continue;
     const b = dayMap.get(td);
     if (b) {
@@ -152,8 +158,11 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
 }
 
 function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
-  // txns ja vem pre-filtrado pela page; so descartamos os sem data
-  const elig = txns.filter((t) => !!t.transactionDate);
+  // txns ja vem pre-filtrado pela page; valida data (descarta "Invalid Date"
+  // e qualquer string que nao seja YYYY-MM-DD)
+  const elig = txns
+    .map((t) => ({ t, td: validDate(t.transactionDate) }))
+    .filter((x) => !!x.td);
   if (!elig.length) {
     // Sem movimentações: ainda assim mostra linha flat ancorada no saldo real da Cora Enerdy.
     if (coraBalance !== null) {
@@ -173,8 +182,8 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
   }
 
   const minMonth = elig.reduce(
-    (min, t) => { const mk = t.transactionDate!.slice(0, 7); return mk < min ? mk : min; },
-    elig[0].transactionDate!.slice(0, 7)
+    (min, x) => { const mk = x.td.slice(0, 7); return mk < min ? mk : min; },
+    elig[0].td.slice(0, 7)
   );
   const curMonth = today().slice(0, 7);
 
@@ -182,8 +191,8 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
   let m = minMonth;
   while (m <= curMonth) { mmap.set(m, { i: 0, o: 0 }); m = nextMonth(m); }
 
-  for (const t of elig) {
-    const mk = t.transactionDate!.slice(0, 7);
+  for (const { t, td } of elig) {
+    const mk = td.slice(0, 7);
     const b = mmap.get(mk);
     if (!b) continue;
     const amt = Number(t.amount) || 0;
@@ -256,7 +265,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const [monthNav, setMonthNav] = useState(() => {
     let latest = "";
     for (const t of transactions) {
-      const td = String(t.transactionDate ?? "");
+      const td = validDate(t.transactionDate);
       if (td && td > latest) latest = td;
     }
     return latest ? latest.slice(0, 7) : today().slice(0, 7);
@@ -307,7 +316,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
     if (lastDay >= todayStr) return balance; // mês atual ou futuro
     let postNet = 0;
     for (const t of transactions) {
-      const td = String(t.transactionDate ?? "");
+      const td = validDate(t.transactionDate);
       if (!td) continue;
       // só conta o que aconteceu APÓS o fim do mês visível E ATÉ hoje
       if (td > lastDay && td <= todayStr) {
@@ -335,7 +344,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const latestTxnMonth = useMemo(() => {
     let latest = "";
     for (const t of transactions) {
-      const td = String(t.transactionDate ?? "");
+      const td = validDate(t.transactionDate);
       if (td && td > latest) latest = td;
     }
     return latest ? latest.slice(0, 7) : null;
@@ -349,7 +358,14 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const totalOut = transactions.filter((t) => t.direction === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const net      = totalIn - totalOut;
 
-  const monthLabel     = `${MONTH_PT[parseInt(monthNav.slice(5)) - 1]} ${monthNav.slice(0, 4)}`;
+  // Trava contra monthNav corrompido (ex.: "Invalid" se algum upstream burlar
+  // a validacao). Se o indice nao bater, cai no mes atual com aviso silencioso.
+  const monthLabel = (() => {
+    if (!/^\d{4}-\d{2}$/.test(monthNav)) return `${MONTH_PT[parseInt(today().slice(5, 7)) - 1]} ${today().slice(0, 4)}`;
+    const mi = parseInt(monthNav.slice(5)) - 1;
+    const name = MONTH_PT[mi] ?? MONTH_PT[parseInt(today().slice(5, 7)) - 1];
+    return `${name} ${monthNav.slice(0, 4)}`;
+  })();
   const isCurrentMonth = monthNav >= today().slice(0, 7);
   const maxBarSz       = viewMode === "diario" ? 18 : 36;
   const saldoDisplay   = balance ?? net;
