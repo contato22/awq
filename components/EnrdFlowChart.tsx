@@ -93,7 +93,7 @@ function buildFlowDaily(txns: BankTransaction[], month: string, startBal: number
       label:        String(parseInt(date.slice(8))),
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
-      saldo:        Math.max(0, Math.round(rs)),
+      saldo:        Math.round(rs),
     };
   });
   return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
@@ -101,7 +101,23 @@ function buildFlowDaily(txns: BankTransaction[], month: string, startBal: number
 
 function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
   const elig = txns.filter((t) => t.entity === "ENERDY" && t.transactionDate);
-  if (!elig.length) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
+  if (!elig.length) {
+    // Sem movimentações: ainda assim mostra linha flat ancorada no saldo real da Cora Enerdy.
+    if (coraBalance !== null) {
+      const cm = today().slice(0, 7);
+      const mi = parseInt(cm.slice(5)) - 1;
+      return {
+        data: [{
+          label:        `${MONTH_SHORT[mi]}/${cm.slice(2, 4)}`,
+          recebimentos: 0,
+          pagamentos:   0,
+          saldo:        Math.round(coraBalance),
+        }],
+        totalIn: 0, totalOut: 0, net: 0, hasData: false,
+      };
+    }
+    return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
+  }
 
   const minMonth = elig.reduce(
     (min, t) => { const mk = t.transactionDate!.slice(0, 7); return mk < min ? mk : min; },
@@ -133,7 +149,7 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
       label:        `${MONTH_SHORT[mi]}/${mk.slice(2, 4)}`,
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
-      saldo:        Math.max(0, Math.round(rs)),
+      saldo:        Math.round(rs),
     };
   });
   return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
@@ -314,7 +330,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
 
         {mounted ? (
           <ResponsiveContainer width="100%" height={230}>
-            <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }} barCategoryGap="30%">
+            <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }} barCategoryGap="30%" stackOffset="sign">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false}
                 interval={viewMode === "diario" ? 4 : "preserveStartEnd"} />
