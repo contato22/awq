@@ -251,10 +251,13 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
     return balance - postNet;
   }, [transactions, balance, monthNav]);
 
-  // Anchor: quando Cora não está configurada, ancora em 0 (legacy: linha mostra
-  // fluxo acumulado partindo do zero). Quando configurada, usa o saldo real.
-  const dailyAnchor   = coraConfigured ? endBalanceForView : 0;
-  const monthlyAnchor = coraConfigured ? balance           : 0;
+  // Anchor: depende EXCLUSIVAMENTE do balance vindo de GET /api/cora/balance.
+  // Não usa coraConfigured (env-derived) pra evitar acoplamento com env vars que
+  // poderiam dessincronizar server/client. Fonte da verdade = resposta da API.
+  // balance===null (loading ou fetch falhou) → anchor=null → saldo=null por
+  // bucket → <Line> não renderiza (no R$0 flat fantasma).
+  const dailyAnchor   = endBalanceForView;
+  const monthlyAnchor = balance;
 
   const flowResult = useMemo(() =>
     viewMode === "diario"
@@ -362,7 +365,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
               <Bar dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
               <Bar dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
-              {(!coraConfigured || balance !== null) && (
+              {balance !== null && (
                 <Line type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
                   connectNulls={false}
                   dot={{ r: 3, fill: "#7c3aed", stroke: "#fff", strokeWidth: 1.5 }}
