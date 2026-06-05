@@ -214,6 +214,12 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const [balance,  setBalance]  = useState<number | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [balErr,   setBalErr]   = useState<string | null>(null);
+  const [debug,    setDebug]    = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setDebug(new URLSearchParams(window.location.search).get("debug") === "1");
+  }, []);
 
   // Recharts uses ResizeObserver — only render the SVG chart after mount to
   // avoid any SSR/hydration edge case. The card shell always renders.
@@ -237,18 +243,23 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   // não desenha (nunca flat em R$0).
   useEffect(() => { void loadBalance(); }, [loadBalance]);
 
-  // Para o diário: ajusta endBalance pra refletir o saldo no FIM do mês visível.
-  // Mês atual: endBalance = saldo live - txns futuras (geralmente 0).
-  // Mês passado: endBalance = saldo live - net das txns posteriores ao mês.
+  // Anchor do saldo no FIM do mês visível.
+  // Mês atual ou futuro: anchor = balance live (não subtrai nada — txns
+  //   futuras agendadas NÃO afetaram o saldo real ainda).
+  // Mês passado: anchor = balance - net dos txns ocorridos ENTRE fim do mês
+  //   visível e HOJE (estes sim já impactaram o saldo). Ignora txns futuras.
   const endBalanceForView = useMemo(() => {
     if (balance === null) return null;
-    const year  = parseInt(monthNav.slice(0, 4));
-    const mon   = parseInt(monthNav.slice(5, 7));
+    const year   = parseInt(monthNav.slice(0, 4));
+    const mon    = parseInt(monthNav.slice(5, 7));
     const lastDay = `${monthNav}-${String(new Date(year, mon, 0).getDate()).padStart(2, "0")}`;
+    const todayStr = today();
+    if (lastDay >= todayStr) return balance; // mês atual ou futuro
     let postNet = 0;
     for (const t of transactions) {
       if (t.entity !== "ENERDY" || !t.transactionDate) continue;
-      if (t.transactionDate > lastDay) {
+      // só conta o que aconteceu APÓS o fim do mês visível E ATÉ hoje
+      if (t.transactionDate > lastDay && t.transactionDate <= todayStr) {
         const a = Number(t.amount) || 0;
         postNet += t.direction === "credit" ? a : -a;
       }
@@ -257,10 +268,8 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   }, [transactions, balance, monthNav]);
 
   // Anchor: depende EXCLUSIVAMENTE do balance vindo de GET /api/cora/balance.
-  // Não usa coraConfigured (env-derived) pra evitar acoplamento com env vars que
-  // poderiam dessincronizar server/client. Fonte da verdade = resposta da API.
-  // balance===null (loading ou fetch falhou) → anchor=null → saldo=null por
-  // bucket → <Line> não renderiza (no R$0 flat fantasma).
+  // balance===null (loading/erro) → anchor=null → saldo=null por bucket →
+  // <Line> não renderiza (sem fantasma em R$0).
   const dailyAnchor   = endBalanceForView;
   const monthlyAnchor = balance;
 
@@ -280,8 +289,47 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
   const saldoDisplay   = balance ?? net;
   const saldoLabel     = balance !== null ? "Saldo real Cora" : "Fluxo acumulado";
 
+  // ── Debug overlay (?debug=1) ─────────────────────────────────────────────
+  // Imprime no console E renderiza VISÍVEL acima do chart os valores reais
+  // que estão alimentando o saldo da linha. Permite observar (não inferir) o
+  // wiring balance → anchor → data[].saldo. Removível: tirar `?debug=1` da URL.
+  const debugData = useMemo(() => {
+    const first = flowResult.data[0];
+    const last  = flowResult.data[flowResult.data.length - 1];
+    return {
+      balance,
+      dailyAnchor,
+      monthlyAnchor,
+      viewMode,
+      monthNav,
+      dataLen: flowResult.data.length,
+      firstSaldo: first?.saldo ?? null,
+      lastSaldo:  last?.saldo  ?? null,
+      txnCountENERDY: transactions.filter((t) => t.entity === "ENERDY").length,
+    };
+  }, [balance, dailyAnchor, monthlyAnchor, viewMode, monthNav, flowResult.data, transactions]);
+
+  useEffect(() => {
+    if (!debug) return;
+    // eslint-disable-next-line no-console
+    console.log("[EnrdFlowChart debug]", debugData);
+  }, [debug, debugData]);
+
   return (
     <div className="card overflow-visible">
+
+      {debug && (
+        <div className="m-3 p-3 rounded-lg bg-yellow-50 border border-yellow-300 text-[11px] font-mono text-yellow-900 leading-relaxed">
+          <div className="font-bold mb-1 text-yellow-700">[?debug=1] EnrdFlowChart state</div>
+          <div>balance (state): <b>{balance === null ? "null" : balance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
+          <div>dailyAnchor (passa pra buildFlowDaily): <b>{debugData.dailyAnchor === null ? "null" : (debugData.dailyAnchor as number).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
+          <div>monthlyAnchor (passa pra buildFlowMonthly): <b>{debugData.monthlyAnchor === null ? "null" : (debugData.monthlyAnchor as number).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
+          <div>viewMode: <b>{debugData.viewMode}</b> · monthNav: <b>{debugData.monthNav}</b> · data.length: <b>{debugData.dataLen}</b></div>
+          <div>data[0].saldo: <b>{debugData.firstSaldo === null ? "null" : debugData.firstSaldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
+          <div>data[last].saldo: <b>{debugData.lastSaldo === null ? "null" : debugData.lastSaldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></div>
+          <div>txns ENERDY (prop): <b>{debugData.txnCountENERDY}</b></div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
