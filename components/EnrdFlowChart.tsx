@@ -38,6 +38,7 @@ interface FlowResult {
   totalAR:        number;
   net:            number;
   hasData:        boolean;
+  hasBankData:    boolean;
 }
 
 interface Props {
@@ -195,6 +196,7 @@ function buildFlowDaily(
     totalAR:       Math.round(tar),
     net:           Math.round(ti - to_),
     hasData:       ti + to_ + tar > 0,
+    hasBankData:   ti + to_ > 0,
   };
 }
 
@@ -219,10 +221,10 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
           arPrevisto:     0,
           saldo:          Math.round(coraBalance),
         }],
-        totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false,
+        totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false,
       };
     }
-    return { data: [], totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false };
+    return { data: [], totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false };
   }
 
   const minMonth = elig.reduce(
@@ -277,6 +279,7 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
     totalAR:       0,
     net:           Math.round(ti - to_),
     hasData:       ti + to_ > 0,
+    hasBankData:   ti + to_ > 0,
   };
 }
 
@@ -326,12 +329,20 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
   // houver txn nenhuma na prop, cai no mes atual. O user pode navegar pra
   // outros meses pelas setinhas normalmente.
   const [monthNav, setMonthNav] = useState(() => {
-    let latest = "";
+    // Default: ultimo mes com movimentacao bancaria (credit/debit). Se nao houver
+    // nenhuma com direction valido, cai pra qualquer txn com data; senao, hoje.
+    let latestBank = "";
+    let latestAny  = "";
     for (const t of transactions) {
       const td = validDate(t.transactionDate);
-      if (td && td > latest) latest = td;
+      if (!td) continue;
+      if (td > latestAny) latestAny = td;
+      if ((t.direction === "credit" || t.direction === "debit") && td > latestBank) {
+        latestBank = td;
+      }
     }
-    return latest ? latest.slice(0, 7) : today().slice(0, 7);
+    const pick = latestBank || latestAny;
+    return pick ? pick.slice(0, 7) : today().slice(0, 7);
   });
   const [balance,  setBalance]  = useState<number | null>(null);
   const [loading,  setLoading]  = useState(true);
@@ -402,15 +413,20 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
       : buildFlowMonthly(transactions, monthlyAnchor),
   [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor, arDaily]);
 
-  // Mes mais recente do extrato (ultima transactionDate). Usado pra mostrar
-  // botao "pular pra esse mes" quando o usuario abre num mes vazio.
+  // Mes mais recente com movimento bancario (credit/debit). Fallback: qualquer
+  // txn datada. Usado no hint "ir pra esse mes" quando o mes visivel ta vazio.
   const latestTxnMonth = useMemo(() => {
-    let latest = "";
+    let latestBank = "", latestAny = "";
     for (const t of transactions) {
       const td = validDate(t.transactionDate);
-      if (td && td > latest) latest = td;
+      if (!td) continue;
+      if (td > latestAny) latestAny = td;
+      if ((t.direction === "credit" || t.direction === "debit") && td > latestBank) {
+        latestBank = td;
+      }
     }
-    return latest ? latest.slice(0, 7) : null;
+    const pick = latestBank || latestAny;
+    return pick ? pick.slice(0, 7) : null;
   }, [transactions]);
   const latestTxnLabel = latestTxnMonth
     ? `${MONTH_PT[parseInt(latestTxnMonth.slice(5)) - 1]} ${latestTxnMonth.slice(0, 4)}`
@@ -602,9 +618,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
           </div>
         )}
 
-        {!flowResult.hasData && (
+        {!flowResult.hasBankData && (
           <p className="text-center text-[11px] text-gray-400 -mt-2 mb-1">
-            Sem movimentações {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"}
+            Sem movimentações bancárias {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"}
             {viewMode === "diario" && latestTxnMonth && latestTxnMonth !== monthNav && (
               <> · <button onClick={() => setMonthNav(latestTxnMonth)} className="text-emerald-600 font-semibold hover:underline">ir para {latestTxnLabel}</button> (mês com a última txn)</>
             )}
