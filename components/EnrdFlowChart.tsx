@@ -6,29 +6,38 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
+import { REVENUE_CATEGORIES } from "@/lib/financial-classifier";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+
+const REVENUE_SET = new Set<string>(REVENUE_CATEGORIES);
+function isRevenueCredit(t: BankTransaction): boolean {
+  return t.direction === "credit" && REVENUE_SET.has(String(t.managerialCategory ?? ""));
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CoraBalance { available: number; error?: string }
 
 interface FlowRow {
-  label:        string;
-  recebimentos: number;
-  pagamentos:   number;
-  arPrevisto:   number;
-  saldo:        number | null;
+  label:           string;
+  arRealizado:     number;  // creditos classificados como receita
+  outrosCreditos:  number;  // demais creditos (transferencias, resgates, ajustes)
+  recebimentos:    number;  // arRealizado + outrosCreditos (total in)
+  pagamentos:      number;
+  arPrevisto:      number;
+  saldo:           number | null;
 }
 
 export interface ARDailyPoint { date: string; amount: number }
 
 interface FlowResult {
-  data:     FlowRow[];
-  totalIn:  number;
-  totalOut: number;
-  totalAR:  number;
-  net:      number;
-  hasData:  boolean;
+  data:           FlowRow[];
+  totalIn:        number;
+  totalArRealiz:  number;
+  totalOut:       number;
+  totalAR:        number;
+  net:            number;
+  hasData:        boolean;
 }
 
 interface Props {
@@ -97,9 +106,9 @@ function buildFlowDaily(
   const from  = `${month}-01`;
   const to    = `${month}-${String(nDays).padStart(2, "0")}`;
 
-  const dayMap = new Map<string, { i: number; o: number; ar: number }>();
+  const dayMap = new Map<string, { iAR: number; iOther: number; o: number; ar: number }>();
   for (let d = 1; d <= nDays; d++) {
-    dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { i: 0, o: 0, ar: 0 });
+    dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { iAR: 0, iOther: 0, o: 0, ar: 0 });
   }
 
   // AR previsto: agrega valores cujo due_date cai no mes visivel.
@@ -134,15 +143,20 @@ function buildFlowDaily(
     const b = dayMap.get(td);
     if (b) {
       const amt = Number(t.amount) || 0;
-      if (t.direction === "credit") b.i += amt; else b.o += amt;
+      if (t.direction === "credit") {
+        if (isRevenueCredit(t)) b.iAR += amt; else b.iOther += amt;
+      } else {
+        b.o += amt;
+      }
     }
     if (t.runningBalance != null) dayRunBal.set(td, Number(t.runningBalance));
   }
 
   // Carry-forward: dia atual = ultimo running_balance conhecido <= esse dia
   let lastKnown: number | null = preSeed;
-  let ti = 0, to_ = 0, tar = 0;
-  for (const { i, o, ar } of dayMap.values()) { ti += i; to_ += o; tar += ar; }
+  let tiAR = 0, tiOther = 0, to_ = 0, tar = 0;
+  for (const { iAR, iOther, o, ar } of dayMap.values()) { tiAR += iAR; tiOther += iOther; to_ += o; tar += ar; }
+  const ti = tiAR + tiOther;
   const periodNet = ti - to_;
 
   // Fallback: se NAO ha nenhum running_balance no/antes do periodo, ancora
@@ -152,8 +166,8 @@ function buildFlowDaily(
   const openingDay1 = endBalance !== null ? endBalance - periodNet : null;
 
   let cum = 0;
-  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { i, o, ar }]) => {
-    cum += i - o;
+  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { iAR, iOther, o, ar }]) => {
+    cum += (iAR + iOther) - o;
     // Preferencia: saldo end-of-day do extrato. Se o dia nao tem extrato, usa
     // o ultimo conhecido (carry-forward). Se nem isso, usa fallback derivado.
     if (dayRunBal.has(date)) lastKnown = dayRunBal.get(date)!;
@@ -164,14 +178,24 @@ function buildFlowDaily(
       saldo = lastKnown;
     }
     return {
-      label:        String(parseInt(date.slice(8))),
-      recebimentos: Math.round(i),
-      pagamentos:  -Math.round(o),
-      arPrevisto:   Math.round(ar),
-      saldo:        saldo !== null ? Math.round(saldo) : null,
+      label:          String(parseInt(date.slice(8))),
+      arRealizado:    Math.round(iAR),
+      outrosCreditos: Math.round(iOther),
+      recebimentos:   Math.round(iAR + iOther),
+      pagamentos:    -Math.round(o),
+      arPrevisto:     Math.round(ar),
+      saldo:          saldo !== null ? Math.round(saldo) : null,
     };
   });
-  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), totalAR: Math.round(tar), net: Math.round(ti - to_), hasData: ti + to_ + tar > 0 };
+  return {
+    data,
+    totalIn:       Math.round(ti),
+    totalArRealiz: Math.round(tiAR),
+    totalOut:      Math.round(to_),
+    totalAR:       Math.round(tar),
+    net:           Math.round(ti - to_),
+    hasData:       ti + to_ + tar > 0,
+  };
 }
 
 function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
@@ -187,16 +211,18 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
       const mi = parseInt(cm.slice(5)) - 1;
       return {
         data: [{
-          label:        `${MONTH_SHORT[mi]}/${cm.slice(2, 4)}`,
-          recebimentos: 0,
-          pagamentos:   0,
-          arPrevisto:   0,
-          saldo:        Math.round(coraBalance),
+          label:          `${MONTH_SHORT[mi]}/${cm.slice(2, 4)}`,
+          arRealizado:    0,
+          outrosCreditos: 0,
+          recebimentos:   0,
+          pagamentos:     0,
+          arPrevisto:     0,
+          saldo:          Math.round(coraBalance),
         }],
-        totalIn: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false,
+        totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false,
       };
     }
-    return { data: [], totalIn: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false };
+    return { data: [], totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false };
   }
 
   const minMonth = elig.reduce(
@@ -205,37 +231,53 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
   );
   const curMonth = today().slice(0, 7);
 
-  const mmap = new Map<string, { i: number; o: number }>();
+  const mmap = new Map<string, { iAR: number; iOther: number; o: number }>();
   let m = minMonth;
-  while (m <= curMonth) { mmap.set(m, { i: 0, o: 0 }); m = nextMonth(m); }
+  while (m <= curMonth) { mmap.set(m, { iAR: 0, iOther: 0, o: 0 }); m = nextMonth(m); }
 
   for (const { t, td } of elig) {
     const mk = td.slice(0, 7);
     const b = mmap.get(mk);
     if (!b) continue;
     const amt = Number(t.amount) || 0;
-    if (t.direction === "credit") b.i += amt; else b.o += amt;
+    if (t.direction === "credit") {
+      if (isRevenueCredit(t)) b.iAR += amt; else b.iOther += amt;
+    } else {
+      b.o += amt;
+    }
   }
 
   // Ancora o saldo no fim do período (último bucket) = coraBalance, igual ao diário.
   // Com txns no histórico: openingPre = coraBalance - sumOfAllPeriods.
   let allNet = 0;
-  for (const { i, o } of mmap.values()) { allNet += i - o; }
+  for (const { iAR, iOther, o } of mmap.values()) { allNet += (iAR + iOther) - o; }
   const openingPre = coraBalance !== null ? coraBalance - allNet : null;
 
-  let cum = 0, ti = 0, to_ = 0;
-  const data: FlowRow[] = Array.from(mmap.entries()).map(([mk, { i, o }]) => {
-    cum += i - o; ti += i; to_ += o;
+  let cum = 0, tiAR = 0, tiOther = 0, to_ = 0;
+  const data: FlowRow[] = Array.from(mmap.entries()).map(([mk, { iAR, iOther, o }]) => {
+    const i = iAR + iOther;
+    cum += i - o; tiAR += iAR; tiOther += iOther; to_ += o;
     const mi = parseInt(mk.slice(5)) - 1;
     return {
-      label:        `${MONTH_SHORT[mi]}/${mk.slice(2, 4)}`,
-      recebimentos: Math.round(i),
-      pagamentos:  -Math.round(o),
-      arPrevisto:   0,
-      saldo:        openingPre !== null ? Math.round(openingPre + cum) : null,
+      label:          `${MONTH_SHORT[mi]}/${mk.slice(2, 4)}`,
+      arRealizado:    Math.round(iAR),
+      outrosCreditos: Math.round(iOther),
+      recebimentos:   Math.round(i),
+      pagamentos:    -Math.round(o),
+      arPrevisto:     0,
+      saldo:          openingPre !== null ? Math.round(openingPre + cum) : null,
     };
   });
-  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), totalAR: 0, net: Math.round(ti - to_), hasData: ti + to_ > 0 };
+  const ti = tiAR + tiOther;
+  return {
+    data,
+    totalIn:       Math.round(ti),
+    totalArRealiz: Math.round(tiAR),
+    totalOut:      Math.round(to_),
+    totalAR:       0,
+    net:           Math.round(ti - to_),
+    hasData:       ti + to_ > 0,
+  };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -243,10 +285,11 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
 function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number }>; label?: string }) {
   if (!active || !payload?.length) return null;
   const meta: Record<string, { name: string; color: string }> = {
-    recebimentos: { name: "Recebido (banco)",  color: "#16a34a" },
-    arPrevisto:   { name: "AR · Previsto",     color: "#0ea5e9" },
-    pagamentos:   { name: "AP · Pagamentos",   color: "#dc2626" },
-    saldo:        { name: "Saldo",             color: "#7c3aed" },
+    arRealizado:    { name: "AR · Realizado",     color: "#15803d" },
+    outrosCreditos: { name: "Outros creditos",    color: "#86efac" },
+    arPrevisto:     { name: "AR · Previsto",      color: "#0ea5e9" },
+    pagamentos:     { name: "AP · Pagamentos",    color: "#dc2626" },
+    saldo:          { name: "Saldo",              color: "#7c3aed" },
   };
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[190px] overflow-hidden">
@@ -474,7 +517,7 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
       {/* KPI strip */}
       <div className={`grid ${viewMode === "diario" ? "grid-cols-5" : "grid-cols-4"} divide-x divide-gray-100 border-t border-b border-gray-100`}>
         {[
-          { label: "Recebido",     value: flowResult.totalIn, color: "text-emerald-700", dot: "bg-emerald-500", sub: viewMode === "diario" ? monthLabel : "Histórico" },
+          { label: "AR Realizado", value: flowResult.totalArRealiz, color: "text-emerald-700", dot: "bg-emerald-700", sub: `${viewMode === "diario" ? monthLabel : "Histórico"} · recebido` },
           ...(viewMode === "diario"
             ? [{ label: "AR Previsto", value: flowResult.totalAR, color: "text-sky-700", dot: "bg-sky-500", sub: `${monthLabel} · em aberto` }]
             : []),
@@ -498,7 +541,8 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
       <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
         <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
           {[
-            { color: "#16a34a", label: "Recebido (banco)" },
+            { color: "#15803d", label: "AR · Realizado" },
+            { color: "#86efac", label: "Outros creditos" },
             ...(viewMode === "diario" ? [{ color: "#0ea5e9", label: "AR · Previsto" }] : []),
             { color: "#dc2626", label: "AP · Pagamentos" },
             { color: "#7c3aed", label: "Saldo", dots: true },
@@ -537,8 +581,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
                 domain={[(dMin: number) => Math.min(0, dMin), "auto"]} />
               <ReferenceLine yAxisId="bars" y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
-              <Bar yAxisId="bars" dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
-              <Bar yAxisId="bars" dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
+              <Bar yAxisId="bars" dataKey="arRealizado"    stackId="flow" fill="#15803d" fillOpacity={0.92} maxBarSize={maxBarSz} />
+              <Bar yAxisId="bars" dataKey="outrosCreditos" stackId="flow" fill="#86efac" fillOpacity={0.85} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
+              <Bar yAxisId="bars" dataKey="pagamentos"     stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
               {viewMode === "diario" && (
                 <Bar yAxisId="bars" dataKey="arPrevisto" stackId="ar" fill="#0ea5e9" fillOpacity={0.55}
                   maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
