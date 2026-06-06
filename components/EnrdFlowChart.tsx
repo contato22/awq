@@ -13,23 +13,28 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 interface CoraBalance { available: number; error?: string }
 
 interface FlowRow {
-  label: string;
+  label:        string;
   recebimentos: number;
-  pagamentos: number;
-  saldo: number | null;
+  pagamentos:   number;
+  arPrevisto:   number;
+  saldo:        number | null;
 }
 
+export interface ARDailyPoint { date: string; amount: number }
+
 interface FlowResult {
-  data: FlowRow[];
-  totalIn: number;
+  data:     FlowRow[];
+  totalIn:  number;
   totalOut: number;
-  net: number;
-  hasData: boolean;
+  totalAR:  number;
+  net:      number;
+  hasData:  boolean;
 }
 
 interface Props {
-  transactions: BankTransaction[];
+  transactions:   BankTransaction[];
   coraConfigured: boolean;
+  arDaily?:       ARDailyPoint[];
 }
 
 type ViewMode = "diario" | "mensal";
@@ -80,16 +85,27 @@ const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out"
 // segundo o extrato bancario). Dias sem movimento carregam o saldo do dia
 // anterior (carry-forward). O `endBalance` (saldo live da Cora API) so e
 // usado como fallback de ancora — preferencia absoluta pro saldo do extrato.
-function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: number | null): FlowResult {
+function buildFlowDaily(
+  txns: BankTransaction[],
+  month: string,
+  endBalance: number | null,
+  arDaily: ARDailyPoint[] = [],
+): FlowResult {
   const year  = parseInt(month.slice(0, 4));
   const mon   = parseInt(month.slice(5, 7));
   const nDays = daysInMonth(year, mon);
   const from  = `${month}-01`;
   const to    = `${month}-${String(nDays).padStart(2, "0")}`;
 
-  const dayMap = new Map<string, { i: number; o: number }>();
+  const dayMap = new Map<string, { i: number; o: number; ar: number }>();
   for (let d = 1; d <= nDays; d++) {
-    dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { i: 0, o: 0 });
+    dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { i: 0, o: 0, ar: 0 });
+  }
+
+  // AR previsto: agrega valores cujo due_date cai no mes visivel.
+  for (const p of arDaily) {
+    const b = dayMap.get(p.date);
+    if (b) b.ar += Number(p.amount) || 0;
   }
 
   // Indexa, por dia, o running_balance da ULTIMA txn cronologica. Como a prop
@@ -125,8 +141,8 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
 
   // Carry-forward: dia atual = ultimo running_balance conhecido <= esse dia
   let lastKnown: number | null = preSeed;
-  let ti = 0, to_ = 0;
-  for (const { i, o } of dayMap.values()) { ti += i; to_ += o; }
+  let ti = 0, to_ = 0, tar = 0;
+  for (const { i, o, ar } of dayMap.values()) { ti += i; to_ += o; tar += ar; }
   const periodNet = ti - to_;
 
   // Fallback: se NAO ha nenhum running_balance no/antes do periodo, ancora
@@ -136,7 +152,7 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
   const openingDay1 = endBalance !== null ? endBalance - periodNet : null;
 
   let cum = 0;
-  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { i, o }]) => {
+  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { i, o, ar }]) => {
     cum += i - o;
     // Preferencia: saldo end-of-day do extrato. Se o dia nao tem extrato, usa
     // o ultimo conhecido (carry-forward). Se nem isso, usa fallback derivado.
@@ -151,10 +167,11 @@ function buildFlowDaily(txns: BankTransaction[], month: string, endBalance: numb
       label:        String(parseInt(date.slice(8))),
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
+      arPrevisto:   Math.round(ar),
       saldo:        saldo !== null ? Math.round(saldo) : null,
     };
   });
-  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
+  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), totalAR: Math.round(tar), net: Math.round(ti - to_), hasData: ti + to_ + tar > 0 };
 }
 
 function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
@@ -173,12 +190,13 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
           label:        `${MONTH_SHORT[mi]}/${cm.slice(2, 4)}`,
           recebimentos: 0,
           pagamentos:   0,
+          arPrevisto:   0,
           saldo:        Math.round(coraBalance),
         }],
-        totalIn: 0, totalOut: 0, net: 0, hasData: false,
+        totalIn: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false,
       };
     }
-    return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
+    return { data: [], totalIn: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false };
   }
 
   const minMonth = elig.reduce(
@@ -213,10 +231,11 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
       label:        `${MONTH_SHORT[mi]}/${mk.slice(2, 4)}`,
       recebimentos: Math.round(i),
       pagamentos:  -Math.round(o),
+      arPrevisto:   0,
       saldo:        openingPre !== null ? Math.round(openingPre + cum) : null,
     };
   });
-  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), net: Math.round(ti - to_), hasData: ti + to_ > 0 };
+  return { data, totalIn: Math.round(ti), totalOut: Math.round(to_), totalAR: 0, net: Math.round(ti - to_), hasData: ti + to_ > 0 };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -224,7 +243,8 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
 function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number }>; label?: string }) {
   if (!active || !payload?.length) return null;
   const meta: Record<string, { name: string; color: string }> = {
-    recebimentos: { name: "AR · Recebimentos", color: "#16a34a" },
+    recebimentos: { name: "Recebido (banco)",  color: "#16a34a" },
+    arPrevisto:   { name: "AR · Previsto",     color: "#0ea5e9" },
     pagamentos:   { name: "AP · Pagamentos",   color: "#dc2626" },
     saldo:        { name: "Saldo",             color: "#7c3aed" },
   };
@@ -255,7 +275,7 @@ function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: A
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
+export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = [] }: Props) {
   const [mounted,  setMounted]  = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("diario");
   // Default: mes da txn mais recente. Garante que ao abrir a pagina o usuario
@@ -335,9 +355,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
 
   const flowResult = useMemo(() =>
     viewMode === "diario"
-      ? buildFlowDaily(transactions, monthNav, dailyAnchor)
+      ? buildFlowDaily(transactions, monthNav, dailyAnchor, arDaily)
       : buildFlowMonthly(transactions, monthlyAnchor),
-  [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor]);
+  [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor, arDaily]);
 
   // Mes mais recente do extrato (ultima transactionDate). Usado pra mostrar
   // botao "pular pra esse mes" quando o usuario abre num mes vazio.
@@ -452,9 +472,12 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-4 divide-x divide-gray-100 border-t border-b border-gray-100">
+      <div className={`grid ${viewMode === "diario" ? "grid-cols-5" : "grid-cols-4"} divide-x divide-gray-100 border-t border-b border-gray-100`}>
         {[
-          { label: "Recebimentos", value: flowResult.totalIn, color: "text-emerald-700", dot: "bg-emerald-500", sub: viewMode === "diario" ? monthLabel : "Histórico" },
+          { label: "Recebido",     value: flowResult.totalIn, color: "text-emerald-700", dot: "bg-emerald-500", sub: viewMode === "diario" ? monthLabel : "Histórico" },
+          ...(viewMode === "diario"
+            ? [{ label: "AR Previsto", value: flowResult.totalAR, color: "text-sky-700", dot: "bg-sky-500", sub: `${monthLabel} · em aberto` }]
+            : []),
           { label: "Pagamentos",   value: flowResult.totalOut, color: "text-red-700",     dot: "bg-red-500",    sub: viewMode === "diario" ? monthLabel : "Histórico" },
           { label: "Saldo líquido",value: flowResult.net,      color: flowResult.net >= 0 ? "text-violet-700" : "text-red-600", dot: "bg-violet-600", sub: "Receb − Pagto" },
           { label: "Saldo Cora",   value: saldoDisplay,        color: saldoDisplay >= 0 ? "text-amber-600" : "text-red-600",    dot: "bg-amber-500",  sub: balErr ?? saldoLabel },
@@ -475,7 +498,8 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
       <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
         <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
           {[
-            { color: "#16a34a", label: "AR · Recebimentos" },
+            { color: "#16a34a", label: "Recebido (banco)" },
+            ...(viewMode === "diario" ? [{ color: "#0ea5e9", label: "AR · Previsto" }] : []),
             { color: "#dc2626", label: "AP · Pagamentos" },
             { color: "#7c3aed", label: "Saldo", dots: true },
           ].map(({ color, label, dots }) => (
@@ -515,6 +539,10 @@ export default function EnrdFlowChart({ transactions, coraConfigured }: Props) {
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
               <Bar yAxisId="bars" dataKey="recebimentos" stackId="flow" fill="#16a34a" fillOpacity={0.82} maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
               <Bar yAxisId="bars" dataKey="pagamentos"   stackId="flow" fill="#dc2626" fillOpacity={0.78} maxBarSize={maxBarSz} radius={[0, 0, 2, 2]} />
+              {viewMode === "diario" && (
+                <Bar yAxisId="bars" dataKey="arPrevisto" stackId="ar" fill="#0ea5e9" fillOpacity={0.55}
+                  maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
+              )}
               {balance !== null && (
                 <Line yAxisId="saldo" type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
                   connectNulls={false}

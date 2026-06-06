@@ -50,16 +50,22 @@ export default async function EnrdConciliacaoPage() {
 
   // ── AR pendente (filtrado por bu_code ENRD ou entity ENERDY) ─────────────
   let arPending: { id: string; customer_name: string; net_amount: number; due_date: string }[] = [];
+  // arDailyAll: todos os AR pendentes abertos (qualquer due_date) agregados por dia,
+  // pra alimentar a coluna "AR Previsto" no chart diário (cobre meses futuros e passados).
+  const arDailyAll: { date: string; amount: number }[] = [];
   try {
     await initAPARDB();
     const allAR = await getAllAR();
+    const todayStr = new Date().toISOString().slice(0, 10);
     const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    arPending = allAR
-      .filter(
-        (i) =>
-          (i.status === "PENDING" || i.status === "PARTIAL") &&
-          i.due_date <= horizon
-      )
+
+    const openAR = allAR.filter(
+      (i) => i.status === "PENDING" || i.status === "PARTIAL" || i.status === "OVERDUE"
+    );
+
+    // Lista pra UI (próximos 30 dias + vencidos)
+    arPending = openAR
+      .filter((i) => i.due_date <= horizon)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
       .slice(0, 8)
       .map((i) => ({
@@ -68,6 +74,17 @@ export default async function EnrdConciliacaoPage() {
         net_amount: i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount,
         due_date: i.due_date,
       }));
+
+    // Bucket diário: vencidos colapsam pra HOJE (recebimento esperado imediato).
+    const dayMap = new Map<string, number>();
+    for (const i of openAR) {
+      const open =
+        i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount;
+      if (open <= 0) continue;
+      const bucket = i.due_date < todayStr ? todayStr : i.due_date;
+      dayMap.set(bucket, (dayMap.get(bucket) ?? 0) + open);
+    }
+    for (const [date, amount] of dayMap) arDailyAll.push({ date, amount });
   } catch { /* AR EPM indisponível */ }
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
@@ -145,7 +162,11 @@ export default async function EnrdConciliacaoPage() {
         </div>
 
         {/* ── Fluxo de Caixa Cora Enerdy ──────────────────────────────── */}
-        <EnrdFlowChart transactions={transactions} coraConfigured={coraConfigured} />
+        <EnrdFlowChart
+          transactions={transactions}
+          coraConfigured={coraConfigured}
+          arDaily={arDailyAll}
+        />
 
         {/* ── Cora Enerdy sync panel ───────────────────────────────────── */}
         {coraConfigured && (
