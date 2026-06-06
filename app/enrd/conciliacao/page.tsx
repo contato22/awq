@@ -12,6 +12,7 @@ import CoraStatusPanel from "@/components/CoraStatusPanel";
 import EnrdFlowChart from "@/components/EnrdFlowChart";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
+import { listProjects } from "@/lib/ppm-db";
 import { isCoraEnerdyConfigured } from "@/lib/cora-api";
 import {
   AlertCircle,
@@ -84,6 +85,49 @@ export default async function EnrdConciliacaoPage() {
       const bucket = i.due_date < todayStr ? todayStr : i.due_date;
       dayMap.set(bucket, (dayMap.get(bucket) ?? 0) + open);
     }
+
+    // AR projetado a partir de retainers ativos do PPM (ENRD). Cobre o caso
+    // comum: contrato mensal sem AR explicito no epm_ar — projeta budget_revenue
+    // pra cada mes ate planned_end_date (capado em 12 meses a partir de hoje
+    // pra nao gerar buckets eternos). Usa dia 5 como dia de cobranca padrao.
+    try {
+      const projects = await listProjects({ bu_code: "ENRD", status: "active" });
+      const horizonMonths = 12;
+      const todayD = new Date(todayStr);
+      const horizonD = new Date(todayD);
+      horizonD.setMonth(horizonD.getMonth() + horizonMonths);
+      const horizonStr = horizonD.toISOString().slice(0, 10);
+
+      for (const p of projects) {
+        if (p.contract_type !== "retainer") continue;
+        if (p.billing_frequency !== "monthly") continue;
+        const mrr = Number(p.budget_revenue) || 0;
+        if (mrr <= 0) continue;
+
+        const start = p.start_date;
+        const end = p.planned_end_date < horizonStr ? p.planned_end_date : horizonStr;
+        if (!start || !end || end < start) continue;
+
+        // Dia de cobranca: usa o dia do start_date (ex.: start_date=2026-06-06 → cobra dia 06)
+        const billDay = Math.min(parseInt(start.slice(8, 10)) || 5, 28);
+
+        // Itera mes-a-mes do start ao end
+        const [sy, sm] = [parseInt(start.slice(0, 4)), parseInt(start.slice(5, 7))];
+        const [ey, em] = [parseInt(end.slice(0, 4)),   parseInt(end.slice(5, 7))];
+        let y = sy, m = sm;
+        while (y < ey || (y === ey && m <= em)) {
+          const date = `${y}-${String(m).padStart(2, "0")}-${String(billDay).padStart(2, "0")}`;
+          // Retainer: so projeta cobranças futuras. Passado se assume
+          // recebido (estaria em epm_ar/banco) — evita pile-up em HOJE.
+          if (date >= todayStr) {
+            dayMap.set(date, (dayMap.get(date) ?? 0) + mrr);
+          }
+          m += 1;
+          if (m > 12) { m = 1; y += 1; }
+        }
+      }
+    } catch { /* PPM indisponivel — ignora projecao de retainers */ }
+
     for (const [date, amount] of dayMap) arDailyAll.push({ date, amount });
   } catch { /* AR EPM indisponível */ }
 
