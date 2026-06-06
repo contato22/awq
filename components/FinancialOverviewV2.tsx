@@ -38,6 +38,8 @@ type ViewMode = "diario" | "mensal";
 // Conta Azul–style flow chart row
 interface FlowRow {
   label: string;
+  date?: string;          // YYYY-MM-DD (diário) ou YYYY-MM (mensal) — usado no tooltip
+  weekday?: number;       // 0=Dom .. 6=Sáb — só preenchido em modo diário
   recebimentos: number;   // positive (credits — green bars going up)
   pagamentos: number;     // negative (debits — red bars going down)
   saldo: number;          // running balance (navy dotted line)
@@ -267,8 +269,13 @@ function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: numb
     runningSaldo += inc - out;
     totalIn  += inc;
     totalOut += out;
+    // Date no fuso BRT — não usar new Date(date) direto p/ não pegar UTC offset
+    const [y, m, d] = date.split("-").map(Number);
+    const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
     return {
-      label: String(parseInt(date.slice(8))),
+      label: String(d),
+      date,
+      weekday,
       recebimentos:  Math.round(inc),
       pagamentos:    Math.round(out),
       saldo:         Math.round(runningSaldo),
@@ -324,6 +331,7 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
     const yr = mk.slice(0, 4);
     return {
       label: `${MONTH_NAMES_SHORT[mi]}/${yr.slice(2)}`,
+      date:  mk,
       recebimentos:  Math.round(inc),
       pagamentos:    Math.round(out),
       saldo:         Math.round(runningSaldo),
@@ -343,9 +351,24 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
 
 type FlowTooltipProps = {
   active?: boolean;
-  payload?: Array<{ dataKey: string; value: number }>;
+  payload?: Array<{ dataKey: string; value: number; payload?: FlowRow }>;
   label?: string;
 };
+
+const WEEKDAY_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function formatTooltipHeader(row?: FlowRow, fallbackLabel?: string): string {
+  if (!row?.date) return fallbackLabel ?? "";
+  // Diário: YYYY-MM-DD
+  if (row.date.length === 10) {
+    const [y, m, d] = row.date.split("-");
+    const wd = row.weekday != null ? WEEKDAY_PT[row.weekday] : "";
+    return `${wd ? wd + ", " : ""}${d}/${m}/${y}`;
+  }
+  // Mensal: YYYY-MM
+  const [y, m] = row.date.split("-");
+  return `${MONTH_NAMES_PT[parseInt(m) - 1]} ${y}`;
+}
 
 function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
   if (!active || !payload?.length) return null;
@@ -354,10 +377,16 @@ function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
     pagamentos:   { name: "AP",    sub: "Pagamentos realizados",   color: "#dc2626" },
     saldo:        { name: "Saldo", sub: "Posição acumulada",       color: "#1e293b" },
   };
+  const row = payload[0]?.payload;
+  const header = formatTooltipHeader(row, label);
+  const isWeekend = row?.weekday === 0 || row?.weekday === 6;
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[210px] overflow-hidden">
-      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
-        <p className="font-bold text-gray-900">Fluxo de caixa · {label}</p>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[230px] overflow-hidden">
+      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100 flex items-center justify-between gap-2">
+        <p className="font-bold text-gray-900">{header}</p>
+        {isWeekend && (
+          <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">fim de semana</span>
+        )}
       </div>
       <div className="p-3 space-y-2">
         {payload.map((p) => {
@@ -637,7 +666,22 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     : openingBalance > 0 ? "Estimado" : "Fluxo acumulado";
 
   // Chart bar sizing — single stack per x-position so can be wider
-  const maxBarSz = viewMode === "diario" ? 18 : 36;
+  const maxBarSz = viewMode === "diario" ? 14 : 36;
+
+  // Saldo mínimo do período visível — destaque visual do "pior dia" (saldo baixo).
+  // Só rotula se a queda for relevante (< 90% do saldo máximo) p/ evitar poluição
+  // quando o saldo varia pouco.
+  const minSaldoRow = useMemo(() => {
+    if (!flowResult.data.length) return null;
+    let min = flowResult.data[0];
+    let max = flowResult.data[0];
+    for (const r of flowResult.data) {
+      if (r.saldo < min.saldo) min = r;
+      if (r.saldo > max.saldo) max = r;
+    }
+    const relevant = max.saldo === 0 ? min.saldo < 0 : (min.saldo / max.saldo) < 0.9;
+    return relevant ? min : null;
+  }, [flowResult.data]);
 
   // Month nav label
   const monthLabel = `${MONTH_NAMES_PT[parseInt(monthNav.slice(5)) - 1]} ${monthNav.slice(0, 4)}`;
@@ -816,10 +860,57 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 10, fill: "#b5b0a8" }}
                 axisLine={false}
                 tickLine={false}
-                interval={viewMode === "diario" ? 4 : "preserveStartEnd"}
+                interval={0}
+                height={viewMode === "diario" ? 36 : 24}
+                tick={(props: { x: number; y: number; payload: { value: string; index: number } }) => {
+                  const { x, y, payload } = props;
+                  const row = flowResult.data[payload.index];
+                  if (viewMode === "mensal") {
+                    return (
+                      <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="#8b8478">
+                        {payload.value}
+                      </text>
+                    );
+                  }
+                  // Diário: destaca segundas (início de semana) e separa fins de semana
+                  const wd = row?.weekday;
+                  const isMonday  = wd === 1;
+                  const isWeekend = wd === 0 || wd === 6;
+                  const day = parseInt(payload.value);
+                  // Em meses cheios, só mostra rótulo numérico em ímpares + 1 e último
+                  // p/ evitar sobreposição em telas estreitas; segundas sempre aparecem.
+                  const nDays = flowResult.data.length;
+                  const showLabel = isMonday || day === 1 || day === nDays || day % 2 === 1;
+                  return (
+                    <g>
+                      {showLabel && (
+                        <text
+                          x={x}
+                          y={y + 10}
+                          textAnchor="middle"
+                          fontSize={9}
+                          fill={isWeekend ? "#cbb89a" : isMonday ? "#475569" : "#a8a298"}
+                          fontWeight={isMonday ? 700 : 400}
+                        >
+                          {day}
+                        </text>
+                      )}
+                      {/* Letra do dia da semana (S T Q Q S S D) em fonte menor */}
+                      <text
+                        x={x}
+                        y={y + 22}
+                        textAnchor="middle"
+                        fontSize={8}
+                        fill={isWeekend ? "#d4c5a8" : "#c5beb1"}
+                        fontWeight={isMonday ? 600 : 400}
+                      >
+                        {wd != null ? WEEKDAY_PT[wd][0] : ""}
+                      </text>
+                    </g>
+                  );
+                }}
               />
               <YAxis
                 tick={{ fontSize: 10, fill: "#b5b0a8" }}
@@ -828,9 +919,25 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 tickFormatter={(v: number) => fmtK(Math.abs(v))}
                 width={56}
                 domain={["auto", "auto"]}
+                tickCount={6}
                 allowDataOverflow
               />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
+              {minSaldoRow && (
+                <ReferenceLine
+                  x={minSaldoRow.label}
+                  stroke="#f59e0b"
+                  strokeDasharray="3 3"
+                  strokeWidth={1}
+                  label={{
+                    value: `mín ${fmtK(minSaldoRow.saldo)}`,
+                    position: "top",
+                    fill: "#b45309",
+                    fontSize: 9,
+                    fontWeight: 700,
+                  }}
+                />
+              )}
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
 
               {/* AR — green bars going UP from 0; AP descends below 0 via stackOffset="sign" */}
