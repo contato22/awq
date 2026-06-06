@@ -13,7 +13,7 @@ import EnrdFlowChart from "@/components/EnrdFlowChart";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { listProjects } from "@/lib/ppm-db";
-import { isCoraEnerdyConfigured } from "@/lib/cora-api";
+import { isCoraEnerdyConfigured, coraEnerdyDiag } from "@/lib/cora-api";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -38,6 +38,9 @@ function fmt(n: number) {
 
 export default async function EnrdConciliacaoPage() {
   const coraConfigured = isCoraEnerdyConfigured();
+  const coraDiag       = coraEnerdyDiag();
+  const vercelEnv      = process.env.VERCEL_ENV ?? null;
+  const commitRef      = process.env.VERCEL_GIT_COMMIT_REF ?? null;
 
   // ── Carregar transações ENRD ──────────────────────────────────────────────
   let transactions: Awaited<ReturnType<typeof getTransactionsByEntity>> = [];
@@ -162,22 +165,54 @@ export default async function EnrdConciliacaoPage() {
       />
       <div className="page-container">
 
-        {/* ── Credenciais não configuradas ─────────────────────────────── */}
-        {!coraConfigured && (
+        {/* ── Credenciais não configuradas (diagnóstico granular) ──────── */}
+        {!coraDiag.ready && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 flex items-start gap-3">
             <KeyRound size={18} className="text-amber-600 shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-amber-800">
-                Credenciais Cora Enerdy não configuradas
+                Credenciais Cora Enerdy {coraConfigured ? "presentes mas inválidas" : "não configuradas"}
               </p>
               <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                Configure as variáveis de ambiente no Vercel para habilitar o sync bancário da Enerdy:
+                Estado das variáveis de ambiente no deploy atual
+                {vercelEnv ? <> · <span className="font-mono">VERCEL_ENV={vercelEnv}</span></> : null}
+                {commitRef ? <> · <span className="font-mono">branch={commitRef}</span></> : null}:
               </p>
-              <ul className="mt-2 space-y-0.5 text-xs font-mono text-amber-800">
-                <li>CORA_ENERDY_CLIENT_ID</li>
-                <li>CORA_ENERDY_CERT</li>
-                <li>CORA_ENERDY_KEY</li>
+              <ul className="mt-2 space-y-1 text-xs font-mono text-amber-800">
+                <li className="flex items-center gap-2">
+                  <span className={coraDiag.clientId ? "text-emerald-600" : "text-red-600"}>
+                    {coraDiag.clientId ? "✓" : "✗"}
+                  </span>
+                  CORA_ENERDY_CLIENT_ID
+                  {!coraDiag.clientId && <span className="text-amber-600 font-sans">— ausente ou vazio</span>}
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className={coraDiag.cert.present && coraDiag.cert.looksPem ? "text-emerald-600" : "text-red-600"}>
+                    {coraDiag.cert.present && coraDiag.cert.looksPem ? "✓" : "✗"}
+                  </span>
+                  CORA_ENERDY_CERT
+                  {!coraDiag.cert.present && <span className="text-amber-600 font-sans">— ausente ou vazio</span>}
+                  {coraDiag.cert.present && !coraDiag.cert.looksPem && (
+                    <span className="text-amber-600 font-sans">— presente mas sem cabeçalho PEM (esperado &quot;-----BEGIN CERTIFICATE-----&quot;); valor pode estar truncado ou com escape de \n quebrado</span>
+                  )}
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className={coraDiag.key.present && coraDiag.key.looksPem ? "text-emerald-600" : "text-red-600"}>
+                    {coraDiag.key.present && coraDiag.key.looksPem ? "✓" : "✗"}
+                  </span>
+                  CORA_ENERDY_KEY
+                  {!coraDiag.key.present && <span className="text-amber-600 font-sans">— ausente ou vazio</span>}
+                  {coraDiag.key.present && !coraDiag.key.looksPem && (
+                    <span className="text-amber-600 font-sans">— presente mas sem cabeçalho PEM (esperado &quot;-----BEGIN PRIVATE KEY-----&quot;); valor pode estar truncado ou com escape de \n quebrado</span>
+                  )}
+                </li>
               </ul>
+              <p className="text-[11px] text-amber-700 mt-3 leading-relaxed">
+                {vercelEnv === "preview" && (
+                  <>Esta build é de <b>preview</b>. Vars do Vercel precisam estar no scope <b>Preview</b> (não só <b>Production</b>). <br /></>
+                )}
+                Setado as vars depois do build atual? É preciso <b>redeploy</b> (Deployments → ⋯ → Redeploy) para o runtime carregá-las.
+              </p>
             </div>
           </div>
         )}

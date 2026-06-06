@@ -90,6 +90,27 @@ export function isCoraEnerdyConfigured(): boolean {
   return !!(eId && eCert && eKey);
 }
 
+// Diagnostico granular pro card de aviso. Retorna a presenca de cada var
+// (e formato PEM esperado pra cert/key), sem expor valores. Server-only.
+export function coraEnerdyDiag(): {
+  clientId: boolean;
+  cert:     { present: boolean; looksPem: boolean };
+  key:      { present: boolean; looksPem: boolean };
+  ready:    boolean;
+} {
+  const eId   = env("CORA_ENERDY_CLIENT_ID");
+  const eCert = env("CORA_ENERDY_CERT");
+  const eKey  = env("CORA_ENERDY_KEY");
+  const certPem = /-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----/.test(eCert);
+  const keyPem  = /-----BEGIN (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+-----END (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----/.test(eKey);
+  return {
+    clientId: !!eId,
+    cert:     { present: !!eCert, looksPem: certPem },
+    key:      { present: !!eKey,  looksPem: keyPem  },
+    ready:    !!(eId && eCert && eKey && certPem && keyPem),
+  };
+}
+
 // ─── Low-level HTTPS helper (supports mTLS) ──────────────────────────────────────────────
 
 interface RawResponse {
