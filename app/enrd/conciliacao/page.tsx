@@ -51,20 +51,43 @@ export default async function EnrdConciliacaoPage() {
 
   // ── AR pendente (filtrado por bu_code ENRD ou entity ENERDY) ─────────────
   let arPending: { id: string; customer_name: string; net_amount: number; due_date: string }[] = [];
-  // arDailyAll: todos os AR pendentes abertos (qualquer due_date) agregados por dia,
-  // pra alimentar a coluna "AR Previsto" no chart diário (cobre meses futuros e passados).
+  // arDailyAll: AR esperado agregado por dia (epm_ar + retainers PPM + fallback ENRD),
+  // pra alimentar a coluna "AR Previsto" no chart diário.
   const arDailyAll: { date: string; amount: number }[] = [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const horizon  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const horizonD = new Date(); horizonD.setMonth(horizonD.getMonth() + 12);
+  const horizonStr = horizonD.toISOString().slice(0, 10);
+
+  // Bucket diário compartilhado entre as 3 fontes (epm_ar + PPM + fallback)
+  const dayMap = new Map<string, number>();
+
+  function projectMonthly(start: string, end: string, mrr: number) {
+    if (!start || !end || end < start || mrr <= 0) return;
+    const billDay = Math.min(parseInt(start.slice(8, 10)) || 5, 28);
+    const [sy, sm] = [parseInt(start.slice(0, 4)), parseInt(start.slice(5, 7))];
+    const [ey, em] = [parseInt(end.slice(0, 4)),   parseInt(end.slice(5, 7))];
+    let y = sy, m = sm;
+    while (y < ey || (y === ey && m <= em)) {
+      const date = `${y}-${String(m).padStart(2, "0")}-${String(billDay).padStart(2, "0")}`;
+      // Retainer: só projeta cobranças futuras. Passado se assume recebido
+      // (estaria em epm_ar ou no banco), evita pile-up em HOJE.
+      if (date >= todayStr) {
+        dayMap.set(date, (dayMap.get(date) ?? 0) + mrr);
+      }
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+  }
+
+  // Fonte 1: epm_ar (AP/AR EPM) — pode estar vazio pra ENRD
   try {
     await initAPARDB();
     const allAR = await getAllAR();
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-
     const openAR = allAR.filter(
       (i) => i.status === "PENDING" || i.status === "PARTIAL" || i.status === "OVERDUE"
     );
 
-    // Lista pra UI (próximos 30 dias + vencidos)
     arPending = openAR
       .filter((i) => i.due_date <= horizon)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
@@ -76,8 +99,6 @@ export default async function EnrdConciliacaoPage() {
         due_date: i.due_date,
       }));
 
-    // Bucket diário: vencidos colapsam pra HOJE (recebimento esperado imediato).
-    const dayMap = new Map<string, number>();
     for (const i of openAR) {
       const open =
         i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount;
@@ -85,51 +106,38 @@ export default async function EnrdConciliacaoPage() {
       const bucket = i.due_date < todayStr ? todayStr : i.due_date;
       dayMap.set(bucket, (dayMap.get(bucket) ?? 0) + open);
     }
-
-    // AR projetado a partir de retainers ativos do PPM (ENRD). Cobre o caso
-    // comum: contrato mensal sem AR explicito no epm_ar — projeta budget_revenue
-    // pra cada mes ate planned_end_date (capado em 12 meses a partir de hoje
-    // pra nao gerar buckets eternos). Usa dia 5 como dia de cobranca padrao.
-    try {
-      const projects = await listProjects({ bu_code: "ENRD", status: "active" });
-      const horizonMonths = 12;
-      const todayD = new Date(todayStr);
-      const horizonD = new Date(todayD);
-      horizonD.setMonth(horizonD.getMonth() + horizonMonths);
-      const horizonStr = horizonD.toISOString().slice(0, 10);
-
-      for (const p of projects) {
-        if (p.contract_type !== "retainer") continue;
-        if (p.billing_frequency !== "monthly") continue;
-        const mrr = Number(p.budget_revenue) || 0;
-        if (mrr <= 0) continue;
-
-        const start = p.start_date;
-        const end = p.planned_end_date < horizonStr ? p.planned_end_date : horizonStr;
-        if (!start || !end || end < start) continue;
-
-        // Dia de cobranca: usa o dia do start_date (ex.: start_date=2026-06-06 → cobra dia 06)
-        const billDay = Math.min(parseInt(start.slice(8, 10)) || 5, 28);
-
-        // Itera mes-a-mes do start ao end
-        const [sy, sm] = [parseInt(start.slice(0, 4)), parseInt(start.slice(5, 7))];
-        const [ey, em] = [parseInt(end.slice(0, 4)),   parseInt(end.slice(5, 7))];
-        let y = sy, m = sm;
-        while (y < ey || (y === ey && m <= em)) {
-          const date = `${y}-${String(m).padStart(2, "0")}-${String(billDay).padStart(2, "0")}`;
-          // Retainer: so projeta cobranças futuras. Passado se assume
-          // recebido (estaria em epm_ar/banco) — evita pile-up em HOJE.
-          if (date >= todayStr) {
-            dayMap.set(date, (dayMap.get(date) ?? 0) + mrr);
-          }
-          m += 1;
-          if (m > 12) { m = 1; y += 1; }
-        }
-      }
-    } catch { /* PPM indisponivel — ignora projecao de retainers */ }
-
-    for (const [date, amount] of dayMap) arDailyAll.push({ date, amount });
   } catch { /* AR EPM indisponível */ }
+
+  // Fonte 2: retainers ativos do PPM (ENRD)
+  let ppmRetainersFound = 0;
+  try {
+    const projects = await listProjects({ bu_code: "ENRD", status: "active" });
+    for (const p of projects) {
+      if (p.contract_type !== "retainer") continue;
+      if (p.billing_frequency !== "monthly") continue;
+      const mrr = Number(p.budget_revenue) || 0;
+      if (mrr <= 0) continue;
+      const start = p.start_date;
+      const end = p.planned_end_date && p.planned_end_date < horizonStr ? p.planned_end_date : horizonStr;
+      projectMonthly(start, end, mrr);
+      ppmRetainersFound += 1;
+    }
+  } catch { /* PPM indisponível */ }
+
+  // Fonte 3: fallback ENRD retainers conhecidos. Garante que a coluna sempre
+  // mostra a posição comercial real mesmo se PPM/epm_ar estiverem vazios em prod.
+  // Lista canônica vinda da proposta ENRD vigente — atualizar aqui ao fechar
+  // novos contratos retainer (ou popular PPM e a Fonte 2 cobre).
+  if (ppmRetainersFound === 0) {
+    const ENRD_RETAINERS_FALLBACK = [
+      { customer: "Coral Home", mrr: 1790, start: todayStr },
+    ];
+    for (const r of ENRD_RETAINERS_FALLBACK) {
+      projectMonthly(r.start, horizonStr, r.mrr);
+    }
+  }
+
+  for (const [date, amount] of dayMap) arDailyAll.push({ date, amount });
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const total       = transactions.length;
