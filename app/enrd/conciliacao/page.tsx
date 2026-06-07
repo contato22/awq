@@ -213,6 +213,24 @@ export default async function EnrdConciliacaoPage() {
                 )}
                 Setado as vars depois do build atual? É preciso <b>redeploy</b> (Deployments → ⋯ → Redeploy) para o runtime carregá-las.
               </p>
+              <div className="mt-3 pt-3 border-t border-amber-200 text-[11px] text-amber-700 leading-relaxed">
+                <p className="font-semibold text-amber-800 mb-0.5">Fallback opt-in:</p>
+                {coraDiag.fallback.enabled ? (
+                  coraDiag.fallback.holdingReady ? (
+                    <p className="text-emerald-700">
+                      ✓ <span className="font-mono">CORA_ENERDY_USE_HOLDING=true</span> ativo. Sync ENERDY rodando com credenciais AWQ_Holding.
+                    </p>
+                  ) : (
+                    <p className="text-red-700">
+                      <span className="font-mono">CORA_ENERDY_USE_HOLDING=true</span> ativo mas AWQ_Holding (CORA_CLIENT_ID/CERT/KEY) também não está configurado.
+                    </p>
+                  )
+                ) : (
+                  <p>
+                    Como atalho, set <span className="font-mono">CORA_ENERDY_USE_HOLDING=true</span> no Vercel pra reusar as credenciais AWQ_Holding{coraDiag.fallback.holdingReady ? " (já configuradas)" : " (atualmente não configuradas tampouco)"} no sync ENERDY.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}
