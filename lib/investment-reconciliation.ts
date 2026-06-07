@@ -218,11 +218,16 @@ function fromEmpiricalSnapshot(s: HoldingTreasurySnapshot): CanonicalInvestmentP
  *
  * @returns CanonicalInvestmentPosition — fully typed, auditable Camada 4 result.
  */
-export async function buildCanonicalInvestmentPosition(): Promise<CanonicalInvestmentPosition> {
+export async function buildCanonicalInvestmentPosition(
+  prefetched?: {
+    q?:        InvestmentQueryResult;
+    snapshot?: HoldingTreasurySnapshot;
+  },
+): Promise<CanonicalInvestmentPosition> {
   // ── Tier 1: Real pipeline ─────────────────────────────────────────────────
   const [q, holdingTreasurySnapshot] = await Promise.all([
-    buildInvestmentQuery(),
-    getHoldingTreasury(),
+    prefetched?.q        ?? buildInvestmentQuery(),
+    prefetched?.snapshot ?? getHoldingTreasury(),
   ]);
 
   if (q.hasData && q.hasInvestmentData) {

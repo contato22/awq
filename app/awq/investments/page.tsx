@@ -330,10 +330,16 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
           <span className="text-gray-500">Resgatado</span>
           <span className="text-emerald-600 font-semibold">{fmtBRL(s.totalRedemptions)}</span>
         </div>
-        <div className="flex justify-between text-xs border-t border-gray-100 pt-1.5">
-          <span className="font-semibold text-gray-700">Saldo Líq.</span>
-          <span className={`font-bold ${net > 0 ? "text-gray-900" : net < 0 ? "text-emerald-700" : "text-gray-400"}`}>
-            {net > 0 ? "−" : "+"}{fmtBRL(Math.abs(net))}
+        <div
+          className="flex justify-between text-xs border-t border-gray-100 pt-1.5"
+          title="Fluxo líquido = Aplicações − Resgates. Positivo = saiu do operacional para investimento. Negativo = resgatado líquido."
+        >
+          <span className="font-semibold text-gray-700">Fluxo líq.</span>
+          <span className={`font-bold ${net > 0 ? "text-red-600" : net < 0 ? "text-emerald-700" : "text-gray-400"}`}>
+            {net > 0 ? "+" : net < 0 ? "−" : ""}{fmtBRL(Math.abs(net))}
+            <span className="ml-1 text-xs font-normal text-gray-400">
+              {net > 0 ? "aplicado" : net < 0 ? "resgatado" : ""}
+            </span>
           </span>
         </div>
         {s.ambiguousCount > 0 && (
@@ -356,11 +362,16 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
 export default async function AwqInvestmentsPage() {
   // ── Camada 4 canonical position (primary source for investment display) ──────
   // Priority: pipeline real → empirical snapshot → SEM DADO CONFIÁVEL
-  const [q, canonical, holdingTreasurySnapshot] = await Promise.all([
+  // q + snapshot são fetchados uma vez e passados ao canonical builder para
+  // evitar round-trips duplicados.
+  const [q, holdingTreasurySnapshot] = await Promise.all([
     buildInvestmentQuery(),
-    buildCanonicalInvestmentPosition(),
     getHoldingTreasury(),
   ]);
+  const canonical = await buildCanonicalInvestmentPosition({
+    q,
+    snapshot: holdingTreasurySnapshot,
+  });
 
   const periodLabel = q.periodStart && q.periodEnd
     ? `${fmtDate(q.periodStart)} – ${fmtDate(q.periodEnd)}`
@@ -432,15 +443,13 @@ export default async function AwqInvestmentsPage() {
               label:  "Total Investido Real",
               value:  canonical.totalInvestedReal !== null
                         ? fmtBRL(canonical.totalInvestedReal)
-                        : canonical.investmentApplications > 0
-                          ? fmtBRL(canonical.investmentApplications)
-                          : "—",
+                        : "—",
               sub:    canonical.totalInvestedReal !== null
                         ? "CDB DI — posição confirmada"
-                        : "Fluxo observável (sem posição)",
+                        : "Sem posição confirmada (apenas fluxos)",
               icon:   Landmark,
-              color:  "text-amber-700",
-              bg:     "bg-amber-50",
+              color:  canonical.totalInvestedReal !== null ? "text-amber-700" : "text-gray-400",
+              bg:     canonical.totalInvestedReal !== null ? "bg-amber-50" : "bg-gray-50",
             },
             {
               label:  "Aplicações",
