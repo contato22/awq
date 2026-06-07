@@ -232,8 +232,19 @@ function parseDate(raw: unknown): string {
   // Timestamp completo (com T) → converter para data em BRT antes de cortar
   // Ex: "2026-05-28T01:00:00Z" (UTC) → "2026-05-27" (BRT, UTC-3)
   if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return "";
+    // Cora às vezes manda offset incompleto: "+00" / "-03" (sem ":mm").
+    // ECMA exige "±HH:mm" — sem isso, new Date() retorna Invalid Date e a
+    // tx era silenciosamente filtrada na sync, deixando bank_transactions
+    // com gaps e o saldo no chart sem variação. Normalizamos pra ISO válido.
+    const normalized = raw.replace(/([+-]\d{2})$/, "$1:00");
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) {
+      // Último recurso: extrai a data nominal (YYYY-MM-DD) do início da string.
+      // Perde precisão de fuso (pode estar 1 dia off em movimentos de madrugada
+      // UTC), mas é melhor que descartar a transação inteira.
+      const fallback = raw.slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(fallback) ? fallback : "";
+    }
     const out = d.toLocaleDateString("sv", { timeZone: "America/Sao_Paulo" });
     return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : "";
   }
