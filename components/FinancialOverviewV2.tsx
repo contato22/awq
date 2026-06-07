@@ -565,6 +565,29 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       }
     }
 
+    // ── Override de HOJE com saldo live ──
+    // O snapshot persistido de hoje é gravado pelo cron diário (00:00 UTC
+    // = 21:00 BRT do dia anterior) → reflete o saldo daquele momento, não o
+    // saldo atual. Durante o dia, movimentos novos não aparecem no snapshot,
+    // mas a API live do Cora os reflete imediatamente. Resultado: o "Saldo
+    // real (Cora)" do card de Caixa Total diverge do ponto de hoje no chart.
+    // Solução: usa consolidatedRealBalance (live Cora + closings estáticos)
+    // como saldo de hoje, e propaga p/ dias futuros do mês (carry-forward).
+    if (consolidatedRealBalance !== 0) {
+      const todayStrLocal = today();
+      const liveTotal = Math.round(consolidatedRealBalance);
+      // Diário: hoje e qualquer dia futuro do mês visível
+      snapshotMap.set(todayStrLocal, liveTotal);
+      for (const d of raw.data) {
+        if (d.date && d.date.length === 10 && d.date > todayStrLocal) {
+          snapshotMap.set(d.date, liveTotal);
+        }
+      }
+      // Mensal: garante que o mês corrente reflita o live (sobrescreve
+      // snapshot do último dia já gravado pelo cron)
+      monthlySnapshotMap.set(todayStrLocal.slice(0, 7), liveTotal);
+    }
+
     let cum = 0;
     const data = raw.data.map((d, idx) => {
       cum += d.recebimentos - d.pagamentos;
