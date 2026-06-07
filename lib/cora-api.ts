@@ -228,11 +228,14 @@ export interface CoraStatementEntry {
 type CoraRawEntry = Record<string, unknown>;
 
 function parseDate(raw: unknown): string {
-  if (typeof raw !== "string") return "";
+  if (typeof raw !== "string" || !raw) return "";
   // Timestamp completo (com T) → converter para data em BRT antes de cortar
   // Ex: "2026-05-28T01:00:00Z" (UTC) → "2026-05-27" (BRT, UTC-3)
   if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
-    return new Date(raw).toLocaleDateString("sv", { timeZone: "America/Sao_Paulo" });
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return "";
+    const out = d.toLocaleDateString("sv", { timeZone: "America/Sao_Paulo" });
+    return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : "";
   }
   // Apenas data YYYY-MM-DD → já no formato correto (Cora envia em BRT)
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
@@ -241,7 +244,10 @@ function parseDate(raw: unknown): string {
     const [d, m, y] = raw.split("/");
     return `${y}-${m}-${d}`;
   }
-  return raw.slice(0, 10);
+  // Trava final: jamais emitir "Invalid Date" ou outra string nao-data. Se nao
+  // bateu nenhum formato conhecido, retorna vazio — o caller decide o fallback.
+  const sliced = raw.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(sliced) ? sliced : "";
 }
 
 function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
