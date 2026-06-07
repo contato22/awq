@@ -34,6 +34,7 @@ import {
 } from "./investment-query";
 
 import { getHoldingTreasury, type HoldingTreasurySnapshot } from "./epm-planning-db";
+import { getLatestAccountBalances, type LatestAccountBalance } from "./financial-db";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -161,8 +162,22 @@ function fromPipeline(q: InvestmentQueryResult): CanonicalInvestmentPosition {
   };
 }
 
-/** Build the canonical position from the empirical print snapshot. */
-function fromEmpiricalSnapshot(s: HoldingTreasurySnapshot): CanonicalInvestmentPosition {
+/** Build the canonical position from the empirical print snapshot.
+ *
+ *  `freshCoraBalance` (when present) replaces the snapshot's operationalCash
+ *  with a more recent pipeline-derived balance for the AWQ Holding Cora
+ *  account. Avoids exibir saldo Cora desatualizado quando o pipeline já
+ *  ingeriu extrato mais novo que o print bancário. */
+function fromEmpiricalSnapshot(
+  s: HoldingTreasurySnapshot,
+  freshCoraBalance?: LatestAccountBalance,
+): CanonicalInvestmentPosition {
+  const useFreshCora =
+    freshCoraBalance != null && freshCoraBalance.asOf > s.asOf;
+  const operationalCashBalance = useFreshCora ? freshCoraBalance!.balance : s.operationalCash;
+  const operationalCashSource: InvestmentSource = useFreshCora ? "pipeline" : "empirical_snapshot";
+  const operationalCashAsOf = useFreshCora ? freshCoraBalance!.asOf : s.asOf;
+
   return {
     totalInvestedReal:            s.totalInvestedReal,
     investmentCashAccountBalance: s.investmentAccountCash,
@@ -177,20 +192,24 @@ function fromEmpiricalSnapshot(s: HoldingTreasurySnapshot): CanonicalInvestmentP
       `Posição empírica confirmada por print bancário (${s.source}). ` +
       "Aguardando extrato PDF para pipeline real. " +
       "totalInvestedReal = R$" + s.totalInvestedReal.toFixed(2) +
-      " é o único valor de investimento com prova documental.",
+      " é o único valor de investimento com prova documental." +
+      (useFreshCora
+        ? ` Caixa Cora atualizado para R$${operationalCashBalance.toFixed(2)} ` +
+          `via pipeline (${operationalCashAsOf}) — mais recente que o print (${s.asOf}).`
+        : ""),
     asOf:        s.asOf,
     periodStart: s.asOf,
     periodEnd:   s.asOf,
     affectedAccounts: [s.investmentBank + " — CDB DI"],
-    operationalCashBalance: s.operationalCash,
-    operationalCashSource:  "empirical_snapshot",
+    operationalCashBalance,
+    operationalCashSource,
     confirmedNOT_investment: [
       { label: "Tarifas bancárias Itaú",             amount: s.bankFees,              category: "tarifa_bancaria",              proof: `print ${s.asOf}` },
       { label: "Reserva de Limite Cartão Cora",      amount: s.cardReserveDeposited,  category: "transferencia_interna_enviada", proof: `print ${s.asOf}` },
       { label: "Pix AWQ Producoes (intercompany)",   amount: s.intercompanyTotal,     category: "transferencia_interna_enviada", proof: `print ${s.asOf}` },
       { label: "Pix sócio Miguel Costa",             amount: s.partnerWithdrawals,    category: "prolabore_retirada",            proof: `print ${s.asOf}` },
       { label: "Saldo em conta Itaú (operacional)", amount: s.investmentAccountCash, category: "investmentCashAccountBalance",  proof: `print ${s.asOf}` },
-      { label: "Caixa Cora AWQ (operacional)",       amount: s.operationalCash,       category: "caixa_operacional",             proof: `print ${s.asOf}` },
+      { label: "Caixa Cora AWQ (operacional)",       amount: operationalCashBalance,   category: "caixa_operacional",             proof: useFreshCora ? `pipeline ${operationalCashAsOf}` : `print ${s.asOf}` },
     ],
     coverageGaps: [
       "Extrato PDF Itaú Empresas não ingerido — ingira em /awq/ingest para pipeline real.",
@@ -225,10 +244,16 @@ export async function buildCanonicalInvestmentPosition(
   },
 ): Promise<CanonicalInvestmentPosition> {
   // ── Tier 1: Real pipeline ─────────────────────────────────────────────────
-  const [q, holdingTreasurySnapshot] = await Promise.all([
+  const [q, holdingTreasurySnapshot, latestBalances] = await Promise.all([
     prefetched?.q        ?? buildInvestmentQuery(),
     prefetched?.snapshot ?? getHoldingTreasury(),
+    getLatestAccountBalances(),
   ]);
+
+  // Pipeline-derived Cora AWQ balance (preferred over stale snapshot)
+  const freshCoraBalance = latestBalances.find(
+    (b) => b.entity === "AWQ_Holding" && b.bank === "Cora",
+  );
 
   if (q.hasData && q.hasInvestmentData) {
     const position = fromPipeline(q);
@@ -240,16 +265,17 @@ export async function buildCanonicalInvestmentPosition(
       const snapDate  = snap.asOf;
       const pipeEnd   = position.periodEnd ?? "";
       if (snapDate >= pipeEnd) {
+        const useFreshCora = freshCoraBalance != null && freshCoraBalance.asOf > snap.asOf;
         return {
           ...position,
           totalInvestedReal:            snap.totalInvestedReal,
           investmentCashAccountBalance: snap.investmentAccountCash,
           investmentFees:               snap.bankFees,
-          operationalCashBalance:       snap.operationalCash,
-          operationalCashSource:        "empirical_snapshot",
+          operationalCashBalance:       useFreshCora ? freshCoraBalance!.balance : snap.operationalCash,
+          operationalCashSource:        useFreshCora ? "pipeline" : "empirical_snapshot",
           investmentSource:             "pipeline+snapshot",
           investmentConfidence:         "partial",
-          confirmedNOT_investment:      fromEmpiricalSnapshot(snap).confirmedNOT_investment,
+          confirmedNOT_investment:      fromEmpiricalSnapshot(snap, freshCoraBalance).confirmedNOT_investment,
           note:
             "Pipeline real activo (fluxos). totalInvestedReal suplementado por print " +
             `bancário ${snap.asOf} (${snap.source}). ` +
@@ -261,7 +287,7 @@ export async function buildCanonicalInvestmentPosition(
   }
 
   // ── Tier 2: Empirical snapshot ────────────────────────────────────────────
-  return fromEmpiricalSnapshot(holdingTreasurySnapshot as HoldingTreasurySnapshot);
+  return fromEmpiricalSnapshot(holdingTreasurySnapshot as HoldingTreasurySnapshot, freshCoraBalance);
 }
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────

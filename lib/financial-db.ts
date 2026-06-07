@@ -730,6 +730,93 @@ export async function getCashPositionByEntity(): Promise<ConsolidatedCashPositio
   return Array.from(entityMap.values());
 }
 
+// ─── Latest account balance (derived from pipeline) ──────────────────────────
+
+export interface LatestAccountBalance {
+  entity:      EntityLayer;
+  bank:        string;
+  accountName: string;
+  balance:     number;
+  asOf:        string;   // YYYY-MM-DD of most recent observation
+  source:      "closingBalance" | "openingBalance+flow";
+}
+
+/**
+ * Compute latest known balance per (entity, bank, account) using:
+ *   1. Latest document closingBalance (if available) + transactions after that date
+ *   2. Else earliest document openingBalance + all transactions for that account
+ *
+ * Returns only accounts where a balance could be derived. Accounts without
+ * any opening/closing balance anchor are silently dropped.
+ *
+ * Used by the canonical investment position to prefer pipeline-derived
+ * operational cash over stale empirical snapshots.
+ */
+export async function getLatestAccountBalances(): Promise<LatestAccountBalance[]> {
+  const docs = (await getAllDocuments()).filter((d) => d.status === "done");
+  const txns = await getAllTransactions();
+
+  type AccountKey = string;
+  const keyOf = (d: { entity: EntityLayer; bank: string; accountName: string }) =>
+    `${d.entity}__${d.bank}__${d.accountName}`;
+
+  const byAccount = new Map<AccountKey, { docs: FinancialDocument[]; txns: BankTransaction[] }>();
+  for (const d of docs) {
+    const k = keyOf(d);
+    if (!byAccount.has(k)) byAccount.set(k, { docs: [], txns: [] });
+    byAccount.get(k)!.docs.push(d);
+  }
+  for (const t of txns) {
+    const doc = docs.find((d) => d.id === t.documentId);
+    if (!doc) continue;
+    byAccount.get(keyOf(doc))?.txns.push(t);
+  }
+
+  const out: LatestAccountBalance[] = [];
+
+  for (const [, group] of Array.from(byAccount.entries())) {
+    const sortedDocs = group.docs.slice().sort((a, b) => (a.periodStart ?? "").localeCompare(b.periodStart ?? ""));
+    const anchorDoc =
+      sortedDocs.slice().reverse().find((d) => d.closingBalance != null && d.periodEnd != null) ??
+      sortedDocs.find((d) => d.openingBalance != null && d.periodStart != null);
+    if (!anchorDoc) continue;
+
+    let balance: number;
+    let anchorDate: string;
+    let source: LatestAccountBalance["source"];
+
+    if (anchorDoc.closingBalance != null && anchorDoc.periodEnd != null) {
+      balance    = anchorDoc.closingBalance;
+      anchorDate = anchorDoc.periodEnd;
+      source     = "closingBalance";
+    } else {
+      balance    = anchorDoc.openingBalance!;
+      anchorDate = anchorDoc.periodStart!;
+      source     = "openingBalance+flow";
+    }
+
+    const subsequent = group.txns.filter((t) => t.transactionDate > anchorDate);
+    for (const t of subsequent) {
+      balance += t.direction === "credit" ? t.amount : -t.amount;
+    }
+
+    const lastTxnDate = subsequent.length
+      ? subsequent.map((t) => t.transactionDate).sort().slice(-1)[0]
+      : anchorDate;
+
+    out.push({
+      entity:      anchorDoc.entity,
+      bank:        anchorDoc.bank,
+      accountName: anchorDoc.accountName,
+      balance,
+      asOf:        lastTxnDate,
+      source,
+    });
+  }
+
+  return out;
+}
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 export function hashBuffer(buf: Buffer): string {
