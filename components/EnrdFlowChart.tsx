@@ -643,7 +643,11 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
                 <Bar yAxisId="bars" dataKey="arPrevisto" stackId="ar" fill="#0ea5e9" fillOpacity={0.55}
                   maxBarSize={maxBarSz} radius={[2, 2, 0, 0]} />
               )}
-              {balance !== null && (
+              {/* Renderiza a linha sempre que houver pelo menos um saldo nao-null
+                  no periodo — running_balance do extrato eh suficiente, nao depende
+                  da Cora live API. Faz aparecer o fechamento diario do caixa em
+                  meses passados mesmo se a chamada de saldo live falhar. */}
+              {flowResult.data.some((d) => d.saldo !== null) && (
                 <Line yAxisId="saldo" type="monotone" dataKey="saldo" stroke="#7c3aed" strokeWidth={2}
                   connectNulls={false}
                   dot={{ r: 3, fill: "#7c3aed", stroke: "#fff", strokeWidth: 1.5 }}
