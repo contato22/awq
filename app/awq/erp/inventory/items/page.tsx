@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Search, Package, X, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Search, Package, X, Loader2, AlertTriangle, Upload, Building2 } from "lucide-react";
 
 const UNITS = ["un", "kg", "m", "cx", "lt", "pc"];
 
@@ -33,13 +33,22 @@ export default function InventoryItemsPage() {
     unit_cost: "", sale_price: "", stock_qty: "0", min_stock: "0",
   });
 
+  const [setupRequired, setSetupRequired] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
+    setSetupRequired(false);
     const qs = search ? `?q=${encodeURIComponent(search)}` : "";
     const res = await fetch(`/api/erp/inventory${qs}`);
     if (!res.ok) { setError("Erro ao carregar itens"); setLoading(false); return; }
-    setItems(await res.json());
+    const data = await res.json();
+    if (data?.setupRequired) {
+      setSetupRequired(true);
+      setItems([]);
+    } else {
+      setItems(Array.isArray(data) ? data : (data.items ?? []));
+    }
     setLoading(false);
   }, [search]);
 
@@ -86,14 +95,35 @@ export default function InventoryItemsPage() {
               <p className="text-xs text-gray-500">ERP · Estoque</p>
             </div>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
-            <Plus size={14} /> Novo Item
-          </button>
+          <div className="flex items-center gap-2">
+            <Link href="/awq/erp/inventory/import" className="flex items-center gap-1.5 text-sm text-brand-700 border border-brand-200 bg-brand-50 px-4 py-2 rounded-lg hover:bg-brand-100 transition-colors">
+              <Upload size={14} /> Importar CSV
+            </Link>
+            <Link href="/awq/erp/inventory/to-assets" className="flex items-center gap-1.5 text-sm text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <Building2 size={14} /> Migrar p/ Ativo Fixo
+            </Link>
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
+              <Plus size={14} /> Novo Item
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
         {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{error}</div>}
+        {setupRequired && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm space-y-2">
+            <p className="font-semibold text-amber-800 flex items-center gap-2"><AlertTriangle size={14} /> Schema ERP ainda não inicializado no Supabase</p>
+            <p className="text-amber-700">
+              As tabelas <code>erp_inventory_items</code>, <code>erp_assets</code>, <code>erp_inventory_warehouses</code> etc. não existem no banco.
+              Abra o <a href="https://supabase.com/dashboard/project/kkhxxsrgsewjfvnnssyf/sql/new" target="_blank" rel="noreferrer" className="underline font-semibold">SQL Editor do Supabase ERP</a>,
+              cole o conteúdo de <code>awq_erp_full_schema.sql</code> e rode uma vez. As tabelas são idempotentes (<code>CREATE TABLE IF NOT EXISTS</code>).
+            </p>
+            <p className="text-amber-700">
+              Atalho: <a href="/api/erp/setup/schema" target="_blank" rel="noreferrer" className="underline font-semibold">baixar o SQL pronto</a>.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
