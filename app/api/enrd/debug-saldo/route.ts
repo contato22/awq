@@ -68,6 +68,17 @@ export async function GET(): Promise<NextResponse> {
       lastRunBalByMonth[m.month] = monthTxns[0]?.runningBalance ?? null;
     }
 
+    // Sample raw transactionDate de 5 txns: tipo + serializacao
+    const rawSamples = txns.slice(0, 5).map((t) => ({
+      id: t.id,
+      direction: t.direction,
+      type: typeof t.transactionDate,
+      stringified: String(t.transactionDate ?? "(null)"),
+      jsonified: JSON.stringify(t.transactionDate),
+      constructor: t.transactionDate?.constructor?.name ?? null,
+      passesValidDate: /^\d{4}-\d{2}-\d{2}/.test(String(t.transactionDate ?? "")),
+    }));
+
     return NextResponse.json({
       ok: true,
       entity: "ENERDY",
@@ -80,6 +91,7 @@ export async function GET(): Promise<NextResponse> {
       dateRange: { min: minDate || null, max: maxDate || null },
       months,
       lastRunBalByMonth,
+      rawSamples,
       diagnosis:
         total === 0 ? "Nenhuma txn ENERDY no DB. Sync nao rodou ou retornou vazio."
         : withDate === 0 ? "Txns existem mas nenhuma tem transactionDate valido (YYYY-MM-DD)."
