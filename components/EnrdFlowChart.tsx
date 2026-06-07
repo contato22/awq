@@ -10,8 +10,14 @@ import { REVENUE_CATEGORIES } from "@/lib/financial-classifier";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 
 const REVENUE_SET = new Set<string>(REVENUE_CATEGORIES);
+// "recebimento_ambiguo" eh o fallback do classificador pra PIX recebido sem
+// keyword de receita clara na descricao. Pra ENRD (base pequena de clientes
+// como Coral Home), praticamente todo credito ambiguo eh receita real do
+// cliente PIX-ando o retainer. Trata como AR Realizado aqui — usuario reclassi-
+// fica via /awq/conciliacao se for de fato transferencia interna.
+const AR_REALIZED_SET = new Set<string>([...REVENUE_CATEGORIES, "recebimento_ambiguo"]);
 function isRevenueCredit(t: BankTransaction): boolean {
-  return t.direction === "credit" && REVENUE_SET.has(String(t.managerialCategory ?? ""));
+  return t.direction === "credit" && AR_REALIZED_SET.has(String(t.managerialCategory ?? ""));
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
