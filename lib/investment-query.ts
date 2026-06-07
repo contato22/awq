@@ -36,7 +36,10 @@ import {
   type ManagerialCategory,
   type ClassificationConfidence,
 } from "./financial-db";
-import { ENTITY_LABELS, fmtBRL, fmtDate } from "./financial-query";
+import {
+  ENTITY_LABELS, fmtBRL, fmtDate,
+  REVENUE_CATS, OPERATIONAL_EXPENSE_CATS,
+} from "./financial-query";
 
 export type { EntityLayer, ManagerialCategory, ClassificationConfidence };
 export { fmtBRL, fmtDate, ENTITY_LABELS };
@@ -222,23 +225,17 @@ export async function buildInvestmentQuery(): Promise<InvestmentQueryResult> {
   }
   const doneDocs = allDocs.filter((d) => d.status === "done");
 
-  // Compute operational reference for separation display
-  // (lightweight — avoid importing buildFinancialQuery to prevent circular deps)
-  const REVENUE_CATS = new Set<ManagerialCategory>([
-    "receita_recorrente", "receita_projeto", "receita_eventual",
-  ]);
-  const EXPENSE_CATS = new Set<ManagerialCategory>([
-    "fornecedor_operacional", "freelancer_terceiro", "folha_remuneracao",
-    "prolabore_retirada", "imposto_tributo", "tarifa_bancaria",
-    "software_assinatura", "marketing_midia", "deslocamento_combustivel",
-    "alimentacao_representacao", "despesa_pessoal_misturada", "despesa_ambigua",
-  ]);
+  // Compute operational reference for separation display.
+  // Reuse the canonical REVENUE_CATS / OPERATIONAL_EXPENSE_CATS sets from
+  // financial-query.ts (single source of truth) to avoid drift — the prior
+  // local subset omitted receita_social_media, receita_producao, etc., which
+  // drastically undercounted operational revenue on the Investments page.
   let opRevenue = 0, opExpenses = 0;
   for (const t of allTxns) {
     if (t.excludedFromConsolidated) continue;
     const amt = Math.abs(t.amount);
-    if (REVENUE_CATS.has(t.managerialCategory) && t.direction === "credit") opRevenue += amt;
-    if (EXPENSE_CATS.has(t.managerialCategory) && t.direction === "debit")  opExpenses += amt;
+    if (REVENUE_CATS.has(t.managerialCategory) && t.direction === "credit")               opRevenue  += amt;
+    if (OPERATIONAL_EXPENSE_CATS.has(t.managerialCategory) && t.direction === "debit")    opExpenses += amt;
   }
 
   const empty: InvestmentQueryResult = {
