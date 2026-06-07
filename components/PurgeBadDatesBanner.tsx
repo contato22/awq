@@ -60,7 +60,7 @@ export default function PurgeBadDatesBanner({ badCount }: Props) {
       <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-red-800">
-          {badCount} transação{badCount === 1 ? "" : "ões"} com <span className="font-mono">transactionDate = &quot;Invalid Date&quot;</span>
+          {badCount === 1 ? "1 transação" : `${badCount} transações`} com <span className="font-mono">transactionDate = &quot;Invalid Date&quot;</span>
         </p>
         <p className="text-xs text-red-700 mt-1 leading-relaxed">
           Essas linhas vieram de um sync antigo do Cora com bug no <span className="font-mono">parseDate</span> (já corrigido).
