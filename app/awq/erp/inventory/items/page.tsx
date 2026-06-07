@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Search, Package, X, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Search, Package, X, Loader2, AlertTriangle, Upload } from "lucide-react";
 
 const UNITS = ["un", "kg", "m", "cx", "lt", "pc"];
 
@@ -86,9 +86,14 @@ export default function InventoryItemsPage() {
               <p className="text-xs text-gray-500">ERP · Estoque</p>
             </div>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
-            <Plus size={14} /> Novo Item
-          </button>
+          <div className="flex items-center gap-2">
+            <Link href="/awq/erp/inventory/import" className="flex items-center gap-1.5 text-sm text-brand-700 border border-brand-200 bg-brand-50 px-4 py-2 rounded-lg hover:bg-brand-100 transition-colors">
+              <Upload size={14} /> Importar CSV
+            </Link>
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
+              <Plus size={14} /> Novo Item
+            </button>
+          </div>
         </div>
       </div>
 
