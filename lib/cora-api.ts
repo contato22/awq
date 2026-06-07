@@ -232,8 +232,22 @@ function parseDate(raw: unknown): string {
   // Timestamp completo (com T) → converter para data em BRT antes de cortar
   // Ex: "2026-05-28T01:00:00Z" (UTC) → "2026-05-27" (BRT, UTC-3)
   if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return "";
+    // Normaliza timezone: Cora emite "+00" (nao-padrao) em vez de "+00:00".
+    // Outros suffixes possiveis: "+0300", "-03". Padronizamos pra HH:MM antes
+    // de jogar no Date(), senao retorna Invalid no V8.
+    let normalized = raw;
+    const tzMatch = normalized.match(/([+-])(\d{2})(?::?(\d{2}))?$/);
+    if (tzMatch) {
+      const [, sign, hh, mm = "00"] = tzMatch;
+      normalized = normalized.replace(/[+-]\d{2}:?\d{0,2}$/, `${sign}${hh}:${mm}`);
+    }
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) {
+      // Ultimo recurso: extrai YYYY-MM-DD direto do prefixo. Perde a conversao
+      // pra BRT mas nao perde a txn (melhor que descartar).
+      const datePart = raw.slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : "";
+    }
     const out = d.toLocaleDateString("sv", { timeZone: "America/Sao_Paulo" });
     return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : "";
   }
