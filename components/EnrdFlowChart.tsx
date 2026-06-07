@@ -26,6 +26,11 @@ interface FlowRow {
   pagamentos:      number;
   arPrevisto:      number;
   saldo:           number | null;
+  // Validacao: diferenca entre running_balance reportado (saldo end-of-day do
+  // extrato) e o saldo esperado pela invariante saldo(D-1) + net(D). Quando
+  // |delta| > 0.01, o dia esta divergente — sinal de txn faltando no sync,
+  // running_balance gravado errado, ou txn extra fora do extrato.
+  saldoDelta:      number | null;
 }
 
 export interface ARDailyPoint { date: string; amount: number }
@@ -39,6 +44,8 @@ interface FlowResult {
   net:            number;
   hasData:        boolean;
   hasBankData:    boolean;
+  mismatchCount:  number;       // numero de dias com saldoDelta != null && |delta| > 0.01
+  mismatchTotal:  number;       // soma |delta| dos dias divergentes (em R$)
 }
 
 interface Props {
@@ -167,8 +174,15 @@ function buildFlowDaily(
   const openingDay1 = endBalance !== null ? endBalance - periodNet : null;
 
   let cum = 0;
+  // Validacao da invariante: saldo(D) reportado vs (saldo(D-1) + net(D)).
+  // prevSaldoRaw = saldo end-of-day do dia anterior (running_balance, nao
+  // arredondado), usado pra calcular saldo esperado pela soma de bars.
+  let prevSaldoRaw: number | null = preSeed;
+  let mismatchCount = 0, mismatchTotal = 0;
+
   const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { iAR, iOther, o, ar }]) => {
-    cum += (iAR + iOther) - o;
+    const dayNet = (iAR + iOther) - o;
+    cum += dayNet;
     // Preferencia: saldo end-of-day do extrato. Se o dia nao tem extrato, usa
     // o ultimo conhecido (carry-forward). Se nem isso, usa fallback derivado.
     if (dayRunBal.has(date)) lastKnown = dayRunBal.get(date)!;
@@ -178,6 +192,24 @@ function buildFlowDaily(
     } else {
       saldo = lastKnown;
     }
+
+    // Validacao: SO checa quando o dia teve movimento bancario E o extrato
+    // reportou running_balance hoje. Dias sem movimento (carry-forward) ou
+    // sem extrato sao ignorados na auditoria.
+    let saldoDelta: number | null = null;
+    if (dayRunBal.has(date) && prevSaldoRaw !== null && (iAR + iOther + o) > 0) {
+      const expected = prevSaldoRaw + dayNet;
+      const reported = dayRunBal.get(date)!;
+      const delta = reported - expected;
+      saldoDelta = delta;
+      if (Math.abs(delta) > 0.01) {
+        mismatchCount += 1;
+        mismatchTotal += Math.abs(delta);
+      }
+    }
+    if (dayRunBal.has(date)) prevSaldoRaw = dayRunBal.get(date)!;
+    else if (prevSaldoRaw !== null) prevSaldoRaw = prevSaldoRaw + dayNet; // estima carry-forward
+
     return {
       label:          String(parseInt(date.slice(8))),
       arRealizado:    Math.round(iAR),
@@ -186,6 +218,7 @@ function buildFlowDaily(
       pagamentos:    -Math.round(o),
       arPrevisto:     Math.round(ar),
       saldo:          saldo !== null ? Math.round(saldo) : null,
+      saldoDelta:     saldoDelta !== null ? Math.round(saldoDelta * 100) / 100 : null,
     };
   });
   return {
@@ -197,6 +230,8 @@ function buildFlowDaily(
     net:           Math.round(ti - to_),
     hasData:       ti + to_ + tar > 0,
     hasBankData:   ti + to_ > 0,
+    mismatchCount,
+    mismatchTotal: Math.round(mismatchTotal * 100) / 100,
   };
 }
 
@@ -220,11 +255,12 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
           pagamentos:     0,
           arPrevisto:     0,
           saldo:          Math.round(coraBalance),
+          saldoDelta:     null,
         }],
-        totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false,
+        totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false, mismatchCount: 0, mismatchTotal: 0,
       };
     }
-    return { data: [], totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false };
+    return { data: [], totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false, mismatchCount: 0, mismatchTotal: 0 };
   }
 
   const minMonth = elig.reduce(
@@ -268,6 +304,7 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
       pagamentos:    -Math.round(o),
       arPrevisto:     0,
       saldo:          openingPre !== null ? Math.round(openingPre + cum) : null,
+      saldoDelta:     null,
     };
   });
   const ti = tiAR + tiOther;
@@ -280,6 +317,8 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
     net:           Math.round(ti - to_),
     hasData:       ti + to_ > 0,
     hasBankData:   ti + to_ > 0,
+    mismatchCount: 0,
+    mismatchTotal: 0,
   };
 }
 
@@ -631,6 +670,58 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
         )}
         {coraConfigured && loading && (
           <p className="text-center text-[10px] text-gray-300 animate-pulse -mt-1 mb-1">Calculando posição de caixa…</p>
+        )}
+
+        {/* ── Validacao saldo diario ─────────────────────────────────────
+            Mostra divergencia entre running_balance(D) reportado e
+            running_balance(D-1) + net(D). Indica txn faltando no sync,
+            running_balance gravado errado, ou txn fora do extrato. */}
+        {viewMode === "diario" && flowResult.mismatchCount > 0 && (
+          <details className="mt-2 mx-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] overflow-hidden">
+            <summary className="px-3 py-2 cursor-pointer flex items-center justify-between gap-2 hover:bg-amber-100/60">
+              <span className="font-semibold text-amber-800">
+                ⚠ {flowResult.mismatchCount} dia{flowResult.mismatchCount === 1 ? "" : "s"} com divergência no saldo
+              </span>
+              <span className="text-amber-700 tabular-nums">
+                Σ |Δ| = {fmtBRL(flowResult.mismatchTotal)}
+              </span>
+            </summary>
+            <div className="px-3 pb-3 pt-1 border-t border-amber-200 bg-white/40">
+              <p className="text-[10px] text-amber-700 leading-relaxed mb-2">
+                Invariante: <span className="font-mono">saldo(D) ≈ saldo(D-1) + créditos(D) − débitos(D)</span>.
+                Dias listados abaixo têm <span className="font-mono">running_balance</span> reportado pelo extrato
+                que não bate com a soma das txns importadas. Causas comuns: txn faltando no sync,
+                running_balance gravado errado em <span className="font-mono">/api/cora/sync</span>, ou txn fora do extrato Cora.
+              </p>
+              <table className="w-full text-[10px] font-mono text-amber-900">
+                <thead>
+                  <tr className="text-amber-700">
+                    <th className="text-left py-0.5">Dia</th>
+                    <th className="text-right py-0.5">Saldo extrato</th>
+                    <th className="text-right py-0.5">Δ (rep − esperado)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {flowResult.data
+                    .filter((d) => d.saldoDelta !== null && Math.abs(d.saldoDelta) > 0.01)
+                    .map((d) => (
+                      <tr key={d.label} className="border-t border-amber-100">
+                        <td className="py-0.5">{d.label}</td>
+                        <td className="text-right py-0.5">{d.saldo !== null ? fmtBRL(d.saldo) : "—"}</td>
+                        <td className={`text-right py-0.5 font-bold ${(d.saldoDelta ?? 0) > 0 ? "text-emerald-700" : "text-red-700"}`}>
+                          {(d.saldoDelta ?? 0) > 0 ? "+" : ""}{fmtBRL(d.saldoDelta ?? 0)}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        )}
+        {viewMode === "diario" && flowResult.hasBankData && flowResult.mismatchCount === 0 && (
+          <p className="mt-2 text-center text-[10px] text-emerald-600">
+            ✓ Saldo diário consistente com o extrato em {monthLabel}
+          </p>
         )}
       </div>
     </div>
