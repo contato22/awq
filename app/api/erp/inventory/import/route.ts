@@ -30,7 +30,12 @@ export async function POST(req: NextRequest) {
   const { data: existing, error: exErr } = await db
     .from("erp_inventory_items")
     .select("sku");
-  if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
+  if (exErr) {
+    if (exErr.code === "42P01") {
+      return NextResponse.json({ error: "Schema ERP não inicializado. Rode awq_erp_full_schema.sql no SQL Editor do Supabase ERP antes de importar.", setupRequired: true }, { status: 412 });
+    }
+    return NextResponse.json({ error: exErr.message }, { status: 500 });
+  }
   const existingSkus = new Set((existing ?? []).map((r: { sku: string }) => r.sku));
 
   const seen = new Set<string>();

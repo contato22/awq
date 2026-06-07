@@ -22,7 +22,16 @@ export async function GET(req: NextRequest) {
   if (search) query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,category.ilike.%${search}%`);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    // 42P01 = relação inexistente. Schema ainda não rodado em produção.
+    if (error.code === "42P01") {
+      return NextResponse.json(
+        { items: [], setupRequired: true, message: "Tabela erp_inventory_items não existe. Rode awq_erp_full_schema.sql no SQL Editor do Supabase." },
+        { status: 200 }
+      );
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json(data);
 }
 

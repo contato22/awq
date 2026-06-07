@@ -58,7 +58,12 @@ export async function POST(req: NextRequest) {
     .from("erp_inventory_items")
     .select("id, sku, name, category, unit_cost, stock_qty, description")
     .eq("is_active", true);
-  if (itErr) return NextResponse.json({ error: itErr.message }, { status: 500 });
+  if (itErr) {
+    if (itErr.code === "42P01") {
+      return NextResponse.json({ error: "Schema ERP não inicializado. Rode awq_erp_full_schema.sql no SQL Editor do Supabase ERP.", setupRequired: true }, { status: 412 });
+    }
+    return NextResponse.json({ error: itErr.message }, { status: 500 });
+  }
 
   const { data: existingAssets, error: aErr } = await db
     .from("erp_assets")
