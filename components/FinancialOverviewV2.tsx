@@ -490,15 +490,75 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     const periodNet = raw.totalIn - raw.totalOut;
     const openingDay1 = targetEndSaldo - periodNet;
 
+    // ── Saldo line (diário): usa runningBalance REAL do extrato Cora Holding ──
+    // O Cora preenche `running_balance` em cada transação com o saldo após ela.
+    // Pegamos o último runningBalance conhecido de cada dia (Cora Holding) e
+    // carregamos forward p/ dias sem movimentação. Somamos closings estáticos
+    // das outras contas Holding (Itaú, BTG) p/ chegar no saldo consolidado.
+    // Isso garante que a linha reflita o extrato real, não a soma cumulativa
+    // de amounts (que pode divergir quando há registros faltantes).
+    let dailySaldo: number[] | null = null;
+    if (viewMode === "diario") {
+      // Closings de outras contas Holding — não variam diariamente nesta janela
+      let otherHoldingClosings = 0;
+      for (const [k, v] of otherClosings.entries()) {
+        const firstTx = transactions.find((t) => `${t.bank}::${t.accountName}` === k);
+        if (firstTx?.entity === "AWQ_Holding") otherHoldingClosings += v.balance;
+      }
+
+      // Cora Holding: agrupa por dia, mantém maior `runningBalance` index — como
+      // não há timestamp intra-dia, usamos o último elemento iterado por dia
+      // (DB normalmente devolve ordenado por data). Quando há múltiplas tx no
+      // mesmo dia, o ideal seria a última cronológica; aqui aceitamos a última
+      // vista, que é o que o extrato Cora retorna.
+      const coraDailyMap = new Map<string, number>();
+      for (const t of transactions) {
+        if (t.entity !== "AWQ_Holding") continue;
+        if (!(t.bank ?? "").toLowerCase().includes("cora")) continue;
+        if (t.runningBalance == null) continue;
+        coraDailyMap.set(t.transactionDate, t.runningBalance);
+      }
+
+      // Para anchor anterior ao mês visível, busca o último Cora runningBalance
+      // antes do `from` p/ inicializar o carry-forward. Se não existir, usa
+      // a derivação por net acumulado (fallback).
+      const firstDay = raw.data[0]?.date ?? `${monthNav}-01`;
+      let priorCora: number | null = null;
+      let priorDate = "";
+      for (const t of transactions) {
+        if (t.entity !== "AWQ_Holding") continue;
+        if (!(t.bank ?? "").toLowerCase().includes("cora")) continue;
+        if (t.runningBalance == null) continue;
+        if (t.transactionDate >= firstDay) continue;
+        if (t.transactionDate >= priorDate) {
+          priorCora = t.runningBalance;
+          priorDate = t.transactionDate;
+        }
+      }
+
+      // Se temos pelo menos algum runningBalance Cora no/antes do período,
+      // construímos a linha de saldo via carry-forward. Caso contrário,
+      // mantemos o cálculo cumulativo legado.
+      if (coraDailyMap.size > 0 || priorCora != null) {
+        let last = priorCora ?? 0;
+        dailySaldo = raw.data.map((d) => {
+          const cora = d.date ? coraDailyMap.get(d.date) : undefined;
+          if (cora != null) last = cora;
+          return Math.round(last + otherHoldingClosings);
+        });
+      }
+    }
+
     let cum = 0;
-    const data = raw.data.map((d) => {
+    const data = raw.data.map((d, idx) => {
       cum += d.recebimentos - d.pagamentos;
+      const saldoFromRB = dailySaldo?.[idx];
       return {
         ...d,
         // AP rendered as negative so the bar grows downward from y=0
         pagamentos: -d.pagamentos,
-        // Saldo preserva sinal real (pode ficar negativo se houver overdraft)
-        saldo: Math.round(openingDay1 + cum),
+        // Saldo: prioriza runningBalance real do Cora (diário); fallback p/ soma cumulativa
+        saldo: saldoFromRB != null ? saldoFromRB : Math.round(openingDay1 + cum),
       };
     });
 
