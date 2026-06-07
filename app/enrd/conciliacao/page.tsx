@@ -10,6 +10,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import EnrdFlowChart from "@/components/EnrdFlowChart";
+import PurgeBadDatesBanner from "@/components/PurgeBadDatesBanner";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { listProjects } from "@/lib/ppm-db";
@@ -51,6 +52,11 @@ export default async function EnrdConciliacaoPage() {
   } catch (err) {
     loadError = err instanceof Error ? err.message : "Erro ao carregar transações";
   }
+
+  // Conta txns com transactionDate corrompido ("Invalid Date", "", "null", "undefined") —
+  // restos de syncs antigos com bug no parseDate. Banner abaixo oferece purge.
+  const BAD_DATES = new Set(["Invalid Date", "", "null", "undefined"]);
+  const badDateCount = transactions.filter((t) => BAD_DATES.has(String(t.transactionDate ?? ""))).length;
 
   // ── AR pendente (filtrado por bu_code ENRD ou entity ENERDY) ─────────────
   let arPending: { id: string; customer_name: string; net_amount: number; due_date: string }[] = [];
@@ -164,6 +170,9 @@ export default async function EnrdConciliacaoPage() {
         subtitle="Conta Cora Enerdy · BU ENRD · Sync exclusivo"
       />
       <div className="page-container">
+
+        {/* ── Txns com data corrompida (legacy do sync com bug) ─────────── */}
+        <PurgeBadDatesBanner badCount={badDateCount} />
 
         {/* ── Credenciais não configuradas (diagnóstico granular) ──────── */}
         {!coraDiag.ready && (
