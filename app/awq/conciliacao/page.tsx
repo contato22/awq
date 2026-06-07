@@ -18,6 +18,7 @@ import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import OfflineBanksPanel from "@/components/OfflineBanksPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
+import { getConsolidatedDaily } from "@/lib/balance-snapshots";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { todayBRT, daysAheadBRT } from "@/lib/date-brt";
 import {
@@ -88,6 +89,28 @@ export default async function ConciliacaoPage() {
       && d.entity !== "ENERDY")
     .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
 
+  // ── Snapshots de saldo consolidado (últimos 15 meses) ──
+  // Carry-forward por conta dentro de getConsolidatedDaily.
+  // Holding-only (exclui ENERDY) — combina com o escopo do chart.
+  let balanceSnapshots: Array<{ date: string; total: number }> = [];
+  try {
+    const tdy = todayBRT();
+    const fromIso = new Date(new Date(tdy).getTime() - 460 * 86_400_000)
+      .toISOString().slice(0, 10);
+    const dailyHolding = await getConsolidatedDaily(fromIso, tdy, "AWQ_Holding");
+    const dailyJacqes  = await getConsolidatedDaily(fromIso, tdy, "JACQES");
+    const dailyCaza    = await getConsolidatedDaily(fromIso, tdy, "Caza_Vision");
+    const byDate = new Map<string, number>();
+    for (const arr of [dailyHolding, dailyJacqes, dailyCaza]) {
+      for (const row of arr) {
+        byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.total);
+      }
+    }
+    balanceSnapshots = Array.from(byDate.entries())
+      .map(([date, total]) => ({ date, total }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  } catch { /* sem snapshots — chart usa fallback */ }
+
   return (
     <>
       <Header
@@ -113,6 +136,7 @@ export default async function ConciliacaoPage() {
           arPending={arPending.map(({ id, customer_name, net_amount, due_date }) => ({ id, customer_name, net_amount, due_date }))}
           coraConfigured={CORA_CONFIGURED}
           openingBalance={openingBalance}
+          balanceSnapshots={balanceSnapshots}
         />
 
         {/* ── Painel de conciliação ── */}

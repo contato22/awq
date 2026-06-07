@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
+import { computeAndSaveSnapshotForDate } from "@/lib/balance-snapshots";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
@@ -164,11 +165,28 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   console.log(`[cron-sync] ${now} — sincronizadas ${totalSynced} transações (${startDate} → ${endDate})`);
 
+  // ── Snapshot do saldo do dia para todas as contas ──
+  // Cora live para contas ativas; runningBalance para Itaú/BTG e quaisquer
+  // outras contas presentes em bank_transactions. Idempotente.
+  let snapshotResult: { ok: boolean; saved: number; error?: string } = { ok: true, saved: 0 };
+  try {
+    snapshotResult = await computeAndSaveSnapshotForDate(
+      endDate,
+      accounts.map((a) => ({
+        entity: a.entity as "AWQ_Holding" | "JACQES" | "ENERDY",
+        accountName: a.accountName,
+      })),
+    );
+  } catch (err) {
+    snapshotResult = { ok: false, saved: 0, error: err instanceof Error ? err.message : String(err) };
+  }
+
   return NextResponse.json({
     ok:          true,
     totalSynced,
     period:      { startDate, endDate },
     accounts:    results,
+    snapshot:    snapshotResult,
     executedAt:  now,
   });
 }

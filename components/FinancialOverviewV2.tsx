@@ -31,6 +31,8 @@ interface Props {
   arPending: ARItem[];
   coraConfigured: boolean;
   openingBalance?: number; // sum of document opening balances (from page SSR)
+  /** Saldo consolidado salvo por dia (Holding) — fonte primária da linha de saldo */
+  balanceSnapshots?: Array<{ date: string; total: number }>;
 }
 
 type ViewMode = "diario" | "mensal";
@@ -415,7 +417,7 @@ function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function FinancialOverviewV2({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
+export default function FinancialOverviewV2({ transactions, arPending, coraConfigured, openingBalance = 0, balanceSnapshots }: Props) {
   const todayStr = today();
 
   const [viewMode,  setViewMode]  = useState<ViewMode>("diario");
@@ -549,21 +551,42 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       }
     }
 
+    // ── Snapshots persistidos (fonte primária quando disponíveis) ──
+    // Fechamento diário gravado em daily_balance_snapshots pelo cron Cora.
+    // Quando o snapshot existe pra uma data, ele substitui o cálculo derivado.
+    // No modo Mensal, usamos o último snapshot de cada mês (fechamento do mês).
+    const snapshotMap = new Map<string, number>();          // YYYY-MM-DD → total
+    const monthlySnapshotMap = new Map<string, number>();   // YYYY-MM → último total do mês
+    if (balanceSnapshots && balanceSnapshots.length > 0) {
+      // balanceSnapshots vem ordenado por data ascendente — último write vence por mês
+      for (const s of balanceSnapshots) {
+        snapshotMap.set(s.date, s.total);
+        monthlySnapshotMap.set(s.date.slice(0, 7), s.total);
+      }
+    }
+
     let cum = 0;
     const data = raw.data.map((d, idx) => {
       cum += d.recebimentos - d.pagamentos;
+      const isMonthly = (d.date?.length ?? 10) === 7;
+      const saldoFromSnapshot = d.date
+        ? (isMonthly ? monthlySnapshotMap.get(d.date) : snapshotMap.get(d.date))
+        : undefined;
       const saldoFromRB = dailySaldo?.[idx];
+      // Prioridade: snapshot persistido → runningBalance derivado → soma cumulativa
+      const saldo = saldoFromSnapshot != null
+        ? Math.round(saldoFromSnapshot)
+        : (saldoFromRB != null ? saldoFromRB : Math.round(openingDay1 + cum));
       return {
         ...d,
         // AP rendered as negative so the bar grows downward from y=0
         pagamentos: -d.pagamentos,
-        // Saldo: prioriza runningBalance real do Cora (diário); fallback p/ soma cumulativa
-        saldo: saldoFromRB != null ? saldoFromRB : Math.round(openingDay1 + cum),
+        saldo,
       };
     });
 
     return { ...raw, data };
-  }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts]);
+  }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts, balanceSnapshots]);
 
   const loadBalance = useCallback(async (key: string) => {
     try {
