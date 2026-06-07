@@ -60,7 +60,7 @@ interface Props {
   arDaily?:       ARDailyPoint[];
 }
 
-type ViewMode = "diario" | "mensal";
+type ViewMode = "diario" | "mensal" | "anual";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -328,6 +328,91 @@ function buildFlowMonthly(txns: BankTransaction[], coraBalance: number | null): 
   };
 }
 
+// buildFlowYearly: bucket por ano calendario. Saldo end-of-year vem do
+// ultimo running_balance conhecido daquele ano (carry-forward entre anos).
+// Util pra visao macro multi-ano — comparacao ano-a-ano de AR/AP.
+function buildFlowYearly(txns: BankTransaction[], coraBalance: number | null): FlowResult {
+  const elig = txns
+    .map((t) => ({ t, td: validDate(t.transactionDate) }))
+    .filter((x) => !!x.td);
+  if (!elig.length) {
+    if (coraBalance !== null) {
+      const cy = today().slice(0, 4);
+      return {
+        data: [{
+          label:          cy,
+          arRealizado:    0,
+          outrosCreditos: 0,
+          recebimentos:   0,
+          pagamentos:     0,
+          arPrevisto:     0,
+          saldo:          Math.round(coraBalance),
+          saldoDelta:     null,
+        }],
+        totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false, mismatchCount: 0, mismatchTotal: 0,
+      };
+    }
+    return { data: [], totalIn: 0, totalArRealiz: 0, totalOut: 0, totalAR: 0, net: 0, hasData: false, hasBankData: false, mismatchCount: 0, mismatchTotal: 0 };
+  }
+
+  const minYear = elig.reduce(
+    (min, x) => { const y = x.td.slice(0, 4); return y < min ? y : min; },
+    elig[0].td.slice(0, 4),
+  );
+  const curYear = today().slice(0, 4);
+
+  const ymap = new Map<string, { iAR: number; iOther: number; o: number }>();
+  for (let y = parseInt(minYear); y <= parseInt(curYear); y++) {
+    ymap.set(String(y), { iAR: 0, iOther: 0, o: 0 });
+  }
+
+  for (const { t, td } of elig) {
+    const yk = td.slice(0, 4);
+    const b = ymap.get(yk);
+    if (!b) continue;
+    const amt = Number(t.amount) || 0;
+    if (t.direction === "credit") {
+      if (isRevenueCredit(t)) b.iAR += amt; else b.iOther += amt;
+    } else {
+      b.o += amt;
+    }
+  }
+
+  // Ancora: coraBalance = saldo no fim do periodo total (ultimo ano)
+  let allNet = 0;
+  for (const { iAR, iOther, o } of ymap.values()) { allNet += (iAR + iOther) - o; }
+  const openingPre = coraBalance !== null ? coraBalance - allNet : null;
+
+  let cum = 0, tiAR = 0, tiOther = 0, to_ = 0;
+  const data: FlowRow[] = Array.from(ymap.entries()).map(([yk, { iAR, iOther, o }]) => {
+    const i = iAR + iOther;
+    cum += i - o; tiAR += iAR; tiOther += iOther; to_ += o;
+    return {
+      label:          yk,
+      arRealizado:    Math.round(iAR),
+      outrosCreditos: Math.round(iOther),
+      recebimentos:   Math.round(i),
+      pagamentos:    -Math.round(o),
+      arPrevisto:     0,
+      saldo:          openingPre !== null ? Math.round(openingPre + cum) : null,
+      saldoDelta:     null,
+    };
+  });
+  const ti = tiAR + tiOther;
+  return {
+    data,
+    totalIn:       Math.round(ti),
+    totalArRealiz: Math.round(tiAR),
+    totalOut:      Math.round(to_),
+    totalAR:       0,
+    net:           Math.round(ti - to_),
+    hasData:       ti + to_ > 0,
+    hasBankData:   ti + to_ > 0,
+    mismatchCount: 0,
+    mismatchTotal: 0,
+  };
+}
+
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
 function FlowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number }>; label?: string }) {
@@ -453,9 +538,9 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
   const monthlyAnchor = balance;
 
   const flowResult = useMemo(() =>
-    viewMode === "diario"
-      ? buildFlowDaily(transactions, monthNav, dailyAnchor, arDaily)
-      : buildFlowMonthly(transactions, monthlyAnchor),
+    viewMode === "diario" ? buildFlowDaily(transactions, monthNav, dailyAnchor, arDaily)
+    : viewMode === "mensal" ? buildFlowMonthly(transactions, monthlyAnchor)
+    : buildFlowYearly(transactions, monthlyAnchor),
   [transactions, viewMode, monthNav, dailyAnchor, monthlyAnchor, arDaily]);
 
   // Mes mais recente com movimento bancario (credit/debit). Fallback: qualquer
@@ -552,10 +637,10 @@ export default function EnrdFlowChart({ transactions, coraConfigured, arDaily = 
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
-            {(["diario", "mensal"] as ViewMode[]).map((v) => (
+            {(["diario", "mensal", "anual"] as ViewMode[]).map((v) => (
               <button key={v} onClick={() => setViewMode(v)}
                 className={`px-3 py-1.5 transition-colors ${v !== "diario" ? "border-l border-gray-200" : ""} ${viewMode === v ? "bg-violet-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
-                {v === "diario" ? "Diário" : "Mensal"}
+                {v === "diario" ? "Diário" : v === "mensal" ? "Mensal" : "Anual"}
               </button>
             ))}
           </div>
