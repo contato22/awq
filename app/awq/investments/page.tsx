@@ -455,7 +455,7 @@ export default async function AwqInvestmentsPage() {
             {
               label:  "Aplicações",
               value:  fmtBRL(canonical.investmentApplications),
-              sub:    `${q.applications.length} aplicação(ões)`,
+              sub:    `${canonical.investmentApplicationCount} aplicação(ões)`,
               icon:   ArrowUpRight,
               color:  "text-red-600",
               bg:     "bg-red-50",
@@ -463,7 +463,7 @@ export default async function AwqInvestmentsPage() {
             {
               label:  "Resgates",
               value:  fmtBRL(canonical.investmentRedemptions),
-              sub:    `${q.redemptions.length} resgate(s)`,
+              sub:    `${canonical.investmentRedemptionCount} resgate(s)`,
               icon:   ArrowDownLeft,
               color:  "text-emerald-600",
               bg:     "bg-emerald-50",
@@ -550,15 +550,15 @@ export default async function AwqInvestmentsPage() {
 
             <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
               <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Investimento / Patrimonial</div>
-              <div className="text-xl font-bold text-gray-900">{fmtBRL(q.netInvested)}</div>
+              <div className="text-xl font-bold text-gray-900">{fmtBRL(canonical.netObservableFlow)}</div>
               <div className="mt-2 space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Aplicações</span>
-                  <span className="text-red-600 font-semibold">{fmtBRL(q.totalApplications)}</span>
+                  <span className="text-red-600 font-semibold">{fmtBRL(canonical.investmentApplications)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Resgates</span>
-                  <span className="text-emerald-600 font-semibold">{fmtBRL(q.totalRedemptions)}</span>
+                  <span className="text-emerald-600 font-semibold">{fmtBRL(canonical.investmentRedemptions)}</span>
                 </div>
               </div>
               <div className="mt-2 text-xs text-gray-400">

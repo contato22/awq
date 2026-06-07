@@ -88,6 +88,10 @@ export interface CanonicalInvestmentPosition {
    *  Does NOT equal totalInvestedReal (which includes prior-period balance). */
   netObservableFlow:           number;
 
+  /** Counts of confirmed flows — same source as investmentApplications/Redemptions. */
+  investmentApplicationCount:  number;
+  investmentRedemptionCount:   number;
+
   // ── Quality / audit trail ──────────────────────────────────────────────────
   investmentConfidence:        InvestmentConfidence;
   investmentSource:            InvestmentSource;
@@ -143,6 +147,8 @@ function fromPipeline(q: InvestmentQueryResult): CanonicalInvestmentPosition {
     investmentRedemptions:        q.totalRedemptions,
     investmentFees:               fees,
     netObservableFlow:            q.netInvested,
+    investmentApplicationCount:   q.applications.length,
+    investmentRedemptionCount:    q.redemptions.length,
     investmentConfidence:         confidence,
     investmentSource:             "pipeline",
     reconciliationStatus:         recon,
@@ -185,6 +191,8 @@ function fromEmpiricalSnapshot(
     investmentRedemptions:        0,   // no redemptions in print period
     investmentFees:               s.bankFees,
     netObservableFlow:            s.lastApplicationAmount,   // only confirmed flow
+    investmentApplicationCount:   s.lastApplicationAmount > 0 ? 1 : 0,
+    investmentRedemptionCount:    0,
     investmentConfidence:         "empirical_snapshot",
     investmentSource:             "empirical_snapshot",
     reconciliationStatus:         "empirical_only",
