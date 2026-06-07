@@ -55,14 +55,27 @@ function credsForAccount(account: CoraAccount = "AWQ_Holding"): CoraCredentials 
     const eId   = env("CORA_ENERDY_CLIENT_ID");
     const eCert = env("CORA_ENERDY_CERT");
     const eKey  = env("CORA_ENERDY_KEY");
-    // ENERDY é empresa separada — nunca usa credenciais de outra conta como fallback
-    if (!eId || !eCert || !eKey) {
-      throw new Error(
-        "Credenciais Enerdy não configuradas. " +
-        "Configure CORA_ENERDY_CLIENT_ID, CORA_ENERDY_CERT e CORA_ENERDY_KEY no Vercel."
-      );
+    if (eId && eCert && eKey) return { clientId: eId, cert: eCert, key: eKey };
+
+    // Opt-in fallback (CORA_ENERDY_USE_HOLDING=true|1): permite ENERDY rodar
+    // sob as credenciais AWQ_Holding enquanto ENRD nao tem subscription Cora
+    // propria. Default mantem o bloqueio rigido — empresa separada deve ter
+    // credencial separada em produção.
+    const allowHoldingFallback = ["1", "true", "yes"].includes(
+      String(process.env.CORA_ENERDY_USE_HOLDING ?? "").toLowerCase()
+    );
+    if (allowHoldingFallback) {
+      const hId   = env("CORA_CLIENT_ID");
+      const hCert = env("CORA_CERT");
+      const hKey  = env("CORA_KEY");
+      if (hId && hCert && hKey) return { clientId: hId, cert: hCert, key: hKey };
     }
-    return { clientId: eId, cert: eCert, key: eKey };
+
+    throw new Error(
+      "Credenciais Enerdy não configuradas. " +
+      "Configure CORA_ENERDY_CLIENT_ID, CORA_ENERDY_CERT e CORA_ENERDY_KEY no Vercel " +
+      "(ou ative CORA_ENERDY_USE_HOLDING=true para usar as credenciais AWQ_Holding como fallback)."
+    );
   }
   return {
     clientId: env("CORA_CLIENT_ID"),
@@ -87,7 +100,42 @@ export function isCoraEnerdyConfigured(): boolean {
   const eId   = env("CORA_ENERDY_CLIENT_ID");
   const eCert = env("CORA_ENERDY_CERT");
   const eKey  = env("CORA_ENERDY_KEY");
-  return !!(eId && eCert && eKey);
+  if (eId && eCert && eKey) return true;
+  // Fallback opt-in: AWQ_Holding cobre o sync ENERDY
+  const allowFallback = ["1", "true", "yes"].includes(
+    String(process.env.CORA_ENERDY_USE_HOLDING ?? "").toLowerCase()
+  );
+  return allowFallback && isCoraConfigured();
+}
+
+// Diagnostico granular pro card de aviso. Retorna a presenca de cada var
+// (e formato PEM esperado pra cert/key), sem expor valores. Server-only.
+export function coraEnerdyDiag(): {
+  clientId: boolean;
+  cert:     { present: boolean; looksPem: boolean };
+  key:      { present: boolean; looksPem: boolean };
+  fallback: { enabled: boolean; holdingReady: boolean };
+  ready:    boolean;
+} {
+  const eId   = env("CORA_ENERDY_CLIENT_ID");
+  const eCert = env("CORA_ENERDY_CERT");
+  const eKey  = env("CORA_ENERDY_KEY");
+  const certPem = /-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----/.test(eCert);
+  const keyPem  = /-----BEGIN (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+-----END (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----/.test(eKey);
+  const ownReady = !!(eId && eCert && eKey && certPem && keyPem);
+
+  const fallbackEnabled = ["1", "true", "yes"].includes(
+    String(process.env.CORA_ENERDY_USE_HOLDING ?? "").toLowerCase()
+  );
+  const holdingReady = isCoraConfigured();
+
+  return {
+    clientId: !!eId,
+    cert:     { present: !!eCert, looksPem: certPem },
+    key:      { present: !!eKey,  looksPem: keyPem  },
+    fallback: { enabled: fallbackEnabled, holdingReady },
+    ready:    ownReady || (fallbackEnabled && holdingReady),
+  };
 }
 
 // ─── Low-level HTTPS helper (supports mTLS) ──────────────────────────────────────────────

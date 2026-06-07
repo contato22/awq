@@ -12,7 +12,8 @@ import CoraStatusPanel from "@/components/CoraStatusPanel";
 import EnrdFlowChart from "@/components/EnrdFlowChart";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
-import { isCoraEnerdyConfigured } from "@/lib/cora-api";
+import { listProjects } from "@/lib/ppm-db";
+import { isCoraEnerdyConfigured, coraEnerdyDiag } from "@/lib/cora-api";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -37,6 +38,9 @@ function fmt(n: number) {
 
 export default async function EnrdConciliacaoPage() {
   const coraConfigured = isCoraEnerdyConfigured();
+  const coraDiag       = coraEnerdyDiag();
+  const vercelEnv      = process.env.VERCEL_ENV ?? null;
+  const commitRef      = process.env.VERCEL_GIT_COMMIT_REF ?? null;
 
   // ── Carregar transações ENRD ──────────────────────────────────────────────
   let transactions: Awaited<ReturnType<typeof getTransactionsByEntity>> = [];
@@ -50,16 +54,45 @@ export default async function EnrdConciliacaoPage() {
 
   // ── AR pendente (filtrado por bu_code ENRD ou entity ENERDY) ─────────────
   let arPending: { id: string; customer_name: string; net_amount: number; due_date: string }[] = [];
+  // arDailyAll: AR esperado agregado por dia (epm_ar + retainers PPM + fallback ENRD),
+  // pra alimentar a coluna "AR Previsto" no chart diário.
+  const arDailyAll: { date: string; amount: number }[] = [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const horizon  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const horizonD = new Date(); horizonD.setMonth(horizonD.getMonth() + 12);
+  const horizonStr = horizonD.toISOString().slice(0, 10);
+
+  // Bucket diário compartilhado entre as 3 fontes (epm_ar + PPM + fallback)
+  const dayMap = new Map<string, number>();
+
+  function projectMonthly(start: string, end: string, mrr: number) {
+    if (!start || !end || end < start || mrr <= 0) return;
+    const billDay = Math.min(parseInt(start.slice(8, 10)) || 5, 28);
+    const [sy, sm] = [parseInt(start.slice(0, 4)), parseInt(start.slice(5, 7))];
+    const [ey, em] = [parseInt(end.slice(0, 4)),   parseInt(end.slice(5, 7))];
+    let y = sy, m = sm;
+    while (y < ey || (y === ey && m <= em)) {
+      const date = `${y}-${String(m).padStart(2, "0")}-${String(billDay).padStart(2, "0")}`;
+      // Retainer: só projeta cobranças futuras. Passado se assume recebido
+      // (estaria em epm_ar ou no banco), evita pile-up em HOJE.
+      if (date >= todayStr) {
+        dayMap.set(date, (dayMap.get(date) ?? 0) + mrr);
+      }
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+  }
+
+  // Fonte 1: epm_ar (AP/AR EPM) — pode estar vazio pra ENRD
   try {
     await initAPARDB();
     const allAR = await getAllAR();
-    const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    arPending = allAR
-      .filter(
-        (i) =>
-          (i.status === "PENDING" || i.status === "PARTIAL") &&
-          i.due_date <= horizon
-      )
+    const openAR = allAR.filter(
+      (i) => i.status === "PENDING" || i.status === "PARTIAL" || i.status === "OVERDUE"
+    );
+
+    arPending = openAR
+      .filter((i) => i.due_date <= horizon)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
       .slice(0, 8)
       .map((i) => ({
@@ -68,7 +101,46 @@ export default async function EnrdConciliacaoPage() {
         net_amount: i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount,
         due_date: i.due_date,
       }));
+
+    for (const i of openAR) {
+      const open =
+        i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount;
+      if (open <= 0) continue;
+      const bucket = i.due_date < todayStr ? todayStr : i.due_date;
+      dayMap.set(bucket, (dayMap.get(bucket) ?? 0) + open);
+    }
   } catch { /* AR EPM indisponível */ }
+
+  // Fonte 2: retainers ativos do PPM (ENRD)
+  let ppmRetainersFound = 0;
+  try {
+    const projects = await listProjects({ bu_code: "ENRD", status: "active" });
+    for (const p of projects) {
+      if (p.contract_type !== "retainer") continue;
+      if (p.billing_frequency !== "monthly") continue;
+      const mrr = Number(p.budget_revenue) || 0;
+      if (mrr <= 0) continue;
+      const start = p.start_date;
+      const end = p.planned_end_date && p.planned_end_date < horizonStr ? p.planned_end_date : horizonStr;
+      projectMonthly(start, end, mrr);
+      ppmRetainersFound += 1;
+    }
+  } catch { /* PPM indisponível */ }
+
+  // Fonte 3: fallback ENRD retainers conhecidos. Garante que a coluna sempre
+  // mostra a posição comercial real mesmo se PPM/epm_ar estiverem vazios em prod.
+  // Lista canônica vinda da proposta ENRD vigente — atualizar aqui ao fechar
+  // novos contratos retainer (ou popular PPM e a Fonte 2 cobre).
+  if (ppmRetainersFound === 0) {
+    const ENRD_RETAINERS_FALLBACK = [
+      { customer: "Coral Home", mrr: 1790, start: todayStr },
+    ];
+    for (const r of ENRD_RETAINERS_FALLBACK) {
+      projectMonthly(r.start, horizonStr, r.mrr);
+    }
+  }
+
+  for (const [date, amount] of dayMap) arDailyAll.push({ date, amount });
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const total       = transactions.length;
@@ -93,22 +165,72 @@ export default async function EnrdConciliacaoPage() {
       />
       <div className="page-container">
 
-        {/* ── Credenciais não configuradas ─────────────────────────────── */}
-        {!coraConfigured && (
+        {/* ── Credenciais não configuradas (diagnóstico granular) ──────── */}
+        {!coraDiag.ready && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 flex items-start gap-3">
             <KeyRound size={18} className="text-amber-600 shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-amber-800">
-                Credenciais Cora Enerdy não configuradas
+                Credenciais Cora Enerdy {coraConfigured ? "presentes mas inválidas" : "não configuradas"}
               </p>
               <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                Configure as variáveis de ambiente no Vercel para habilitar o sync bancário da Enerdy:
+                Estado das variáveis de ambiente no deploy atual
+                {vercelEnv ? <> · <span className="font-mono">VERCEL_ENV={vercelEnv}</span></> : null}
+                {commitRef ? <> · <span className="font-mono">branch={commitRef}</span></> : null}:
               </p>
-              <ul className="mt-2 space-y-0.5 text-xs font-mono text-amber-800">
-                <li>CORA_ENERDY_CLIENT_ID</li>
-                <li>CORA_ENERDY_CERT</li>
-                <li>CORA_ENERDY_KEY</li>
+              <ul className="mt-2 space-y-1 text-xs font-mono text-amber-800">
+                <li className="flex items-center gap-2">
+                  <span className={coraDiag.clientId ? "text-emerald-600" : "text-red-600"}>
+                    {coraDiag.clientId ? "✓" : "✗"}
+                  </span>
+                  CORA_ENERDY_CLIENT_ID
+                  {!coraDiag.clientId && <span className="text-amber-600 font-sans">— ausente ou vazio</span>}
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className={coraDiag.cert.present && coraDiag.cert.looksPem ? "text-emerald-600" : "text-red-600"}>
+                    {coraDiag.cert.present && coraDiag.cert.looksPem ? "✓" : "✗"}
+                  </span>
+                  CORA_ENERDY_CERT
+                  {!coraDiag.cert.present && <span className="text-amber-600 font-sans">— ausente ou vazio</span>}
+                  {coraDiag.cert.present && !coraDiag.cert.looksPem && (
+                    <span className="text-amber-600 font-sans">— presente mas sem cabeçalho PEM (esperado &quot;-----BEGIN CERTIFICATE-----&quot;); valor pode estar truncado ou com escape de \n quebrado</span>
+                  )}
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className={coraDiag.key.present && coraDiag.key.looksPem ? "text-emerald-600" : "text-red-600"}>
+                    {coraDiag.key.present && coraDiag.key.looksPem ? "✓" : "✗"}
+                  </span>
+                  CORA_ENERDY_KEY
+                  {!coraDiag.key.present && <span className="text-amber-600 font-sans">— ausente ou vazio</span>}
+                  {coraDiag.key.present && !coraDiag.key.looksPem && (
+                    <span className="text-amber-600 font-sans">— presente mas sem cabeçalho PEM (esperado &quot;-----BEGIN PRIVATE KEY-----&quot;); valor pode estar truncado ou com escape de \n quebrado</span>
+                  )}
+                </li>
               </ul>
+              <p className="text-[11px] text-amber-700 mt-3 leading-relaxed">
+                {vercelEnv === "preview" && (
+                  <>Esta build é de <b>preview</b>. Vars do Vercel precisam estar no scope <b>Preview</b> (não só <b>Production</b>). <br /></>
+                )}
+                Setado as vars depois do build atual? É preciso <b>redeploy</b> (Deployments → ⋯ → Redeploy) para o runtime carregá-las.
+              </p>
+              <div className="mt-3 pt-3 border-t border-amber-200 text-[11px] text-amber-700 leading-relaxed">
+                <p className="font-semibold text-amber-800 mb-0.5">Fallback opt-in:</p>
+                {coraDiag.fallback.enabled ? (
+                  coraDiag.fallback.holdingReady ? (
+                    <p className="text-emerald-700">
+                      ✓ <span className="font-mono">CORA_ENERDY_USE_HOLDING=true</span> ativo. Sync ENERDY rodando com credenciais AWQ_Holding.
+                    </p>
+                  ) : (
+                    <p className="text-red-700">
+                      <span className="font-mono">CORA_ENERDY_USE_HOLDING=true</span> ativo mas AWQ_Holding (CORA_CLIENT_ID/CERT/KEY) também não está configurado.
+                    </p>
+                  )
+                ) : (
+                  <p>
+                    Como atalho, set <span className="font-mono">CORA_ENERDY_USE_HOLDING=true</span> no Vercel pra reusar as credenciais AWQ_Holding{coraDiag.fallback.holdingReady ? " (já configuradas)" : " (atualmente não configuradas tampouco)"} no sync ENERDY.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -145,7 +267,11 @@ export default async function EnrdConciliacaoPage() {
         </div>
 
         {/* ── Fluxo de Caixa Cora Enerdy ──────────────────────────────── */}
-        <EnrdFlowChart transactions={transactions} coraConfigured={coraConfigured} />
+        <EnrdFlowChart
+          transactions={transactions}
+          coraConfigured={coraConfigured}
+          arDaily={arDailyAll}
+        />
 
         {/* ── Cora Enerdy sync panel ───────────────────────────────────── */}
         {coraConfigured && (
