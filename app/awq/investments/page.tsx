@@ -36,6 +36,7 @@ import {
   fmtReconciliationStatus,
 } from "@/lib/investment-reconciliation";
 import { getHoldingTreasury } from "@/lib/epm-planning-db";
+import InvestmentChart from "@/components/InvestmentChart";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -499,6 +500,16 @@ export default async function AwqInvestmentsPage() {
             );
           })}
         </div>
+
+        {/* ── Investment charts (composition + monthly flow) ───────────────── */}
+        <InvestmentChart
+          composition={{
+            totalInvestedReal:            canonical.totalInvestedReal,
+            investmentCashAccountBalance: canonical.investmentCashAccountBalance,
+            operationalCashBalance:       canonical.operationalCashBalance,
+          }}
+          monthlyFlow={q.monthlyFlow}
+        />
 
         {/* ── Canonical position note ───────────────────────────────────────── */}
         {canonical.note && (
