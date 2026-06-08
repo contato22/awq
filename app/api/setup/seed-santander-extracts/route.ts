@@ -22,6 +22,7 @@ import data from "@/data/santander-extracts/data.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const BANK = "Santander" as const;
 const ACCOUNT_NAME   = "Conta Santander AWQ";
@@ -132,14 +133,14 @@ async function runSeed(uploadedBy: string) {
   const existingHashes = new Set(existing.map((d) => d.fileHash));
   const now = new Date().toISOString();
 
-  const results = [];
+  const results = await Promise.all(
+    MONTHS.map((m) => seedMonth(m, uploadedBy, now, existingHashes))
+  );
+
   let seeded = 0;
   let already = 0;
   let totalTxns = 0;
-
-  for (const m of MONTHS) {
-    const result = await seedMonth(m, uploadedBy, now, existingHashes);
-    results.push(result);
+  for (const result of results) {
     if (result.status === "seeded") {
       seeded += 1;
       totalTxns += result.transactionCount;
