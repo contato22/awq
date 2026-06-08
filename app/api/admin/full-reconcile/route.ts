@@ -27,7 +27,26 @@ import { todayBRT } from "@/lib/date-brt";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
-export const maxDuration = 60;
+// Reconciliação de 2 anos pode demorar: 24+ chunks × ~2s Cora API + saves.
+// Vercel Pro permite até 300s; Hobby 60s.
+export const maxDuration = 300;
+
+// Quebra [start, end] em chunks de até `chunkDays` dias.
+// Cora API rejeita / dá rate-limit em range muito grande — chunkar evita.
+function chunkDateRange(start: string, end: string, chunkDays = 31): Array<{ from: string; to: string }> {
+  const chunks: Array<{ from: string; to: string }> = [];
+  const endTs = new Date(`${end}T00:00:00Z`).getTime();
+  let cur = new Date(`${start}T00:00:00Z`).getTime();
+  while (cur <= endTs) {
+    const chunkEnd = Math.min(cur + (chunkDays - 1) * 86_400_000, endTs);
+    chunks.push({
+      from: new Date(cur).toISOString().slice(0, 10),
+      to:   new Date(chunkEnd).toISOString().slice(0, 10),
+    });
+    cur = chunkEnd + 86_400_000;
+  }
+  return chunks;
+}
 
 function isValidDate(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -93,68 +112,80 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const syncResults: SyncResult[] = [];
   let totalSynced = 0;
 
+  const chunks = chunkDateRange(startDate, endDate, 31);
+
   for (const acc of accounts) {
-    try {
-      const stmt = await fetchCoraStatement(
-        startDate, endDate, acc.entity as "AWQ_Holding" | "JACQES" | "ENERDY",
-      );
-      const docId = `cora-reconcile-${startDate}-${endDate}`;
-      const newTxns: BankTransaction[] = [];
-      let skipped = 0;
+    let accSynced = 0;
+    let accSkipped = 0;
+    let accTotal = 0;
+    const chunkErrors: Array<{ chunk: string; error: string }> = [];
 
-      for (const entry of stmt.entries) {
-        const txId = `cora-${entry.id}`;
-        const storedDate = existingDates.get(txId);
-        if (storedDate !== undefined && storedDate === entry.date) { skipped++; continue; }
+    for (const chunk of chunks) {
+      try {
+        const stmt = await fetchCoraStatement(
+          chunk.from, chunk.to, acc.entity as "AWQ_Holding" | "JACQES" | "ENERDY",
+        );
+        accTotal += stmt.entries.length;
+        const docId = `cora-reconcile-${chunk.from}-${chunk.to}`;
+        const newTxns: BankTransaction[] = [];
 
-        const cls = classifyTransaction(entry.description, entry.amount, entry.direction, acc.entity);
+        for (const entry of stmt.entries) {
+          const txId = `cora-${entry.id}`;
+          const storedDate = existingDates.get(txId);
+          if (storedDate !== undefined && storedDate === entry.date) { accSkipped++; continue; }
 
-        newTxns.push({
-          id:                       txId,
-          documentId:               docId,
-          bank:                     "Cora",
-          accountName:              acc.accountName,
-          entity:                   acc.entity,
-          transactionDate:          entry.date,
-          descriptionOriginal:      entry.description,
-          amount:                   entry.amount,
-          direction:                entry.direction,
-          runningBalance:           entry.balance,
-          counterpartyName:         entry.counterparty ?? cls.counterpartyName,
-          managerialCategory:       cls.category,
-          classificationConfidence: cls.confidence,
-          classificationNote:       cls.note,
-          isIntercompany:
-            cls.category === "transferencia_interna_recebida" ||
-            cls.category === "transferencia_interna_enviada",
-          intercompanyMatchId:      null,
-          excludedFromConsolidated:
-            cls.category === "transferencia_interna_recebida" ||
-            cls.category === "transferencia_interna_enviada" ||
-            cls.category === "aplicacao_financeira"           ||
-            cls.category === "resgate_financeiro"             ||
-            cls.category === "reserva_limite_cartao",
-          reconciliationStatus:     "pendente",
-          extractedAt:              now,
-          classifiedAt:             cls.category !== "unclassified" ? now : null,
-        });
-        existingDates.set(txId, entry.date);
+          const cls = classifyTransaction(entry.description, entry.amount, entry.direction, acc.entity);
+
+          newTxns.push({
+            id:                       txId,
+            documentId:               docId,
+            bank:                     "Cora",
+            accountName:              acc.accountName,
+            entity:                   acc.entity,
+            transactionDate:          entry.date,
+            descriptionOriginal:      entry.description,
+            amount:                   entry.amount,
+            direction:                entry.direction,
+            runningBalance:           entry.balance,
+            counterpartyName:         entry.counterparty ?? cls.counterpartyName,
+            managerialCategory:       cls.category,
+            classificationConfidence: cls.confidence,
+            classificationNote:       cls.note,
+            isIntercompany:
+              cls.category === "transferencia_interna_recebida" ||
+              cls.category === "transferencia_interna_enviada",
+            intercompanyMatchId:      null,
+            excludedFromConsolidated:
+              cls.category === "transferencia_interna_recebida" ||
+              cls.category === "transferencia_interna_enviada" ||
+              cls.category === "aplicacao_financeira"           ||
+              cls.category === "resgate_financeiro"             ||
+              cls.category === "reserva_limite_cartao",
+            reconciliationStatus:     "pendente",
+            extractedAt:              now,
+            classifiedAt:             cls.category !== "unclassified" ? now : null,
+          });
+          existingDates.set(txId, entry.date);
+        }
+
+        if (newTxns.length > 0) {
+          try { await saveTransactions(newTxns); accSynced += newTxns.length; }
+          catch (saveErr) {
+            chunkErrors.push({ chunk: `${chunk.from}_save`, error: describeErr(saveErr) });
+          }
+        }
+      } catch (err) {
+        // Erro num chunk não derruba os outros — continua e reporta no fim.
+        chunkErrors.push({ chunk: `${chunk.from}→${chunk.to}`, error: describeErr(err) });
       }
-
-      if (newTxns.length > 0) await saveTransactions(newTxns);
-      totalSynced += newTxns.length;
-
-      syncResults.push({
-        entity: acc.entity, accountName: acc.accountName,
-        synced: newTxns.length, skipped, total: stmt.entries.length,
-      });
-    } catch (err) {
-      syncResults.push({
-        entity: acc.entity, accountName: acc.accountName,
-        synced: 0, skipped: 0, total: 0,
-        error: describeErr(err),
-      });
     }
+
+    totalSynced += accSynced;
+    syncResults.push({
+      entity: acc.entity, accountName: acc.accountName,
+      synced: accSynced, skipped: accSkipped, total: accTotal,
+      ...(chunkErrors.length > 0 ? { error: chunkErrors.map(e => `[${e.chunk}] ${e.error}`).join(" || ") } : {}),
+    });
   }
 
   // ── 2. Backfill dos snapshots ─────────────────────────────────────────
@@ -170,7 +201,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({
     ok: syncResults.every((r) => !r.error) && snapshotResult.ok,
-    range: { startDate, endDate },
+    range: { startDate, endDate, chunks: chunks.length },
     sync: { totalSynced, accounts: syncResults },
     snapshots: snapshotResult,
     executedAt: now,
