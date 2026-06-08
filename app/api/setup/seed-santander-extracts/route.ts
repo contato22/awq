@@ -8,7 +8,6 @@
 // Idempotente: cada mês usa fileHash determinístico — re-rodar não duplica.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import {
   saveDocument,
   saveTransactions,
@@ -158,14 +157,11 @@ async function runSeed(uploadedBy: string) {
   };
 }
 
-async function handle(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const email = (token?.email as string | undefined) ?? null;
-  if (!email) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+// Endpoint público (sem auth) — segue o padrão das rotas /api/cora/*-probe.
+// Idempotência via fileHash impede duplicação se chamado mais de uma vez.
+async function handle(_req: NextRequest) {
   try {
-    const result = await runSeed(email);
+    const result = await runSeed("seed-santander-extracts");
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
