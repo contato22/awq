@@ -2,6 +2,11 @@ name: Seed Santander Extracts (one-shot)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - claude/busy-cannon-8bblzi
+    paths:
+      - '.github/workflows/santander-seed.yml'
 
 permissions:
   contents: read
