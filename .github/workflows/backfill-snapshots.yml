@@ -1,4 +1,4 @@
-name: Seed Santander Extracts (one-shot)
+name: Backfill Balance Snapshots (one-shot)
 
 on:
   workflow_dispatch:
@@ -6,26 +6,25 @@ on:
     branches:
       - claude/busy-cannon-8bblzi
     paths:
-      - '.github/workflows/santander-seed.yml'
+      - '.github/workflows/backfill-snapshots.yml'
 
 permissions:
   contents: read
 
 jobs:
-  seed:
-    name: Disparar /api/setup/seed-santander-extracts
+  backfill:
+    name: Disparar /api/setup/backfill-snapshots
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: "Poll deploy: aguardar middleware liberar a rota (≤12 min)"
         run: |
           set -e
-          URL="https://awq-brown.vercel.app/api/setup/seed-santander-extracts"
+          URL="https://awq-brown.vercel.app/api/setup/backfill-snapshots"
           for i in $(seq 1 72); do
             STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X GET "$URL?probe=1" || echo "000")
             echo "[$i/72] HTTP $STATUS"
             # 307 = middleware redirect to /login (rota ainda não pública)
-            # qualquer outro código (200/4xx/5xx) significa que o deploy novo subiu
             if [ "$STATUS" != "307" ] && [ "$STATUS" != "000" ]; then
               echo "Rota liberada — partindo pro POST real"
               break
@@ -33,10 +32,10 @@ jobs:
             sleep 10
           done
 
-      - name: "POST /api/setup/seed-santander-extracts (aguarda deploy Promise.all)"
+      - name: "POST /api/setup/backfill-snapshots (preenche daily_balance_snapshots)"
         run: |
           set -e
-          URL="https://awq-brown.vercel.app/api/setup/seed-santander-extracts"
+          URL="https://awq-brown.vercel.app/api/setup/backfill-snapshots"
           echo "POST $URL"
           RESP=$(mktemp)
           STATUS=$(curl -sS --max-time 600 -o "$RESP" -w '%{http_code}' -X POST "$URL")
@@ -44,4 +43,4 @@ jobs:
           head -c 8000 "$RESP"
           echo
           if [ "$STATUS" != "200" ]; then exit 1; fi
-          python3 -c "import json,sys; d=json.load(open('$RESP')); print('Seeded:', d.get('seeded'), '/', d.get('totalMonths'), 'meses,', d.get('totalTransactions'), 'txns')"
+          python3 -c "import json,sys; d=json.load(open('$RESP')); print('Backfill:', d.get('saved'), 'snapshots,', d.get('days'), 'dias,', d.get('accounts'), 'contas, ok=', d.get('ok'))"

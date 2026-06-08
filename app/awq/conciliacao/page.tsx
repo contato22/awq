@@ -89,13 +89,14 @@ export default async function ConciliacaoPage() {
       && d.entity !== "ENERDY")
     .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
 
-  // ── Snapshots de saldo consolidado (últimos 15 meses) ──
+  // ── Snapshots de saldo consolidado (últimos 5 anos) ──
+  // Janela longa para suportar modo "Anual" no chart (dados históricos até 2022).
   // Carry-forward por conta dentro de getConsolidatedDaily.
   // Holding-only (exclui ENERDY) — combina com o escopo do chart.
   let balanceSnapshots: Array<{ date: string; total: number }> = [];
   try {
     const tdy = todayBRT();
-    const fromIso = new Date(new Date(tdy).getTime() - 460 * 86_400_000)
+    const fromIso = new Date(new Date(tdy).getTime() - 1826 * 86_400_000)
       .toISOString().slice(0, 10);
     const dailyHolding = await getConsolidatedDaily(fromIso, tdy, "AWQ_Holding");
     const dailyJacqes  = await getConsolidatedDaily(fromIso, tdy, "JACQES");
