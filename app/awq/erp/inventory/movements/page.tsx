@@ -163,6 +163,18 @@ export default function InventoryMovementsPage() {
                         ou uma{" "}
                         <Link href="/awq/erp/orders/sales" className="underline">venda como Faturada/Entregue</Link>.
                       </p>
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Inserir dados de demonstração (5 POs + 5 SOs + 2 armazéns + 3 movimentos)?")) return;
+                          const res = await fetch("/api/erp/seed-demo", { method: "POST" });
+                          const body = await res.json();
+                          alert(`Inserido:\n${JSON.stringify(body.inserted, null, 2)}\n\nErros:\n${JSON.stringify(body.errors, null, 2)}`);
+                          load();
+                        }}
+                        className="mt-2 text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Carregar dados de demonstração
+                      </button>
                     </div>
                   </td></tr>
                 ) : movements.map((m) => {
