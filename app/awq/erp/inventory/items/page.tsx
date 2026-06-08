@@ -34,6 +34,8 @@ export default function InventoryItemsPage() {
   });
 
   const [setupRequired, setSetupRequired] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,6 +79,20 @@ export default function InventoryItemsPage() {
       setError(err ?? "Erro ao salvar");
     }
     setSaving(false);
+  };
+
+  const seedCazaVision = async () => {
+    setSeeding(true);
+    setSeedResult("");
+    const res = await fetch("/api/erp/inventory/seed-caza-vision", { method: "POST" });
+    const json = await res.json();
+    if (res.ok) {
+      setSeedResult(`✓ ${json.upserted} itens carregados · custo total R$ ${Number(json.totalCost).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+      load();
+    } else {
+      setSeedResult(`✗ ${json.error ?? "Erro ao carregar seed"}`);
+    }
+    setSeeding(false);
   };
 
   const lowStock = items.filter(i => Number(i.stock_qty) <= Number(i.min_stock)).length;
@@ -163,9 +179,16 @@ export default function InventoryItemsPage() {
                       <div className="flex flex-col items-center gap-3 text-center">
                         <Package size={32} className="text-gray-200" />
                         <p className="text-sm font-medium text-gray-500">Nenhum item cadastrado</p>
-                        <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
-                          <Plus size={14} /> Novo Item
-                        </button>
+                        <div className="flex gap-2 items-center">
+                          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
+                            <Plus size={14} /> Novo Item
+                          </button>
+                          <button onClick={seedCazaVision} disabled={seeding} className="flex items-center gap-1.5 text-sm text-brand-700 border border-brand-200 bg-brand-50 px-4 py-2 rounded-lg hover:bg-brand-100 disabled:opacity-50">
+                            {seeding ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                            Carregar Inventário Caza Vision (51 itens)
+                          </button>
+                        </div>
+                        {seedResult && <p className={`text-xs ${seedResult.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{seedResult}</p>}
                       </div>
                     </td>
                   </tr>
