@@ -15,19 +15,33 @@ jobs:
   seed:
     name: Disparar /api/setup/seed-santander-extracts
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: "WAIT 90s — aguardar deploy Vercel"
-        run: sleep 90
+      - name: "Poll deploy: aguardar middleware liberar a rota (≤8 min)"
+        run: |
+          set -e
+          URL="https://awq-brown.vercel.app/api/setup/seed-santander-extracts"
+          for i in $(seq 1 48); do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X GET "$URL?probe=1" || echo "000")
+            echo "[$i/48] HTTP $STATUS"
+            # 307 = middleware redirect to /login (rota ainda não pública)
+            # qualquer outro código (200/4xx/5xx) significa que o deploy novo subiu
+            if [ "$STATUS" != "307" ] && [ "$STATUS" != "000" ]; then
+              echo "Rota liberada — partindo pro POST real"
+              break
+            fi
+            sleep 10
+          done
 
       - name: "POST /api/setup/seed-santander-extracts"
         run: |
           set -e
           URL="https://awq-brown.vercel.app/api/setup/seed-santander-extracts"
           echo "POST $URL"
-          BODY=$(curl -sS --max-time 300 -X POST "$URL")
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 300 -X POST "$URL")
+          RESP=$(mktemp)
+          STATUS=$(curl -sS --max-time 600 -o "$RESP" -w '%{http_code}' -X POST "$URL")
           echo "HTTP $STATUS"
-          echo "Body: $BODY" | head -c 4000
+          head -c 8000 "$RESP"
+          echo
           if [ "$STATUS" != "200" ]; then exit 1; fi
-          echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"Seeded: {d.get('seeded')}/{d.get('totalMonths')} months, {d.get('totalTransactions')} txns\")"
+          python3 -c "import json,sys; d=json.load(open('$RESP')); print('Seeded:', d.get('seeded'), '/', d.get('totalMonths'), 'meses,', d.get('totalTransactions'), 'txns')"
