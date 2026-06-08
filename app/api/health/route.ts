@@ -39,6 +39,18 @@ async function pingErpSupabase(): Promise<{ ok: boolean; rls: boolean | null; ro
   }
 }
 
+async function countErpTable(table: string): Promise<{ count: number | null; error: string | null }> {
+  try {
+    const { count, error } = await erpAnon!
+      .from(table)
+      .select("*", { count: "exact", head: true });
+    if (error) return { count: null, error: error.code ?? error.message };
+    return { count: count ?? 0, error: null };
+  } catch (e) {
+    return { count: null, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
 export async function GET(): Promise<NextResponse> {
   // ── Env var presence (boolean only — no secret values) ————————————————
   const presence = {
@@ -64,6 +76,12 @@ export async function GET(): Promise<NextResponse> {
 
   // ── ERP Supabase live ping —————————————————————————————————————————
   const erp = await pingErpSupabase();
+  const [erpInventoryItems, erpInventoryMovements, erpInventoryWarehouses, erpAssets] = await Promise.all([
+    countErpTable("erp_inventory_items"),
+    countErpTable("erp_inventory_movements"),
+    countErpTable("erp_inventory_warehouses"),
+    countErpTable("erp_assets"),
+  ]);
 
   // ── Direct Postgres ping (if DATABASE_URL set) —————————————————————————
   let directDb: { ping: "ok" | "error" | "skipped"; ms: number | null; tables: { documents: boolean; transactions: boolean } | null; transactionCount: number | null; hasRealData: boolean } = {
@@ -132,6 +150,14 @@ export async function GET(): Promise<NextResponse> {
     erpPingMs: erp.ms,
     erpRlsBlocking: erp.rls,   // true = RLS active, needs DISABLE or service role
     erpTransactionCount: erp.rowCount,
+
+    // ERP table diagnostics — null = table missing / RLS blocking / error
+    erpTables: {
+      inventory_items:      erpInventoryItems,
+      inventory_movements:  erpInventoryMovements,
+      inventory_warehouses: erpInventoryWarehouses,
+      assets:               erpAssets,
+    },
 
     // Direct postgres (if DATABASE_URL set)
     directDb: USE_DB ? directDb : null,
