@@ -42,6 +42,20 @@ interface SyncResult {
   error?: string;
 }
 
+function describeErr(err: unknown): string {
+  if (err instanceof Error) {
+    // Inclui name + message + 3 primeiras linhas do stack pra rastrear origem
+    const stack = err.stack ? ` :: ${err.stack.split("\n").slice(0, 3).join(" | ")}` : "";
+    return `${err.name}: ${err.message}${stack}`;
+  }
+  // Erros vindos do Supabase ou httpsRequest podem ser plain objects:
+  // { message, code, details, ... } — serializa pra preservar contexto
+  if (typeof err === "object" && err !== null) {
+    try { return JSON.stringify(err); } catch { /* circular ref */ }
+  }
+  return String(err);
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const userEmail = req.headers.get("x-user-email");
   if (!userEmail) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -138,7 +152,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       syncResults.push({
         entity: acc.entity, accountName: acc.accountName,
         synced: 0, skipped: 0, total: 0,
-        error: err instanceof Error ? err.message : String(err),
+        error: describeErr(err),
       });
     }
   }
@@ -150,7 +164,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch (err) {
     snapshotResult = {
       ok: false, saved: 0, days: 0, accounts: 0,
-      error: err instanceof Error ? err.message : String(err),
+      error: describeErr(err),
     };
   }
 
