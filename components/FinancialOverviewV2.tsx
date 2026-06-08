@@ -640,7 +640,10 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       // Mensal/Anual: garante que o período corrente reflita o live (sobrescreve
       // snapshot do último dia já gravado pelo cron)
       monthlySnapshotMap.set(todayStrLocal.slice(0, 7), liveTotal);
-      annualSnapshotMap.set(todayStrLocal.slice(0, 4),  liveTotal);
+      // Anual: NÃO sobrescreve o ano corrente com live — mantém o último
+      // snapshot persistido (igual aos anos passados). O usuário pediu
+      // consistência entre os pontos: todos usam fechamento via snapshot.
+      // Live continua exposto no card "Caixa Total" pra quem quer ver o agora.
     }
 
     let cum = 0;
