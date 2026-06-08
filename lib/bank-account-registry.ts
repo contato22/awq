@@ -146,6 +146,23 @@ export const KNOWN_ACCOUNTS: KnownBankAccount[] = [
       "APLICACAO CDB DI é aplicacao_financeira — excluída do P&L operacional.",
   },
 
+  // ── AWQ Holding — Santander (operating, manual extract upload) ────────────
+  {
+    id:                        "awq-santander-operating",
+    bank:                      "Santander",
+    accountName:               "Conta Santander AWQ",
+    accountNumberHint:         null,
+    entity:                    "AWQ_Holding",
+    usage:                     "operating_cash",
+    parserFormat:              "generic",
+    participatesInIntercompany: true,
+    activeSince:               "2026-06",
+    closedAt:                  null,
+    notes:
+      "Conta operacional Santander da AWQ Holding. Sem integração API — " +
+      "extratos entram via upload (PDF/CSV) e são classificados manualmente.",
+  },
+
   // ── AWQ Venture (future BTG investment vehicle — aspirational) ─────────────
   //
   // NOTE: As of Q1 2026, the confirmed real investment vehicle is awq-itau-empresas-investment.

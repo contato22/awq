@@ -1,3 +1,6 @@
+data/santander-extracts/*
+!data/santander-extracts/data.json
+
 # Dependencies
 node_modules/
 /.pnp
