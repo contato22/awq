@@ -47,6 +47,20 @@ const BANKS: OfflineBank[] = [
     },
     matchesBank: (b) => b.toLowerCase().includes("btg"),
   },
+  {
+    key:      "santander",
+    name:     "Conta Santander AWQ",
+    subtitle: "Santander · AWQ Holding",
+    initials: "SAN",
+    color: {
+      border:    "border-red-200",
+      bg:        "bg-red-50/30",
+      badgeBg:   "bg-red-600",
+      badgeText: "text-white",
+      dot:       "bg-red-500",
+    },
+    matchesBank: (b) => b.toLowerCase().includes("santander"),
+  },
 ];
 
 function fmtDatetime(iso: string) {
@@ -155,7 +169,7 @@ export default function OfflineBanksPanel({ transactions }: { transactions: Bank
         <span>
           Sem integração ao vivo — extratos entram via upload (PDF/CSV).
         </span>
-        <span>Itaú · BTG</span>
+        <span>Itaú · BTG · Santander</span>
       </div>
     </div>
   );
