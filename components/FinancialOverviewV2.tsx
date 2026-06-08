@@ -35,7 +35,7 @@ interface Props {
   balanceSnapshots?: Array<{ date: string; total: number }>;
 }
 
-type ViewMode = "diario" | "mensal";
+type ViewMode = "diario" | "mensal" | "anual";
 
 // Conta Azul–style flow chart row
 interface FlowRow {
@@ -349,6 +349,54 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number, fromMonth
   };
 }
 
+function buildFlowAnnual(txns: BankTransaction[], openingBal: number): FlowResult {
+  const eligible = txns;
+  if (eligible.length === 0) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
+
+  const earliestYear = eligible.reduce(
+    (min, t) => { const yr = t.transactionDate.slice(0, 4); return yr < min ? yr : min; },
+    eligible[0].transactionDate.slice(0, 4)
+  );
+  const curYear = today().slice(0, 4);
+
+  const yearMap = new Map<string, { in: number; out: number }>();
+  for (let y = parseInt(earliestYear); y <= parseInt(curYear); y++) {
+    yearMap.set(String(y), { in: 0, out: 0 });
+  }
+
+  for (const t of eligible) {
+    const yk = t.transactionDate.slice(0, 4);
+    const bucket = yearMap.get(yk);
+    if (!bucket) continue;
+    if (t.direction === "credit") bucket.in  += t.amount;
+    else                          bucket.out += t.amount;
+  }
+
+  let runningSaldo = openingBal;
+  let totalIn = 0, totalOut = 0;
+
+  const data: FlowRow[] = Array.from(yearMap.entries()).map(([yk, { in: inc, out }]) => {
+    runningSaldo += inc - out;
+    totalIn  += inc;
+    totalOut += out;
+    return {
+      label: yk,
+      date:  yk,    // YYYY (4 chars) — sinaliza modo anual ao tooltip e snapshot
+      recebimentos:  Math.round(inc),
+      pagamentos:    Math.round(out),
+      saldo:         Math.round(runningSaldo),
+    };
+  });
+
+  return {
+    data,
+    totalIn:  round2(totalIn),
+    totalOut: round2(totalOut),
+    net:      round2(totalIn - totalOut),
+    hasData:  totalIn + totalOut > 0,
+  };
+}
+
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
 type FlowTooltipProps = {
@@ -367,6 +415,8 @@ function formatTooltipHeader(row?: FlowRow, fallbackLabel?: string): string {
     const wd = row.weekday != null ? WEEKDAY_PT[row.weekday] : "";
     return `${wd ? wd + ", " : ""}${d}/${m}/${y}`;
   }
+  // Anual: YYYY
+  if (row.date.length === 4) return `Ano ${row.date}`;
   // Mensal: YYYY-MM
   const [y, m] = row.date.split("-");
   return `${MONTH_NAMES_PT[parseInt(m) - 1]} ${y}`;
@@ -476,6 +526,8 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     let raw: FlowResult;
     if (viewMode === "diario") {
       raw = buildFlowDaily(chartTxns, monthNav, 0);
+    } else if (viewMode === "anual") {
+      raw = buildFlowAnnual(chartTxns, 0);
     } else {
       const curYM     = today().slice(0, 7);
       const [cy, cm]  = curYM.split("-").map(Number);
@@ -554,14 +606,16 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     // ── Snapshots persistidos (fonte primária quando disponíveis) ──
     // Fechamento diário gravado em daily_balance_snapshots pelo cron Cora.
     // Quando o snapshot existe pra uma data, ele substitui o cálculo derivado.
-    // No modo Mensal, usamos o último snapshot de cada mês (fechamento do mês).
-    const snapshotMap = new Map<string, number>();          // YYYY-MM-DD → total
-    const monthlySnapshotMap = new Map<string, number>();   // YYYY-MM → último total do mês
+    // No modo Mensal/Anual, usamos o último snapshot de cada mês/ano (fechamento).
+    const snapshotMap = new Map<string, number>();           // YYYY-MM-DD → total
+    const monthlySnapshotMap = new Map<string, number>();    // YYYY-MM    → último total do mês
+    const annualSnapshotMap  = new Map<string, number>();    // YYYY       → último total do ano
     if (balanceSnapshots && balanceSnapshots.length > 0) {
-      // balanceSnapshots vem ordenado por data ascendente — último write vence por mês
+      // balanceSnapshots vem ordenado por data ascendente — último write vence
       for (const s of balanceSnapshots) {
         snapshotMap.set(s.date, s.total);
         monthlySnapshotMap.set(s.date.slice(0, 7), s.total);
+        annualSnapshotMap.set(s.date.slice(0, 4), s.total);
       }
     }
 
@@ -583,17 +637,20 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           snapshotMap.set(d.date, liveTotal);
         }
       }
-      // Mensal: garante que o mês corrente reflita o live (sobrescreve
+      // Mensal/Anual: garante que o período corrente reflita o live (sobrescreve
       // snapshot do último dia já gravado pelo cron)
       monthlySnapshotMap.set(todayStrLocal.slice(0, 7), liveTotal);
+      annualSnapshotMap.set(todayStrLocal.slice(0, 4),  liveTotal);
     }
 
     let cum = 0;
     const data = raw.data.map((d, idx) => {
       cum += d.recebimentos - d.pagamentos;
-      const isMonthly = (d.date?.length ?? 10) === 7;
+      const dlen = d.date?.length ?? 10;
       const saldoFromSnapshot = d.date
-        ? (isMonthly ? monthlySnapshotMap.get(d.date) : snapshotMap.get(d.date))
+        ? (dlen === 4 ? annualSnapshotMap.get(d.date)
+          : dlen === 7 ? monthlySnapshotMap.get(d.date)
+          : snapshotMap.get(d.date))
         : undefined;
       const saldoFromRB = dailySaldo?.[idx];
       // Prioridade: snapshot persistido → runningBalance derivado → soma cumulativa
@@ -809,7 +866,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Diário / Mensal toggle */}
+            {/* Diário / Mensal / Anual toggle */}
             <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
               <button
                 onClick={() => setViewMode("diario")}
@@ -822,6 +879,12 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${viewMode === "mensal" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
               >
                 Mensal
+              </button>
+              <button
+                onClick={() => setViewMode("anual")}
+                className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${viewMode === "anual" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+              >
+                Anual
               </button>
             </div>
 
@@ -973,9 +1036,10 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 tick={(props: { x: number; y: number; payload: { value: string; index: number } }) => {
                   const { x, y, payload } = props;
                   const row = flowResult.data[payload.index];
-                  if (viewMode === "mensal") {
+                  if (viewMode === "mensal" || viewMode === "anual") {
                     return (
-                      <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="#8b8478">
+                      <text x={x} y={y + 12} textAnchor="middle" fontSize={viewMode === "anual" ? 11 : 10}
+                        fontWeight={viewMode === "anual" ? 600 : 400} fill="#8b8478">
                         {payload.value}
                       </text>
                     );
