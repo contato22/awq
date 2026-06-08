@@ -299,15 +299,25 @@ function rowToTransaction(r: Row): BankTransaction {
 
 export async function getAllDocuments(): Promise<FinancialDocument[]> {
   if (db) {
-    const { data, error } = await db!
-      .from("financial_documents")
-      .select("*")
-      .order("uploaded_at", { ascending: false });
-    if (error) {
-      console.error("[getAllDocuments] DB error, falling back to JSON:", error);
-    } else {
-      return (data as Row[]).map(rowToDocument);
+    const PAGE = 1000;
+    const allRows: Row[] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await db!
+        .from("financial_documents")
+        .select("*")
+        .order("uploaded_at", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("[getAllDocuments] DB error, falling back to JSON:", error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      allRows.push(...(data as Row[]));
+      if (data.length < PAGE) break;
+      from += PAGE;
     }
+    if (allRows.length > 0) return allRows.map(rowToDocument);
   }
   return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
     ...d,
@@ -435,15 +445,26 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 export async function getAllTransactions(): Promise<BankTransaction[]> {
   await initDB(); // never throws — errors logged inside initDB()
   if (db) {
-    const { data, error } = await db!
-      .from("bank_transactions")
-      .select("*")
-      .order("transaction_date", { ascending: false });
-    if (error) {
-      console.error("[getAllTransactions] DB query failed:", error);
-    } else {
-      return (data as Row[]).map(rowToTransaction);
+    // Paginate in 1000-row pages to bypass PostgREST max_rows default limit.
+    const PAGE = 1000;
+    const allRows: Row[] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await db!
+        .from("bank_transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("[getAllTransactions] DB query failed:", error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      allRows.push(...(data as Row[]));
+      if (data.length < PAGE) break;
+      from += PAGE;
     }
+    if (allRows.length > 0) return allRows.map(rowToTransaction);
   }
   if (sql) {
     try {
