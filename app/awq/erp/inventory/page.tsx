@@ -15,6 +15,9 @@ import {
   Calculator,
   AlertTriangle,
   Loader2,
+  ShoppingCart,
+  ShoppingBag,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +29,16 @@ type Item = {
   unit_cost: number;
   stock_qty: number;
   min_stock: number;
+};
+
+type Movement = {
+  id:          string;
+  date:        string;
+  type:        "Entrada" | "Saída" | "Transferência";
+  source:      "manual" | "purchase" | "sale";
+  reference:   string;
+  description: string;
+  amount:      number | null;
 };
 
 type SubArea = {
@@ -46,20 +59,21 @@ const fmtBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n);
 
 export default function InventoryIndexPage() {
-  const [items, setItems]     = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState("");
+  const [items, setItems]         = useState<Item[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState("");
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/erp/inventory");
-        if (!res.ok) {
-          setError(`Erro ${res.status} ao carregar inventário`);
-          setItems([]);
-        } else {
-          setItems(await res.json());
-        }
+        const [itemsRes, movementsRes] = await Promise.all([
+          fetch("/api/erp/inventory"),
+          fetch("/api/erp/inventory/movements"),
+        ]);
+        if (itemsRes.ok)     setItems(await itemsRes.json());
+        else                 setError(`Erro ${itemsRes.status} ao carregar inventário`);
+        if (movementsRes.ok) setMovements((await movementsRes.json()).movements ?? []);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Erro desconhecido");
       } finally {
@@ -133,6 +147,48 @@ export default function InventoryIndexPage() {
             </Link>
           ))}
         </div>
+
+        {/* Atividade recente — integração cross-section */}
+        {!loading && movements.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Activity size={15} className="text-brand-500" />
+                <h2 className="text-sm font-semibold text-gray-900">Atividade Recente</h2>
+                <span className="text-xs text-gray-400">· compras + vendas + manuais</span>
+              </div>
+              <Link href="/awq/erp/inventory/movements" className="text-xs text-brand-600 hover:underline">
+                Ver tudo →
+              </Link>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {movements.slice(0, 6).map((m) => {
+                const Icon = m.source === "purchase" ? ShoppingCart : m.source === "sale" ? ShoppingBag : ArrowLeftRight;
+                const tone = m.type === "Entrada" ? "text-emerald-600" : m.type === "Saída" ? "text-red-600" : "text-blue-600";
+                return (
+                  <li key={m.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/60">
+                    <div className={`w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 ${tone}`}>
+                      <Icon size={13} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-gray-900 truncate">{m.description}</div>
+                      <div className="text-xs text-gray-400 truncate">
+                        <span className={`font-medium ${tone}`}>{m.type}</span>
+                        <span className="mx-1.5">·</span>
+                        <span className="font-mono">{m.reference}</span>
+                        <span className="mx-1.5">·</span>
+                        <span>{m.date}</span>
+                      </div>
+                    </div>
+                    {m.amount != null && (
+                      <div className={`text-xs font-bold whitespace-nowrap ${tone}`}>{fmtBRL(m.amount)}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {loading && (
           <div className="flex items-center justify-center py-8 text-gray-400">
