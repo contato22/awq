@@ -6,6 +6,7 @@
 // Response: { success: boolean, data: T, error?: string }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   getAllAR,
   addAR,
@@ -33,6 +34,9 @@ function err(msg: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "financeiro", "EPM AR");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const sp      = req.nextUrl.searchParams;
@@ -51,6 +55,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "financeiro", "EPM AR");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body = await req.json();
@@ -81,6 +88,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const denied = await apiGuard(req, "update", "financeiro", "EPM AR");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body = await req.json();

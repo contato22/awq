@@ -4,6 +4,7 @@
 // Response: { success, data: { instance_id, instance_code, current_step } }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   initBpmDB,
   getProcessDefinitionByCode,
@@ -30,6 +31,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "holding", "BPM Start Workflow");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body: StartWorkflowInput = await req.json();

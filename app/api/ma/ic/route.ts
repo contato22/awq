@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   initMaDB,
   listIcMeetings,
@@ -11,6 +12,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "awq_venture", "MA IC Meetings");
+  if (denied) return denied;
+
   try {
     await initMaDB();
     const p    = req.nextUrl.searchParams;
@@ -38,6 +42,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "awq_venture", "MA IC Meetings");
+  if (denied) return denied;
+
   try {
     await initMaDB();
     const body = await req.json();

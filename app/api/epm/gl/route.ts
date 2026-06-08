@@ -5,6 +5,7 @@
 // Response: { success: boolean, data: T, error?: string }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   getAllGLEntries,
   getGLEntries,
@@ -24,6 +25,9 @@ function err(msg: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "financeiro", "EPM GL");
+  if (denied) return denied;
+
   try {
     const sp         = req.nextUrl.searchParams;
     const view       = sp.get("view") ?? "journals";
@@ -53,6 +57,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "financeiro", "EPM GL");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const {
