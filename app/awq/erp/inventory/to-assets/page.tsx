@@ -216,7 +216,7 @@ export default function InventoryToAssetsPage() {
             {result.codes.length > 0 && (
               <p className="text-xs">Códigos: {result.codes.slice(0, 12).map(c => <code key={c} className="mr-1">{c}</code>)} {result.codes.length > 12 && `… +${result.codes.length - 12}`}</p>
             )}
-            <Link href="/awq/epm/fixed-assets" className="inline-flex items-center gap-1 text-brand-700 hover:underline">Ver Ativos Fixos →</Link>
+            <Link href="/awq/erp/assets" className="inline-flex items-center gap-1 text-brand-700 hover:underline">Ver Ativos Fixos →</Link>
           </div>
         )}
       </div>

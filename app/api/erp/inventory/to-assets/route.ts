@@ -67,9 +67,15 @@ export async function POST(req: NextRequest) {
 
   const { data: existingAssets, error: aErr } = await db
     .from("erp_assets")
-    .select("code");
+    .select("code, notes");
   if (aErr) return NextResponse.json({ error: aErr.message }, { status: 500 });
   const existingCodes = new Set((existingAssets ?? []).map((a: { code: string }) => a.code));
+  // SKUs já migrados anteriormente — detectados pelo padrão "SKU <sku>" em notes.
+  const migratedSkus = new Set<string>();
+  for (const a of existingAssets ?? []) {
+    const m = a.notes?.match(/SKU\s+(\S+)/);
+    if (m) migratedSkus.add(m[1]);
+  }
 
   const candidates: {
     sourceId: string;
@@ -99,6 +105,10 @@ export async function POST(req: NextRequest) {
   };
 
   for (const it of items ?? []) {
+    if (migratedSkus.has(it.sku)) {
+      skipped.push({ sku: it.sku, reason: "já migrado para ativo fixo anteriormente" });
+      continue;
+    }
     const cat = (it.category ?? "").toUpperCase();
     const map = CATEGORY_MAP[cat];
     if (skuFilter) {
