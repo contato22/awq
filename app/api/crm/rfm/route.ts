@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getForcedBu } from "@/lib/api-guard";
+import { getForcedBu, apiGuard } from "@/lib/api-guard";
 import { erpAdmin, erpAnon } from "@/lib/supabase";
 import type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 export type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
@@ -150,6 +150,9 @@ async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | nul
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "CRM RFM");
+  if (denied) return denied;
+
   try {
     const forcedBu = await getForcedBu(req);
 
