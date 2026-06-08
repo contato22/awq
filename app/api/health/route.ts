@@ -51,6 +51,21 @@ async function countErpTable(table: string): Promise<{ count: number | null; err
   }
 }
 
+async function statusBreakdown(table: string, column = "status"): Promise<Record<string, number> | null> {
+  try {
+    const { data, error } = await erpAnon!.from(table).select(column).limit(2000);
+    if (error || !data) return null;
+    const counts: Record<string, number> = {};
+    for (const row of data as unknown as Record<string, unknown>[]) {
+      const k = (row?.[column] as string) ?? "(null)";
+      counts[k] = (counts[k] ?? 0) + 1;
+    }
+    return counts;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(): Promise<NextResponse> {
   // ── Env var presence (boolean only — no secret values) ————————————————
   const presence = {
@@ -76,11 +91,19 @@ export async function GET(): Promise<NextResponse> {
 
   // ── ERP Supabase live ping —————————————————————————————————————————
   const erp = await pingErpSupabase();
-  const [erpInventoryItems, erpInventoryMovements, erpInventoryWarehouses, erpAssets] = await Promise.all([
+  const [
+    erpInventoryItems, erpInventoryMovements, erpInventoryWarehouses, erpAssets,
+    erpPurchases, erpSalesOrders,
+    purchasesByStatus, salesByStatus,
+  ] = await Promise.all([
     countErpTable("erp_inventory_items"),
     countErpTable("erp_inventory_movements"),
     countErpTable("erp_inventory_warehouses"),
     countErpTable("erp_assets"),
+    countErpTable("erp_purchases"),
+    countErpTable("erp_sales_orders"),
+    statusBreakdown("erp_purchases"),
+    statusBreakdown("erp_sales_orders"),
   ]);
 
   // ── Direct Postgres ping (if DATABASE_URL set) —————————————————————————
@@ -157,6 +180,12 @@ export async function GET(): Promise<NextResponse> {
       inventory_movements:  erpInventoryMovements,
       inventory_warehouses: erpInventoryWarehouses,
       assets:               erpAssets,
+      purchases:            erpPurchases,
+      sales_orders:         erpSalesOrders,
+    },
+    erpStatusBreakdown: {
+      purchases:    purchasesByStatus,
+      sales_orders: salesByStatus,
     },
 
     // Direct postgres (if DATABASE_URL set)
