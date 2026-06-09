@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
-import { computeAndSaveSnapshotForDate } from "@/lib/balance-snapshots";
+import { computeAndSaveSnapshotForDate, backfillSnapshots } from "@/lib/balance-snapshots";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
@@ -181,12 +181,29 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     snapshotResult = { ok: false, saved: 0, error: err instanceof Error ? err.message : String(err) };
   }
 
+  // ── Auto-backfill (35 dias) — auto-cura de gaps históricos ──
+  // O cron diário sync já cobre os últimos 8 dias de tx. Aqui rodamos
+  // backfillSnapshots numa janela maior (35 dias) pra garantir que qualquer
+  // dia perdido (cron travou, sync falhou parcial) ganhe snapshot. UPSERT
+  // idempotente — não duplica nem sobrescreve snapshots de hoje (já feitos
+  // acima com source 'cora_live').
+  let backfillResult: { ok: boolean; saved: number; days: number; error?: string } = { ok: true, saved: 0, days: 0 };
+  try {
+    const backfillFrom = new Date(Date.now() - 35 * 86_400_000)
+      .toISOString().slice(0, 10);
+    const r = await backfillSnapshots(backfillFrom, endDate);
+    backfillResult = { ok: r.ok, saved: r.saved, days: r.days, error: r.error };
+  } catch (err) {
+    backfillResult = { ok: false, saved: 0, days: 0, error: err instanceof Error ? err.message : String(err) };
+  }
+
   return NextResponse.json({
     ok:          true,
     totalSynced,
     period:      { startDate, endDate },
     accounts:    results,
     snapshot:    snapshotResult,
+    backfill:    backfillResult,
     executedAt:  now,
   });
 }
