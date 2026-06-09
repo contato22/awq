@@ -16,7 +16,6 @@ import nextDynamic from "next/dynamic";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
-import OfflineBanksPanel from "@/components/OfflineBanksPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getSnapshots } from "@/lib/balance-snapshots";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
@@ -145,47 +144,53 @@ export default async function ConciliacaoPage() {
         {/* ── Painel de conciliação ── */}
         <section className="space-y-4">
 
-          {/* Header da seção com progress inline */}
-          <div className="section-header mb-0">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="section-title">
-                <GitMerge size={15} className="text-brand-500 shrink-0" />
-                <h2>Conciliação Bancária</h2>
+          {/* Header da seção com progress */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+                <GitMerge size={14} className="text-brand-600" />
               </div>
-              <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">
-                Associe movimentações bancárias às suas receitas e despesas
-              </p>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">Conciliação Bancária</h2>
+                <p className="text-[11px] text-gray-400 hidden sm:block">
+                  Associe movimentações bancárias às receitas e despesas
+                </p>
+              </div>
             </div>
             {total > 0 && (
               <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-24 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                  <div className="w-32 h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-400" : "bg-red-400"}`}
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
-                  <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{pct}%</span>
+                  <span className={`text-xs font-bold whitespace-nowrap ${pct >= 80 ? "text-emerald-600" : pct >= 40 ? "text-amber-500" : "text-red-500"}`}>
+                    {pct}%
+                  </span>
                 </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {conciliado}/{total} txns
-                  {docsDone > 0 && ` · ${docsDone} extrato${docsDone > 1 ? "s" : ""}`}
-                </span>
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs font-semibold text-gray-700 tabular-nums">{conciliado.toLocaleString("pt-BR")}/{total.toLocaleString("pt-BR")}</p>
+                  <p className="text-[10px] text-gray-400">
+                    {docsDone > 0 ? `${docsDone} extrato${docsDone > 1 ? "s" : ""}` : "txns conciliadas"}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Cora sync status */}
-          {CORA_CONFIGURED && (
-            <CoraStatusPanel transactions={transactions} />
-          )}
-
-          {/* Outros bancos da Holding — sem integração API */}
-          <OfflineBanksPanel transactions={transactions} />
-
-          {/* Board principal */}
+          {/* Board principal — destaque antes dos painéis de status */}
           <BankReconciliationBoard
             initialTransactions={transactions}
             isStatic={IS_STATIC}
             coraConfigured={CORA_CONFIGURED}
           />
+
+          {/* Cora sync status — painel secundário, abaixo do board */}
+          {CORA_CONFIGURED && (
+            <CoraStatusPanel transactions={transactions} />
+          )}
         </section>
 
         {/* ── AR Pipeline (apenas se houver itens) ── */}

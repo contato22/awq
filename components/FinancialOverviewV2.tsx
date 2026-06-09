@@ -117,6 +117,12 @@ function dateAgo(days: number) {
   return new Date(Date.now() - days * 86_400_000).toLocaleDateString("sv", { timeZone: BRT });
 }
 
+function fmtMonthYear(d: string | null): string | null {
+  if (!d) return null;
+  const [y, m] = d.split("-");
+  return `${MONTH_NAMES_SHORT[parseInt(m) - 1]}/${y.slice(2)}`;
+}
+
 function prevMonth(m: string): string {
   const [y, mo] = m.split("-").map(Number);
   return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
@@ -863,32 +869,27 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-[10px] text-gray-400 mt-0.5 hidden sm:block">
               Recebimentos e pagamentos · soma bruta de todas as contas (exceto ENERDY)
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Diário / Mensal / Anual toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
-              <button
-                onClick={() => setViewMode("diario")}
-                className={`px-3 py-1.5 transition-colors ${viewMode === "diario" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-              >
-                Diário
-              </button>
-              <button
-                onClick={() => setViewMode("mensal")}
-                className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${viewMode === "mensal" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-              >
-                Mensal
-              </button>
-              <button
-                onClick={() => setViewMode("anual")}
-                className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${viewMode === "anual" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-              >
-                Anual
-              </button>
+            {/* Diário / Mensal / Anual toggle — segmented control */}
+            <div className="flex rounded-lg overflow-hidden border border-gray-200 bg-gray-50 p-0.5 gap-0.5 text-[11px] font-semibold">
+              {(["diario", "mensal", "anual"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setViewMode(m)}
+                  className={`px-3 py-1.5 rounded-md transition-all ${
+                    viewMode === m
+                      ? "bg-white text-brand-700 shadow-sm border border-gray-200/80 font-bold"
+                      : "text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  {m === "diario" ? "Diário" : m === "mensal" ? "Mensal" : "Anual"}
+                </button>
+              ))}
             </div>
 
             {/* Month navigation — only in Diário mode */}
@@ -994,7 +995,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           {/* Caixa Total */}
           <button onClick={() => toggle("caixa")}
             title={hidden.has("caixa") ? "Mostrar caixa" : "Ocultar caixa"}
-            className={`px-4 py-3 text-left hover:bg-amber-50/60 transition-all ${hidden.has("caixa") ? "opacity-35" : ""}`}>
+            className={`px-4 py-3 text-left bg-amber-50/30 hover:bg-amber-50/70 border-l-2 border-l-amber-300/60 transition-all ${hidden.has("caixa") ? "opacity-35" : ""}`}>
             <div className="flex items-center gap-1.5 mb-1">
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
               <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Caixa Total</span>
@@ -1008,7 +1009,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         </div>
 
         {/* Chart — Conta Azul style */}
-        <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
+        <div className="bg-[#f9f9f7] rounded-b-xl px-4 pb-5 pt-3 border-t border-gray-100/80">
 
           {/* Legend at top-right — matches Conta Azul layout */}
           <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
@@ -1026,7 +1027,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={230}>
+          <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
               barCategoryGap="30%" stackOffset="sign">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
@@ -1148,13 +1149,17 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           </ResponsiveContainer>
 
           {!flowResult.hasData && (
-            <p className="text-center text-[11px] text-gray-400 -mt-2 mb-1">
-              Sem movimentações {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"} ·{" "}
+            <div className="flex flex-col items-center gap-2 -mt-10 mb-4 py-8">
+              <p className="text-sm text-gray-400 font-medium">
+                Sem movimentações {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"}
+              </p>
               {viewMode === "diario" && (
                 <button onClick={() => setViewMode("mensal")}
-                  className="text-brand-500 hover:underline">ver todo o histórico</button>
+                  className="text-xs text-brand-500 hover:text-brand-600 hover:underline transition-colors">
+                  Ver todo o histórico →
+                </button>
               )}
-            </p>
+            </div>
           )}
 
           {/* Bottom legend row — entity toggles only */}
@@ -1290,6 +1295,11 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                       {stats.total > 0 && (
                         <span className="text-gray-400 tabular-nums">{stats.total} tx</span>
                       )}
+                      {stats.firstDate && stats.lastDate && (
+                        <span className="text-[9px] text-gray-300 tabular-nums">
+                          {fmtMonthYear(stats.firstDate)}–{fmtMonthYear(stats.lastDate)}
+                        </span>
+                      )}
                       {lastLabel && (
                         <span className="flex items-center gap-0.5 text-gray-400 ml-auto">
                           <Clock size={9} /> {lastLabel}
@@ -1325,13 +1335,16 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
             })}
           </div>
 
-          {coraConfigured && !anyLoading && totalBalance > 0 && (
-            <div className="rounded-lg bg-gradient-to-r from-brand-50 to-emerald-50 border border-brand-100 px-3 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Activity size={11} className="text-brand-600" />
-                <span className="text-[10px] font-bold text-brand-700 uppercase tracking-wide">Saldo total · Holding</span>
+          {!anyLoading && caixaTotal !== 0 && (
+            <div className="rounded-xl bg-gradient-to-r from-brand-50/80 to-amber-50/60 border border-brand-100/80 px-3.5 py-3 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2">
+                <Activity size={12} className="text-brand-500" />
+                <div>
+                  <p className="text-[10px] font-bold text-brand-700 uppercase tracking-wide leading-none">Saldo total · Holding</p>
+                  <p className="text-[9px] text-gray-400 mt-0.5">{caixaLabel}</p>
+                </div>
               </div>
-              <span className="text-base font-bold text-gray-900 tabular-nums">{fmtBRL(totalBalance)}</span>
+              <span className={`text-base font-bold tabular-nums ${caixaTotal >= 0 ? "text-gray-900" : "text-red-600"}`}>{fmtBRL(caixaTotal)}</span>
             </div>
           )}
         </div>
@@ -1356,7 +1369,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                   Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(restanteMesAR)}</span>
                 </p>
               )}
-              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] font-semibold transition-all">
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 border border-emerald-200 text-[11px] font-semibold transition-all">
                 <ArrowUpRight size={11} /> Novo Recebimento
               </button>
             </div>
@@ -1378,7 +1391,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                   Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(pendingDebitsMonth)}</span>
                 </p>
               )}
-              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[11px] font-semibold transition-all">
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 border border-red-200 text-[11px] font-semibold transition-all">
                 <ArrowDownLeft size={11} /> Novo Pagamento
               </button>
             </div>
