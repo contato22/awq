@@ -18,7 +18,7 @@ import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import OfflineBanksPanel from "@/components/OfflineBanksPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
-import { getConsolidatedDaily } from "@/lib/balance-snapshots";
+import { getSnapshots } from "@/lib/balance-snapshots";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { todayBRT, daysAheadBRT } from "@/lib/date-brt";
 import {
@@ -91,21 +91,23 @@ export default async function ConciliacaoPage() {
 
   // ── Snapshots de saldo consolidado (últimos 5 anos) ──
   // Janela longa para suportar modo "Anual" no chart (dados históricos até 2022).
-  // Carry-forward por conta dentro de getConsolidatedDaily.
-  // Holding-only (exclui ENERDY) — combina com o escopo do chart.
+  // IMPORTANTE: só envia datas com snapshot REAL (não carry-forward). Snapshots
+  // velhos sendo propagados para todos os dias seguintes geravam degraus falsos
+  // na linha de saldo (ex: 8 dias de Junho/2026 mostrando R$32k carregado de
+  // Maio, antes de cair pra R$6k via override live no dia atual).
+  // Nos dias sem snapshot exato, o chart cai pra runningBalance derivado das
+  // tx Cora Holding (que tem carry-forward próprio, mais conservador).
   let balanceSnapshots: Array<{ date: string; total: number }> = [];
   try {
     const tdy = todayBRT();
     const fromIso = new Date(new Date(tdy).getTime() - 1826 * 86_400_000)
       .toISOString().slice(0, 10);
-    const dailyHolding = await getConsolidatedDaily(fromIso, tdy, "AWQ_Holding");
-    const dailyJacqes  = await getConsolidatedDaily(fromIso, tdy, "JACQES");
-    const dailyCaza    = await getConsolidatedDaily(fromIso, tdy, "Caza_Vision");
+    const allSnaps = await getSnapshots(fromIso, tdy);
+    // Soma por data, restrito a entities do escopo Holding (= chart scope).
     const byDate = new Map<string, number>();
-    for (const arr of [dailyHolding, dailyJacqes, dailyCaza]) {
-      for (const row of arr) {
-        byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.total);
-      }
+    for (const s of allSnaps) {
+      if (s.entity === "ENERDY") continue;
+      byDate.set(s.snapshotDate, (byDate.get(s.snapshotDate) ?? 0) + s.balance);
     }
     balanceSnapshots = Array.from(byDate.entries())
       .map(([date, total]) => ({ date, total }))
