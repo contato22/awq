@@ -370,9 +370,9 @@ export async function seedHurdleData(): Promise<{ seeded: string[] }> {
   return { seeded };
 }
 
-// Consolidated metrics for quick summary cards
-export async function getHurdleSummary() {
-  const { projects, buHurdles } = await getHurdleAnalysis();
+// Computes summary metrics from an already-fetched HurdleAnalysis (no extra DB round-trip).
+export function computeHurdleSummary(analysis: HurdleAnalysis) {
+  const { projects, buHurdles } = analysis;
   const approved      = projects.filter((p) => p.status === "approved");
   const rejected      = projects.filter((p) => p.status === "rejected");
   const watch         = projects.filter((p) => p.status === "watch");
@@ -387,12 +387,16 @@ export async function getHurdleSummary() {
   const avgHurdle     = buHurdles.length > 0
     ? buHurdles.reduce((s, h) => s + h.hurdle, 0) / buHurdles.length
     : 0;
-
   return {
     total: projects.length, approved: approved.length,
     rejected: rejected.length, watch: watch.length,
     totalCapex, approvedCapex, approvalRate, avgIrr, avgHurdle,
   };
+}
+
+// Convenience wrapper for callers that don't have analysis in hand yet.
+export async function getHurdleSummary() {
+  return computeHurdleSummary(await getHurdleAnalysis());
 }
 
 // ─── PPM integration ─────────────────────────────────────────────────────────

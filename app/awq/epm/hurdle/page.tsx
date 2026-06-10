@@ -14,7 +14,7 @@ import {
   Database, Layers, ArrowUpRight, ArrowDownRight, Wallet,
 } from "lucide-react";
 import {
-  getHurdleAnalysis, getHurdleSummary, getPPMHurdleRows, getBUCashContext,
+  getHurdleAnalysis, computeHurdleSummary, getPPMHurdleRows, getBUCashContext,
   type BuHurdleConfig, type HurdleProject, type HurdleStatus, type PpmHurdleRow,
   type BuCashContext,
 } from "@/lib/epm-hurdle";
@@ -236,7 +236,9 @@ export default async function HurdlePage() {
   let loadError = false;
 
   try {
-    [analysis, summary] = await Promise.all([getHurdleAnalysis(), getHurdleSummary()]);
+    // Single analysis fetch — fan out PPM + cash context in parallel from the same data.
+    analysis = await getHurdleAnalysis();
+    summary  = computeHurdleSummary(analysis);
     [ppmRows, cashCtx] = await Promise.all([
       getPPMHurdleRows(analysis.buHurdles).catch(() => []),
       getBUCashContext().catch(() => ({})),
