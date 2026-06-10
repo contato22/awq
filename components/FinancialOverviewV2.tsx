@@ -559,11 +559,21 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     // de amounts (que pode divergir quando há registros faltantes).
     let dailySaldo: number[] | null = null;
     if (viewMode === "diario") {
-      // Closings de outras contas Holding — não variam diariamente nesta janela
-      let otherHoldingClosings = 0;
+      // Saldo diário de contas não-Cora AWQ_Holding: séries ordenadas por data
+      // para carry-forward por dia. Em vez de usar um único closing estático
+      // (último runningBalance global), aplica o último valor ≤ dia D — assim
+      // transferências recebidas aparecem na linha de saldo a partir do dia em
+      // que o extrato foi importado, sem afetar os dias anteriores.
+      const nonCoraHoldingSeries: { date: string; balance: number }[][] = [];
       for (const [k, v] of otherClosings.entries()) {
         const firstTx = transactions.find((t) => `${t.bank}::${t.accountName}` === k);
-        if (firstTx?.entity === "AWQ_Holding") otherHoldingClosings += v.balance;
+        if (firstTx?.entity !== "AWQ_Holding") continue;
+        const series = transactions
+          .filter((t) => `${t.bank}::${t.accountName}` === k && t.runningBalance != null)
+          .map((t) => ({ date: t.transactionDate, balance: t.runningBalance! }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        // Fallback: se não há transações com runningBalance, usa o closing estático
+        nonCoraHoldingSeries.push(series.length > 0 ? series : [{ date: "", balance: v.balance }]);
       }
 
       // Cora Holding: agrupa por dia, mantém maior `runningBalance` index — como
@@ -604,7 +614,17 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         dailySaldo = raw.data.map((d) => {
           const cora = d.date ? coraDailyMap.get(d.date) : undefined;
           if (cora != null) last = cora;
-          return Math.round(last + otherHoldingClosings);
+          // Soma carry-forward de cada conta não-Cora: último valor conhecido ≤ d.date
+          let nonCoraSum = 0;
+          for (const series of nonCoraHoldingSeries) {
+            let bal = 0;
+            for (const point of series) {
+              if (point.date <= (d.date ?? "")) bal = point.balance;
+              else break;
+            }
+            nonCoraSum += bal;
+          }
+          return Math.round(last + nonCoraSum);
         });
       }
     }

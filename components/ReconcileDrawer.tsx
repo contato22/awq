@@ -7,6 +7,16 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
+
+// Categorias excluídas do consolidado (espelha CONSOLIDATION_EXCLUDED_CATEGORIES em
+// financial-classifier.ts — atualizar aqui se o classifier mudar).
+const CONSOLIDATION_EXCLUDED_CATS = new Set<ManagerialCategory>([
+  "transferencia_interna_recebida",
+  "transferencia_interna_enviada",
+  "reserva_limite_cartao",
+  "aplicacao_financeira",
+  "resgate_financeiro",
+]);
 import { fmtDate } from "@/lib/utils";
 import { getLeafAccounts } from "@/lib/ar-coa";
 
@@ -186,6 +196,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
     return {
       reconciliationStatus: "conciliado",
       managerialCategory: category,
+      excludedFromConsolidated: CONSOLIDATION_EXCLUDED_CATS.has(category),
       counterpartyName: counterparty || tx.counterpartyName,
       classifiedAt: new Date().toISOString(),
     };
