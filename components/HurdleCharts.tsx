@@ -245,6 +245,10 @@ export function CashRunwayChart({ cashRows, approvedCapex }: RunwayProps) {
   const totalAR  = cashRows.reduce((s, r) => s + r.ctx.arOutstanding, 0);
   const totalAP  = cashRows.reduce((s, r) => s + r.ctx.apOutstanding, 0);
   const deployed = cashRows.reduce((s, r) => s + r.ctx.capitalDeployed, 0);
+
+  if (totalAR === 0 && totalAP === 0) return (
+    <p className="text-xs text-gray-400 italic py-4 text-center">AR/AP indisponível — sem dados para projeção.</p>
+  );
   const remaining = Math.max(approvedCapex - deployed, 0);
 
   // Project 6 months: AR collected in 3mo, AP paid in 3mo, CAPEX drawn evenly over 12mo
