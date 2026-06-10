@@ -2,12 +2,14 @@ import Header from "@/components/Header";
 import { TrendingUp, AlertTriangle } from "lucide-react";
 import { getBUData, getMonthlyRevenue, getJACQESMRR } from "@/lib/epm-planning-db";
 import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
+import { getAllAR, getAllAP } from "@/lib/ap-ar-db";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 function fmt(n: number) {
   return "R$ " + n.toLocaleString("pt-BR");
 }
+function r2(n: number) { return Math.round(n * 100) / 100; }
 
 type LineStatus = "real" | "parcial" | "pendente";
 
@@ -34,10 +36,14 @@ const statusCls: Record<LineStatus, string> = {
 };
 
 export default async function MiniPlPage() {
-  const [buData, monthlyRevenue, jacqesMRRData] = await Promise.all([
+  const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+  const [buData, monthlyRevenue, jacqesMRRData, arItems, apItems] = await Promise.all([
     getBUData(),
     getMonthlyRevenue(),
     getJACQESMRR(),
+    getAllAR({ bu_code: "JACQES" }).catch(() => []),
+    getAllAP({ bu_code: "JACQES" }).catch(() => []),
   ]);
   const JACQES_MRR = jacqesMRRData.current;
 
@@ -47,20 +53,42 @@ export default async function MiniPlPage() {
   const totalPago  = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
   const totalPend  = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
 
+  // ── Live AP/AR para o mês corrente ──────────────────────────────────────────
+  const arMes = arItems.filter(
+    (i) => i.issue_date.slice(0, 7) === thisMonth && i.status !== "CANCELLED"
+  );
+  const apMes = apItems.filter(
+    (i) => i.issue_date.slice(0, 7) === thisMonth && i.status !== "CANCELLED"
+  );
+
+  const receitaBruta   = arMes.length > 0 ? r2(arMes.reduce((s, i) => s + i.gross_amount, 0)) : null;
+  const deducoes       = arMes.length > 0 ? r2(arMes.reduce((s, i) => s + i.iss_amount + i.pis_amount + i.cofins_amount, 0)) : null;
+  const receitaLiquida = receitaBruta != null && deducoes != null ? r2(receitaBruta - deducoes) : null;
+
+  const apDanilo  = apMes.filter((i) => i.supplier_name === "Danilo").reduce((s, i) => s + i.gross_amount, 0) || null;
+  const apAluguel = apMes.filter((i) => i.category === "Aluguel").reduce((s, i) => s + i.gross_amount, 0) || null;
+  const apTotal   = apMes.length > 0 ? r2(apMes.reduce((s, i) => s + i.gross_amount, 0)) : null;
+
+  const lucroBruto = receitaLiquida != null ? receitaLiquida : null;
+  const ebitda     = lucroBruto != null && apTotal != null ? r2(lucroBruto - apTotal) : null;
+
+  const hasLiveData = arMes.length > 0 || apMes.length > 0;
+
   const rows: PlRow[] = [
-    { label: "(+) Receita Bruta",       value: jacqes.revenue, status: "real",     bold: false, indent: false, type: "positive" },
-    { label: "(-) Deduções (ISS/PIS…)", value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-    { label: "(=) Receita Líquida",     value: jacqes.revenue, status: "parcial",  bold: true,  indent: false, type: "positive" },
-    { label: "(-) COGS",                value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-    { label: "(=) Lucro Bruto",         value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
-    { label: "(-) Pessoal",             value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-    { label: "(-) Adm & Marketing",     value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-    { label: "(=) EBITDA",              value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
-    { label: "(-) D&A",                 value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-    { label: "(=) EBIT",                value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
-    { label: "(+/-) Resultado Fin.",    value: null,           status: "pendente", bold: false, indent: true,  type: "neutral"  },
-    { label: "(-) IR / CSLL",           value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-    { label: "(=) Lucro Líquido",       value: jacqes.netIncome || null, status: jacqes.netIncome ? "real" : "pendente", bold: true, indent: false, type: "neutral" },
+    { label: "(+) Receita Bruta",       value: receitaBruta,               status: receitaBruta   != null ? "real"    : "pendente", bold: false, indent: false, type: "positive" },
+    { label: "(-) Deduções (ISS/PIS…)", value: deducoes   != null ? -deducoes   : null, status: deducoes   != null ? "real"    : "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(=) Receita Líquida",     value: receitaLiquida,             status: receitaLiquida != null ? "real"    : "parcial",  bold: true,  indent: false, type: "positive" },
+    { label: "(-) COGS",                value: null,                       status: "pendente",                                                 bold: false, indent: true,  type: "negative" },
+    { label: "(=) Lucro Bruto",         value: lucroBruto,                 status: lucroBruto     != null ? "real"    : "pendente", bold: true,  indent: false, type: "neutral"  },
+    { label: "(-) Danilo (30% P&L)",    value: apDanilo  != null ? -apDanilo  : null, status: apDanilo   != null ? "real"    : "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(-) Aluguel Sala",        value: apAluguel != null ? -apAluguel : null, status: apAluguel  != null ? "real"    : "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(-) Adm & Marketing",     value: null,                       status: "pendente",                                                 bold: false, indent: true,  type: "negative" },
+    { label: "(=) EBITDA",              value: ebitda,                     status: ebitda         != null ? "real"    : "pendente", bold: true,  indent: false, type: "neutral"  },
+    { label: "(-) D&A",                 value: null,                       status: "pendente",                                                 bold: false, indent: true,  type: "negative" },
+    { label: "(=) EBIT",                value: ebitda,                     status: ebitda         != null ? "parcial" : "pendente", bold: true,  indent: false, type: "neutral"  },
+    { label: "(+/-) Resultado Fin.",    value: null,                       status: "pendente",                                                 bold: false, indent: true,  type: "neutral"  },
+    { label: "(-) IR / CSLL",           value: null,                       status: "pendente",                                                 bold: false, indent: true,  type: "negative" },
+    { label: "(=) Lucro Líquido",       value: jacqes.netIncome || null,   status: jacqes.netIncome ? "real" : "pendente",                     bold: true,  indent: false, type: "neutral"  },
   ];
 
   const maxBar = Math.max(...mrrHistory.map((r) => r.mrr));
@@ -71,13 +99,15 @@ export default async function MiniPlPage() {
       <div className="page-container max-w-2xl">
 
         {/* ── Aviso de dados parciais ─────────────────────────────────────── */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700">
-            Receita confirmada via Notion CRM. Custos, impostos e deduções aguardam
-            lançamento contábil — insira via FP&A para completar o DRE.
-          </p>
-        </div>
+        {!hasLiveData && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              Receita confirmada via Notion CRM. Custos, impostos e deduções aguardam
+              lançamento contábil — insira via FP&A para completar o DRE.
+            </p>
+          </div>
+        )}
 
         {/* ── MRR Trend ───────────────────────────────────────────────────── */}
         <div className="card p-5">
@@ -141,8 +171,15 @@ export default async function MiniPlPage() {
 
         {/* ── DRE Resumido ────────────────────────────────────────────────── */}
         <div className="card p-5">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            DRE · YTD {mrrHistory[mrrHistory.length - 1]?.month ?? ""}
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              DRE · {hasLiveData ? thisMonth : `YTD ${mrrHistory[mrrHistory.length - 1]?.month ?? ""}`}
+            </div>
+            {hasLiveData && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded text-emerald-600 bg-emerald-50">
+                live
+              </span>
+            )}
           </div>
           <div className="space-y-0.5">
             {rows.map((row, i) => (
@@ -176,7 +213,7 @@ export default async function MiniPlPage() {
                         : "font-semibold text-gray-700"
                     }`}
                   >
-                    {row.value !== null ? fmt(row.value) : "—"}
+                    {row.value !== null ? fmt(Math.abs(row.value)) : "—"}
                   </span>
                 </div>
               </div>
