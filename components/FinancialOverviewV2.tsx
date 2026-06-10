@@ -1227,7 +1227,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 : (closingByAccount.get(accountKey)?.balance ?? null);
               const balanceLoading = isCoraBank && !!coraAcc?.loading;
               const accountNet = netByAccount.get(accountKey) ?? null;
-              const stats = statsByAccount.get(accountKey) ?? { total: 0, pending: 0, reconciled: 0 };
+              const stats = statsByAccount.get(accountKey) ?? { total: 0, pending: 0, reconciled: 0, firstDate: null as string | null, lastDate: null as string | null };
               const lastDate = closingByAccount.get(accountKey)?.date ?? null;
               const daysSince = lastDate
                 ? Math.floor((Date.now() - new Date(lastDate).getTime()) / 86_400_000)
