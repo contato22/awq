@@ -2,100 +2,20 @@
 //
 // Avalia projetos e BUs contra hurdle rate (taxa mínima de retorno aceitável).
 // Compara IRR / ROIC / payback de cada projeto com o hurdle definido por BU.
+// Dados: lib/epm-hurdle.ts → epm_hurdle_rates + epm_hurdle_projects (DB ou static fallback)
 
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
   Percent, TrendingUp, TrendingDown, CheckCircle2,
-  XCircle, AlertTriangle, Info, BarChart3, Clock,
+  XCircle, AlertTriangle, Info, BarChart3, Clock, Database, Layers,
 } from "lucide-react";
+import {
+  getHurdleAnalysis, getHurdleSummary,
+  type BuHurdleConfig, type HurdleProject, type HurdleStatus,
+} from "@/lib/epm-hurdle";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
-
-// ─── Tipos ───────────────────────────────────────────────────────────────────
-
-type HurdleStatus = "approved" | "rejected" | "watch" | "pending";
-
-interface ProjectEval {
-  id:          string;
-  name:        string;
-  bu:          string;
-  capex:       number;
-  irr:         number | null;
-  roic:        number | null;
-  paybackMo:   number | null;
-  hurdle:      number;
-  status:      HurdleStatus;
-  description: string;
-}
-
-interface BuHurdle {
-  bu:          string;
-  hurdle:      number;
-  wacc:        number;
-  riskPremium: number;
-  projects:    number;
-}
-
-// ─── Dados de referência (substituir por DB quando disponível) ───────────────
-
-const BU_HURDLES: BuHurdle[] = [
-  { bu: "AWQ Holding",  hurdle: 15, wacc: 12, riskPremium: 3,  projects: 4 },
-  { bu: "JACQES",       hurdle: 18, wacc: 13, riskPremium: 5,  projects: 3 },
-  { bu: "AWQ Venture",  hurdle: 25, wacc: 15, riskPremium: 10, projects: 5 },
-  { bu: "Caza Vision",  hurdle: 20, wacc: 14, riskPremium: 6,  projects: 2 },
-];
-
-const PROJECTS: ProjectEval[] = [
-  {
-    id: "PRJ-001", name: "Expansão Sede SP",
-    bu: "AWQ Holding", capex: 850_000, irr: 22.4, roic: 19.1, paybackMo: 38,
-    hurdle: 15, status: "approved",
-    description: "Ampliação do escritório principal + infraestrutura de TI",
-  },
-  {
-    id: "PRJ-002", name: "Sistema ERP Integrado",
-    bu: "AWQ Holding", capex: 320_000, irr: 11.2, roic: 9.8, paybackMo: 54,
-    hurdle: 15, status: "rejected",
-    description: "Migração para plataforma ERP unificada — IRR abaixo do hurdle",
-  },
-  {
-    id: "PRJ-003", name: "Linha Produção JACQES v2",
-    bu: "JACQES", capex: 1_200_000, irr: 24.7, roic: 21.3, paybackMo: 30,
-    hurdle: 18, status: "approved",
-    description: "Nova linha de produção para escalar capacidade em 40%",
-  },
-  {
-    id: "PRJ-004", name: "Automação Logística",
-    bu: "JACQES", capex: 450_000, irr: 17.1, roic: 15.4, paybackMo: 42,
-    hurdle: 18, status: "watch",
-    description: "IRR marginal — monitorar premissas de custo de frete",
-  },
-  {
-    id: "PRJ-005", name: "Seed — TechCo A",
-    bu: "AWQ Venture", capex: 200_000, irr: 38.0, roic: null, paybackMo: null,
-    hurdle: 25, status: "approved",
-    description: "Rodada seed com participação de 12% — retorno estimado 3.8x",
-  },
-  {
-    id: "PRJ-006", name: "Seed — FinTech B",
-    bu: "AWQ Venture", capex: 150_000, irr: 19.5, roic: null, paybackMo: null,
-    hurdle: 25, status: "rejected",
-    description: "IRR projetado abaixo do hurdle para Venture — risco não compensado",
-  },
-  {
-    id: "PRJ-007", name: "Portfolio Series A",
-    bu: "AWQ Venture", capex: 500_000, irr: 31.2, roic: null, paybackMo: null,
-    hurdle: 25, status: "approved",
-    description: "Follow-on em portfólio existente com tração comprovada",
-  },
-  {
-    id: "PRJ-008", name: "Expansão Caza RJ",
-    bu: "Caza Vision", capex: 280_000, irr: null, roic: null, paybackMo: null,
-    hurdle: 20, status: "pending",
-    description: "Análise em andamento — aguardando estudo de viabilidade de mercado",
-  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -107,8 +27,8 @@ function fmtBRL(n: number): string {
   return sign + "R$" + abs.toLocaleString("pt-BR");
 }
 
-function fmtPct(n: number | null): string {
-  return n !== null ? n.toFixed(1) + "%" : "—";
+function fmtPct(n: number | null | undefined): string {
+  return n != null ? n.toFixed(1) + "%" : "—";
 }
 
 function spread(irr: number | null, hurdle: number): number | null {
@@ -122,10 +42,10 @@ const STATUS_CFG: Record<HurdleStatus, {
   text:  string;
   border:string;
 }> = {
-  approved: { label: "Aprovado",    icon: CheckCircle2,   bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  rejected: { label: "Reprovado",   icon: XCircle,        bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200"     },
-  watch:    { label: "Atenção",     icon: AlertTriangle,  bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200"   },
-  pending:  { label: "Pendente",    icon: Info,           bg: "bg-gray-50",    text: "text-gray-500",    border: "border-gray-200"    },
+  approved: { label: "Aprovado",  icon: CheckCircle2,  bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  rejected: { label: "Reprovado", icon: XCircle,       bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200"     },
+  watch:    { label: "Atenção",   icon: AlertTriangle, bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200"   },
+  pending:  { label: "Pendente",  icon: Info,          bg: "bg-gray-50",    text: "text-gray-500",    border: "border-gray-200"    },
 };
 
 // ─── Componentes ─────────────────────────────────────────────────────────────
@@ -158,8 +78,8 @@ function SpreadBar({ irr, hurdle }: { irr: number | null; hurdle: number }) {
   );
 }
 
-function BuCard({ bu }: { bu: BuHurdle }) {
-  const buProjects = PROJECTS.filter((p) => p.bu === bu.bu);
+function BuCard({ bu, projects }: { bu: BuHurdleConfig; projects: HurdleProject[] }) {
+  const buProjects = projects.filter((p) => p.bu_id === bu.bu_id);
   const approved   = buProjects.filter((p) => p.status === "approved").length;
   const capex      = buProjects.reduce((s, p) => s + p.capex, 0);
 
@@ -168,14 +88,14 @@ function BuCard({ bu }: { bu: BuHurdle }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="font-semibold text-sm text-gray-900">{bu.bu}</div>
-          <div className="text-xs text-gray-400 mt-0.5">{bu.projects} projetos · {fmtBRL(capex)} total</div>
+          <div className="text-xs text-gray-400 mt-0.5">{bu.projectCount} projetos · {fmtBRL(capex)} total</div>
         </div>
         <div className="text-right">
-          <div className="text-xl font-bold tabular-nums text-brand-600">{bu.hurdle}%</div>
+          <div className="text-xl font-bold tabular-nums text-brand-600">{fmtPct(bu.hurdle)}</div>
           <div className="text-xs text-gray-400">hurdle rate</div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-xs">
+      <div className="grid grid-cols-3 gap-2 text-xs mb-2">
         <div className="bg-gray-50 rounded-lg p-2">
           <div className="text-gray-400 mb-0.5">WACC</div>
           <div className="font-semibold text-gray-800">{bu.wacc}%</div>
@@ -186,14 +106,37 @@ function BuCard({ bu }: { bu: BuHurdle }) {
         </div>
         <div className="bg-emerald-50 rounded-lg p-2">
           <div className="text-emerald-600 mb-0.5">Aprovados</div>
-          <div className="font-semibold text-emerald-700">{approved}/{bu.projects}</div>
+          <div className="font-semibold text-emerald-700">{approved}/{bu.projectCount}</div>
         </div>
       </div>
+      {/* Real BU financials when available */}
+      {(bu.revenue != null || bu.ebitda != null || bu.roic != null) && (
+        <div className="grid grid-cols-3 gap-2 text-xs border-t border-gray-100 pt-2 mt-1">
+          {bu.revenue != null && (
+            <div className="bg-blue-50 rounded-lg p-2">
+              <div className="text-blue-400 mb-0.5">Receita</div>
+              <div className="font-semibold text-blue-700">{fmtBRL(bu.revenue)}</div>
+            </div>
+          )}
+          {bu.ebitda != null && (
+            <div className="bg-purple-50 rounded-lg p-2">
+              <div className="text-purple-400 mb-0.5">EBITDA</div>
+              <div className="font-semibold text-purple-700">{fmtBRL(bu.ebitda)}</div>
+            </div>
+          )}
+          {bu.roic != null && (
+            <div className="bg-indigo-50 rounded-lg p-2">
+              <div className="text-indigo-400 mb-0.5">ROIC</div>
+              <div className="font-semibold text-indigo-700">{fmtPct(bu.roic)}</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function ProjectRow({ p }: { p: ProjectEval }) {
+function ProjectRow({ p }: { p: HurdleProject }) {
   const sp = spread(p.irr, p.hurdle);
   return (
     <tr className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
@@ -213,10 +156,10 @@ function ProjectRow({ p }: { p: ProjectEval }) {
         <SpreadBar irr={p.irr} hurdle={p.hurdle} />
       </td>
       <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-600">
-        {p.roic !== null ? fmtPct(p.roic) : "—"}
+        {p.roic != null ? fmtPct(p.roic) : "—"}
       </td>
       <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-600">
-        {p.paybackMo !== null ? `${p.paybackMo}m` : "—"}
+        {p.paybackMo != null ? `${p.paybackMo}m` : "—"}
       </td>
       <td className="py-3 pr-4 pl-3">
         <StatusBadge status={p.status} />
@@ -227,19 +170,29 @@ function ProjectRow({ p }: { p: ProjectEval }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function HurdlePage() {
-  const totalCapex    = PROJECTS.reduce((s, p) => s + p.capex, 0);
-  const approved      = PROJECTS.filter((p) => p.status === "approved");
-  const rejected      = PROJECTS.filter((p) => p.status === "rejected");
-  const watchList     = PROJECTS.filter((p) => p.status === "watch");
-  const approvedCapex = approved.reduce((s, p) => s + p.capex, 0);
-  const approvalRate  = (approved.length / PROJECTS.filter((p) => p.status !== "pending").length) * 100;
+export default async function HurdlePage() {
+  let analysis;
+  let summary;
+  let loadError = false;
 
-  const avgIrr = (() => {
-    const with_irr = approved.filter((p) => p.irr !== null);
-    if (!with_irr.length) return null;
-    return with_irr.reduce((s, p) => s + (p.irr as number), 0) / with_irr.length;
-  })();
+  try {
+    [analysis, summary] = await Promise.all([getHurdleAnalysis(), getHurdleSummary()]);
+  } catch {
+    loadError = true;
+    analysis = {
+      buHurdles: [], projects: [], waccDerivation: {}, dataSource: "static" as const,
+    };
+    summary = {
+      total: 0, approved: 0, rejected: 0, watch: 0,
+      totalCapex: 0, approvedCapex: 0, approvalRate: 0, avgIrr: null, avgHurdle: 0,
+    };
+  }
+
+  const { buHurdles, projects, dataSource } = analysis;
+  const { total, approved, rejected, watch, totalCapex, approvedCapex, approvalRate, avgIrr } = summary;
+
+  const watchList = projects.filter((p) => p.status === "watch");
+  const isRealData = dataSource === "db";
 
   return (
     <>
@@ -249,23 +202,42 @@ export default function HurdlePage() {
       />
       <div className="page-container">
 
+        {/* ── Data source banner ──────────────────────────────────────── */}
+        {loadError ? (
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs bg-red-50 border border-red-200 text-red-700">
+            <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+            <span>Erro ao carregar dados. Verifique a conexão com o banco de dados.</span>
+          </div>
+        ) : isRealData ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs bg-emerald-50 border border-emerald-100 text-emerald-700">
+            <Database size={12} className="shrink-0" />
+            <span>Dados ao vivo — hurdle rates e projetos carregados do banco de dados em tempo real.</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs bg-amber-50 border border-amber-100 text-amber-700">
+            <Layers size={12} className="shrink-0" />
+            <span>Snapshot estático — banco de dados não disponível. Configure as tabelas via <code className="bg-amber-100 px-1 rounded">/api/setup/migrate</code> e recarregue.</span>
+          </div>
+        )}
+
         {/* ── Info banner ─────────────────────────────────────────────── */}
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs bg-brand-50 border border-brand-100 text-brand-700">
           <Percent size={12} className="shrink-0 mt-0.5" />
           <span>
             <strong>Hurdle Rate</strong> = WACC + Prêmio de Risco por BU.
             Projetos com IRR abaixo do hurdle destroem valor — devem ser reprovados
-            ou reprojetados antes de aprovação de capital.
+            ou reprojetados antes de aprovação de capital. WACC derivado de dados reais
+            quando disponível (ROIC como proxy do custo de equity).
           </span>
         </div>
 
         {/* ── Summary KPIs ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Projetos Avaliados",  value: String(PROJECTS.length),      sub: `${approved.length} aprovados`,           icon: BarChart3,  color: "text-gray-700"    },
-            { label: "Capex Aprovado",       value: fmtBRL(approvedCapex),        sub: `de ${fmtBRL(totalCapex)} total`,          icon: TrendingUp, color: "text-emerald-600" },
-            { label: "Taxa de Aprovação",    value: `${approvalRate.toFixed(0)}%`, sub: `${rejected.length} reprovados`,          icon: Percent,    color: "text-brand-600"   },
-            { label: "IRR Médio Aprovados",  value: avgIrr ? fmtPct(avgIrr) : "—", sub: `${watchList.length} em atenção`,        icon: TrendingUp, color: "text-emerald-600" },
+            { label: "Projetos Avaliados",  value: String(total),               sub: `${approved} aprovados`,             icon: BarChart3,   color: "text-gray-700"    },
+            { label: "Capex Aprovado",       value: fmtBRL(approvedCapex),       sub: `de ${fmtBRL(totalCapex)} total`,    icon: TrendingUp,  color: "text-emerald-600" },
+            { label: "Taxa de Aprovação",    value: `${approvalRate.toFixed(0)}%`, sub: `${rejected} reprovados`,          icon: Percent,     color: "text-brand-600"   },
+            { label: "IRR Médio Aprovados",  value: avgIrr ? fmtPct(avgIrr) : "—", sub: `${watch} em atenção`,            icon: TrendingUp,  color: "text-emerald-600" },
           ].map(({ label, value, sub, icon: Icon, color }) => (
             <div key={label} className="card p-4">
               <div className="flex items-center justify-between mb-2">
@@ -285,7 +257,9 @@ export default function HurdlePage() {
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Hurdle por BU</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {BU_HURDLES.map((bu) => <BuCard key={bu.bu} bu={bu} />)}
+            {buHurdles.map((bu) => (
+              <BuCard key={bu.bu_id} bu={bu} projects={projects} />
+            ))}
           </div>
         </section>
 
@@ -311,7 +285,14 @@ export default function HurdlePage() {
               <tbody>
                 {/* Aprovados primeiro, depois atenção, reprovados, pendentes */}
                 {(["approved", "watch", "rejected", "pending"] as HurdleStatus[]).flatMap((st) =>
-                  PROJECTS.filter((p) => p.status === st).map((p) => <ProjectRow key={p.id} p={p} />)
+                  projects.filter((p) => p.status === st).map((p) => <ProjectRow key={p.id} p={p} />)
+                )}
+                {projects.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-xs text-gray-400">
+                      Nenhum projeto cadastrado.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -345,6 +326,47 @@ export default function HurdlePage() {
           </section>
         )}
 
+        {/* ── WACC Derivation ──────────────────────────────────────────── */}
+        {Object.keys(analysis.waccDerivation).length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingDown size={14} className="text-indigo-500" />
+              <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Derivação do WACC</span>
+            </div>
+            <div className="card overflow-hidden p-0">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-2 pl-4 pr-2 font-semibold text-gray-500">BU</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-500">Ke (Equity)</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-500">Kd (Dívida)</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-500">Share Dívida</th>
+                    <th className="text-right py-2 pr-4 font-semibold text-gray-500">WACC Derivado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(analysis.waccDerivation).map(([buId, d]) => {
+                    const bu = buHurdles.find((h) => h.bu_id === buId);
+                    const wacc = d.equityShare * d.costOfEquity + d.debtShare * d.costOfDebt * (1 - 0.34);
+                    return (
+                      <tr key={buId} className="border-b border-gray-50 hover:bg-gray-50/60">
+                        <td className="py-2 pl-4 pr-2 font-medium text-gray-900">{bu?.bu ?? buId}</td>
+                        <td className="py-2 px-3 text-right text-indigo-700 tabular-nums">{d.costOfEquity.toFixed(1)}%</td>
+                        <td className="py-2 px-3 text-right text-blue-700 tabular-nums">{d.costOfDebt.toFixed(1)}%</td>
+                        <td className="py-2 px-3 text-right text-gray-600 tabular-nums">{(d.debtShare * 100).toFixed(0)}%</td>
+                        <td className="py-2 pr-4 text-right font-semibold text-brand-700 tabular-nums">{wacc.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Ke = ROIC como proxy do retorno esperado pelos acionistas · Kd derivado de despesas financeiras / capital alocado · Alíquota fiscal: 34% (IRPJ + CSLL).
+            </p>
+          </section>
+        )}
+
         {/* ── Metodologia ─────────────────────────────────────────────── */}
         <section className="card p-4 bg-gray-50/60">
           <div className="flex items-center gap-2 mb-3">
@@ -367,11 +389,14 @@ export default function HurdlePage() {
               <div className="text-gray-400">Projetos com IRR marginalmente acima do hurdle (&lt;2pp) entram em watchlist para revisão trimestral.</div>
             </div>
             <div>
-              <div className="font-semibold text-gray-700 mb-1">Métricas Secundárias</div>
+              <div className="font-semibold text-gray-700 mb-1">WACC Derivado</div>
+              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">
+                WACC = Ke×We + Kd×(1−T)×Wd
+              </div>
               <div className="text-gray-400 space-y-0.5">
-                <div>• <strong>ROIC</strong> — Retorno sobre capital investido</div>
-                <div>• <strong>Payback</strong> — Tempo de recuperação em meses</div>
-                <div>• <strong>Spread</strong> — IRR menos hurdle em pp</div>
+                <div>• <strong>Ke</strong> = ROIC real da BU (proxy equity)</div>
+                <div>• <strong>Kd</strong> = Despesas financeiras / capital</div>
+                <div>• <strong>T</strong> = 34% (IRPJ + CSLL)</div>
               </div>
             </div>
           </div>
