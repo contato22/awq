@@ -4,7 +4,7 @@
 // Não é feed ao vivo do Notion. Quando o Notion for conectado, substituir.
 //
 // REGRA: nenhum número hardcoded aqui. Todos os valores derivam de:
-//   JACQES_MRR     → MRR atual (Abr+, com Tati)
+//   JACQES_MRR     → MRR atual (Jun+: CEM + André + Cardio Cat)
 //   buData[jacqes] → customers, revenue YTD
 //   monthlyRevenue → revenueData por mês
 //
@@ -85,7 +85,7 @@ export const kpis: KPI[] = [
   {
     id: "revenue",
     label: "MRR Atual",
-    value:         JACQES_MRR,          // Abr+: 4 clientes (com Tati)
+    value:         JACQES_MRR,          // Jun+: 3 clientes (CEM, André, Cardio Cat)
     previousValue: 0,
     unit: "currency",
     icon: "DollarSign",

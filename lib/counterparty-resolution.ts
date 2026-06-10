@@ -107,6 +107,37 @@ export const COUNTERPARTY_REGISTRY: CounterpartyEntry[] = [
     note:          "Fee recorrente de advisory/incubação. R$2.000/mês × 36 meses. Contrato ativo. AWQ Venture.",
     buAffinity:    "venture",
   },
+  // ── JACQES retainer clients (CRM Jun/2026) ────────────────────────────────
+  {
+    id:            "cp_tati_cardiocat",
+    canonicalName: "Cardio Cat (Tati Simões)",
+    cnpj:          null,
+    type:          "client",
+    aliases:       ["cardio cat", "tati simoes", "tati simões", "tatiane simoes", "tatiane simões"],
+    confidence:    "confirmed",
+    note:          "Tati Simões — opera sob marca Cardio Cat. Fee R$1.790/mês. JACQES retainer.",
+    buAffinity:    "JACQES",
+  },
+  {
+    id:            "cp_cem_jacqes",
+    canonicalName: "CEM",
+    cnpj:          null,
+    type:          "client",
+    aliases:       ["centro de ensino moderno", "cem mkt", "cem marketing"],
+    confidence:    "probable",
+    note:          "CEM — cliente recorrente JACQES. Fee R$3.200/mês (Tier 3).",
+    buAffinity:    "JACQES",
+  },
+  {
+    id:            "cp_andre_vieira_jacqes",
+    canonicalName: "André Vieira",
+    cnpj:          null,
+    type:          "client",
+    aliases:       ["andre vieira", "andré vieira"],
+    confidence:    "confirmed",
+    note:          "André Vieira — fee R$2.300/mês. Contrato expandido Jun/2026. Venc dia 15.",
+    buAffinity:    "JACQES",
+  },
   // ── JACQES known clients (from snapshot data / market knowledge) ───────────
   {
     id:            "cp_ambev",

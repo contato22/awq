@@ -97,18 +97,20 @@ export const ventureContractValueRemaining = ventureContracts
   .filter((c) => c.status === "active")
   .reduce((s, c) => s + c.totalContractValue, 0);  // approximate — no start date to prorate
 
-// ─── JACQES MRR confirmado — Notion CRM Abr/2026 ─────────────────────────────
+// ─── JACQES MRR confirmado — Notion CRM Jun/2026 ─────────────────────────────
 // Jan/Fev/Mar: 3 clientes (CEM R$3.200 + Carol R$1.790 + André R$1.500) = R$6.490/mês
-// Abr:        4 clientes (+ Tati Simões R$1.790, entrou no início de Abr, já paga) = R$8.280/mês
-export const JACQES_MRR_Q1  = 6_490;  // Jan/Fev/Mar — sem Tati
-export const JACQES_MRR     = 8_280;  // Abr em diante — com Tati
+// Abr/Mai:     4 clientes (+ Cardio Cat/Tati Simões R$1.790) = R$8.280/mês
+// Jun+:        3 clientes — Carol encerrou; André expandiu R$1.500→R$2.300 = R$7.290/mês
+export const JACQES_MRR_Q1  = 6_490;  // Jan/Fev/Mar
+export const JACQES_MRR     = 7_290;  // Jun em diante — CEM 3.200 + André 2.300 + Cardio Cat 1.790
 
 export const buData: BuData[] = [
   {
     // SOURCE: Notion CRM — receita confirmada por mês
     //   Jan+Fev+Mar: JACQES_MRR_Q1 × 3 = 6.490 × 3 = 19.470
-    //   Abr:         JACQES_MRR = 8.280 (Tati Simões entrou, já pagou)
-    //   Total YTD (Jan–Abr): 27.750
+    //   Abr+Mai:     8.280 × 2 = 16.560 (4 clientes, com Cardio Cat/Tati)
+    //   Jun+:        JACQES_MRR = 7.290 (Carol encerrou, André expandiu)
+    //   Total YTD (Jan–Mai): 36.030
     id:               "jacqes",
     name:             "JACQES",
     sub:              "Agência · AWQ Group",
@@ -116,13 +118,13 @@ export const buData: BuData[] = [
     accentColor:      "text-brand-400",
     status:           "Ativo",
     economicType:     "operational",
-    revenue:          27_750,  // YTD Jan–Abr: 6.490×3 + 8.280 = 27.750
+    revenue:          36_030,  // YTD Jan–Mai: 6.490×3 + 8.280×2 = 36.030
     grossProfit:      0,       // aguardando confirmação contábil
     ebitda:           0,       // aguardando confirmação contábil
     netIncome:        0,       // aguardando confirmação contábil
     cashGenerated:    0,
     cashBalance:      0,
-    customers:        4,       // Notion CRM: CEM, Carol Bertolini, André Vieira, Tati Simões
+    customers:        3,       // Notion CRM Jun/2026: CEM, André Vieira, Cardio Cat (Tati Simões)
     ftes:             0,
     capitalAllocated: 0,
     roic:             0,
