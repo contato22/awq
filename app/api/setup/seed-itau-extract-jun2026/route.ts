@@ -1,7 +1,7 @@
 // POST/GET /api/setup/seed-itau-extract-jun2026
 //
 // Seed one-shot do extrato Itaú AWQ Holding (Ag 0807 / Conta 0099101-3)
-// período 11/05/2026 – 10/06/2026, gerado em 10/06/2026.
+// período 02/06/2026 – 02/06/2026 (transações novas além do seed anterior que ia até 26/05).
 //
 // Idempotente: usa fileHash determinístico — re-rodar não duplica o documento.
 
@@ -21,7 +21,7 @@ import { reconcileIntercompany } from "@/lib/financial-reconciler";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const FILE_HASH = "seed-itau-awq-080700991013-2026-05-11-2026-06-10";
+const FILE_HASH = "seed-itau-awq-080700991013-2026-06-02-2026-06-02";
 const ACCOUNT_NAME = "Conta Itaú Empresas AWQ";
 const ACCOUNT_NUMBER = "0807 / 0099101-3";
 const BANK = "Itaú" as const;
@@ -29,23 +29,12 @@ const ENTITY = "AWQ_Holding" as const;
 
 interface RawTxn { date: string; desc: string; amount: number }
 
-// Transações extraídas do PDF (ordem cronológica, saldo anterior 10/05 = R$ 1.600,00).
+// Transações NOVAS do extrato Itaú (02/06/2026).
+// As entradas de 11/05 a 26/05 já constam no seed anterior (seed-itau-extract, período até 26/05).
 // amount > 0 = crédito; amount < 0 = débito.
 const RAW: RawTxn[] = [
-  { date: "2026-05-11", desc: "PIX ENVIADO AWQ 44.859.574/0001-95",                                    amount: -1000.00 },
-  { date: "2026-05-11", desc: "PIX ENVIADO AWQ 44.859.574/0001-95",                                    amount:  -600.00 },
-  { date: "2026-05-22", desc: "RESGATE CDB DI",                                                          amount:    93.02 },
-  { date: "2026-05-22", desc: "PIX ENVIADO AWQ 44.859.574/0001-95",                                    amount:   -90.00 },
-  { date: "2026-05-22", desc: "RESGATE CDB DI",                                                          amount:   500.50 },
-  { date: "2026-05-22", desc: "PIX ENVIADO AWQ 44.859.574/0001-95",                                    amount:  -500.00 },
-  { date: "2026-05-25", desc: "RESGATE CDB DI",                                                          amount:   500.70 },
-  { date: "2026-05-25", desc: "PIX ENVIADO MIGUEL COSTA DE SOUZA 134.390.427-74",                      amount:  -500.00 },
-  { date: "2026-05-25", desc: "RESGATE CDB DI",                                                          amount:   500.77 },
-  { date: "2026-05-25", desc: "PIX ENVIADO MIGUEL COSTA DE SOUZA 134.390.427-74",                      amount:  -500.00 },
-  { date: "2026-05-26", desc: "RECEBIMENTOS CURSO FLAMA VESTIBULARES LTDA 32.010.340/0001-90",         amount:  1000.00 },
-  { date: "2026-05-26", desc: "PIX ENVIADO AWQ 44.859.574/0001-95",                                    amount:  -500.00 },
-  { date: "2026-06-02", desc: "TAR MANUT CONTA 05/26",                                                   amount:   -87.00 },
-  { date: "2026-06-02", desc: "TAR PIX PGTO TRANSF",                                                     amount:   -39.50 },
+  { date: "2026-06-02", desc: "TAR MANUT CONTA 05/26",  amount:  -87.00 },
+  { date: "2026-06-02", desc: "TAR PIX PGTO TRANSF",    amount:  -39.50 },
 ];
 
 async function runSeed(uploadedBy: string) {
@@ -65,9 +54,9 @@ async function runSeed(uploadedBy: string) {
     accountName:      ACCOUNT_NAME,
     accountNumber:    ACCOUNT_NUMBER,
     entity:           ENTITY,
-    periodStart:      "2026-05-11",
-    periodEnd:        "2026-06-10",
-    openingBalance:   1600.00,
+    periodStart:      "2026-06-02",
+    periodEnd:        "2026-06-02",
+    openingBalance:   504.99,
     closingBalance:   378.49,
     uploadedAt:       now,
     uploadedBy,
@@ -75,7 +64,7 @@ async function runSeed(uploadedBy: string) {
     errorMessage:     null,
     transactionCount: RAW.length,
     parserConfidence: "high",
-    extractionNotes:  "Seed manual a partir do PDF Itaú AWQ Holding (Ag 0807, Conta 0099101-3), gerado 10/06/2026. Hand-extracted by /api/setup/seed-itau-extract-jun2026.",
+    extractionNotes:  "Seed manual a partir do PDF Itaú AWQ Holding (Ag 0807, Conta 0099101-3), gerado 10/06/2026. Contém apenas transações novas (02/06) não cobertas pelo seed anterior. Hand-extracted by /api/setup/seed-itau-extract-jun2026.",
     blobUrl:          null,
   };
 

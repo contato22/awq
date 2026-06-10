@@ -1,7 +1,7 @@
 // POST/GET /api/setup/seed-btg-extract-jun2026
 //
 // Seed one-shot do extrato BTG AWQ Holding (Banco 208 / Ag 50 / Conta 019228733)
-// período 01/06/2026 – 10/06/2026, gerado em 10/06/2026.
+// período 08/06/2026 – 10/06/2026 (transações novas além do seed anterior que ia até 03/06).
 // Idempotente: usa fileHash determinístico — re-rodar não duplica o documento.
 
 import { NextRequest, NextResponse } from "next/server";
@@ -20,7 +20,7 @@ import { reconcileIntercompany } from "@/lib/financial-reconciler";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const FILE_HASH = "seed-btg-awq-208-50-019228733-2026-06-01-2026-06-10";
+const FILE_HASH = "seed-btg-awq-208-50-019228733-2026-06-08-2026-06-10";
 const ACCOUNT_NAME = "Conta BTG Empresas AWQ";
 const ACCOUNT_NUMBER = "208 / 50 / 019228733";
 const BANK = "BTG Empresas" as const;
@@ -28,14 +28,10 @@ const ENTITY = "AWQ_Holding" as const;
 
 interface RawTxn { date: string; desc: string; amount: number }
 
-// Transações extraídas do PDF (ordem cronológica, saldo abertura 01/06 = R$ 500,00).
+// Transações NOVAS do extrato BTG (08–10/06/2026).
+// As entradas de 02/06 e 03/06 já constam no seed anterior (seed-btg-extract, período até 03/06).
 // amount > 0 = crédito; amount < 0 = débito.
 const RAW: RawTxn[] = [
-  { date: "2026-06-02", desc: "Pix recebido de AWQ · Banco 403 · CNPJ 44.859.574/0001-95",                          amount:  1800.00 },
-  { date: "2026-06-03", desc: "Valor de Rendimento Remunera+",                                                         amount:     0.01 },
-  { date: "2026-06-03", desc: "Pix recebido de AWQ · Banco 403 · CNPJ 44.859.574/0001-95",                          amount:  1000.00 },
-  { date: "2026-06-03", desc: "Débito na Conta Corrente",                                                               amount: -2800.00 },
-  { date: "2026-06-03", desc: "Aplicação Conta Remunerada",                                                             amount:  2800.00 },
   { date: "2026-06-08", desc: "Valor de Rendimento Remunera+",                                                         amount:     0.02 },
   { date: "2026-06-09", desc: "Valor de Rendimento Remunera+",                                                         amount:     0.01 },
   { date: "2026-06-09", desc: "Compra no débito 7184 - Alem Tejo Cafe",                                               amount:   -19.80 },
@@ -62,9 +58,9 @@ async function runSeed(uploadedBy: string) {
     accountName:      ACCOUNT_NAME,
     accountNumber:    ACCOUNT_NUMBER,
     entity:           ENTITY,
-    periodStart:      "2026-06-01",
+    periodStart:      "2026-06-08",
     periodEnd:        "2026-06-10",
-    openingBalance:   500.00,
+    openingBalance:   3300.01,
     closingBalance:   6280.25,
     uploadedAt:       now,
     uploadedBy,
@@ -72,7 +68,7 @@ async function runSeed(uploadedBy: string) {
     errorMessage:     null,
     transactionCount: RAW.length,
     parserConfidence: "high",
-    extractionNotes:  "Seed manual a partir do PDF BTG Empresas AWQ Holding (Banco 208 / Ag 50 / Conta 019228733), gerado 10/06/2026. Hand-extracted by /api/setup/seed-btg-extract-jun2026.",
+    extractionNotes:  "Seed manual a partir do PDF BTG Empresas AWQ Holding (Banco 208 / Ag 50 / Conta 019228733), gerado 10/06/2026. Contém apenas transações novas (08–10/06) não cobertas pelo seed anterior. Hand-extracted by /api/setup/seed-btg-extract-jun2026.",
     blobUrl:          null,
   };
 
