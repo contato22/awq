@@ -23,6 +23,37 @@ const STATUS_COLOR: Record<string, string> = {
   pending:  "#9ca3af",
 };
 
+// ── 0. Approval Donut ─────────────────────────────────────────────────────────
+interface DonutProps {
+  approved: number;
+  total: number;
+  label: string;
+}
+
+export function ApprovalDonut({ approved, total, label }: DonutProps) {
+  const pct = total > 0 ? Math.round((approved / total) * 100) : 0;
+  return (
+    <div className="relative flex flex-col items-center">
+      <ResponsiveContainer width={120} height={120}>
+        <RadialBarChart
+          cx="50%" cy="50%"
+          innerRadius="62%" outerRadius="90%"
+          startAngle={90} endAngle={-270}
+          data={[{ value: pct, fill: pct >= 60 ? "#10b981" : pct >= 30 ? "#f59e0b" : "#ef4444" }]}
+        >
+          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+          <RadialBar dataKey="value" cornerRadius={6} background={{ fill: "#f3f4f6" }} />
+        </RadialBarChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-2xl font-black tabular-nums text-gray-900">{pct}%</span>
+        <span className="text-[10px] text-gray-400 leading-tight">{label}</span>
+      </div>
+      <span className="text-xs text-gray-500 mt-1">{approved} / {total}</span>
+    </div>
+  );
+}
+
 // ── 1. Build-up Waterfall ─────────────────────────────────────────────────────
 // Stacked bar per BU showing each build-up component.
 
@@ -49,7 +80,6 @@ export function BuildupWaterfall({ buHurdles }: WaterfallProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-2">Ke = Rf + ERP + Tamanho + Específico + BU — cada camada visível</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} barSize={32} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -89,7 +119,6 @@ export function BulletChart({ buHurdles }: BulletProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-2">Barras = ROIC real · Linha = hurdle (barra de separação)</p>
       <ResponsiveContainer width="100%" height={200}>
         <ComposedChart data={data} layout="vertical" margin={{ top: 4, right: 40, left: 60, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
@@ -147,7 +176,6 @@ export function BubbleScatter({ projects }: BubbleProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-2">X = spread (pp) · Y = CAPEX · tamanho ∝ |NPV|</p>
       <ResponsiveContainer width="100%" height={240}>
         <ScatterChart margin={{ top: 8, right: 20, bottom: 20, left: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -210,7 +238,6 @@ export function DivergingBarProjects({ projects }: DivergingProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-2">Spread = IRR a.a. − hurdle (centrado em 0)</p>
       <ResponsiveContainer width="100%" height={Math.max(180, data.length * 28 + 40)}>
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, left: 140, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
@@ -267,9 +294,6 @@ export function CashRunwayChart({ cashRows, approvedCapex }: RunwayProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-2">
-        Projeção de caixa líquido — AR a receber, AP a pagar, CAPEX aprovado (simplificado)
-      </p>
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 4 }}>
           <defs>
@@ -329,7 +353,6 @@ export function FundingGaugeChart({ cashRows, approvedCapexByBu }: GaugeProps) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-400 mb-2">CAPEX aprovado × capital já aplicado (conciliação)</p>
       {data.map((d) => (
         <div key={d.bu} className="space-y-1">
           <div className="flex items-center justify-between text-xs">
