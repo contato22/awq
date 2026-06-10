@@ -119,11 +119,17 @@ async function runSeed(uploadedBy: string) {
 async function handle(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const email = (token?.email as string | undefined) ?? null;
-  if (!email) {
+
+  // Allow GitHub Actions post-deploy trigger via x-seed-secret header
+  const seedSecret = req.headers.get("x-seed-secret");
+  const validSecret = process.env.NEXTAUTH_SECRET && seedSecret === process.env.NEXTAUTH_SECRET;
+
+  if (!email && !validSecret) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+  const caller = email ?? "github-actions";
   try {
-    const result = await runSeed(email);
+    const result = await runSeed(caller);
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
