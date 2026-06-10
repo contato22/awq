@@ -21,8 +21,10 @@ import {
   useState,
   useTransition,
 } from "react";
+import { useRouter } from "next/navigation";
 import type {
   BankTransaction,
+  BankName,
   ManagerialCategory,
   ReconciliationStatus,
 } from "@/lib/financial-db";
@@ -324,6 +326,13 @@ export default function BankReconciliationBoard({
   const [isImporting, setIsImporting]   = useState(false);
   const [showRejected, setShowRejected] = useState(false);
   const [showIgnored, setShowIgnored]   = useState(false);
+  // Server-side ingest upload state
+  const [showBankPicker, setShowBankPicker]     = useState(false);
+  const [uploadBank, setUploadBank]             = useState<BankName>("BTG Empresas");
+  const [uploadAccount, setUploadAccount]       = useState("");
+  const [ingestProgress, setIngestProgress]     = useState<string | null>(null);
+  const [isIngesting, setIsIngesting]           = useState(false);
+  const serverFileRef = useRef<HTMLInputElement>(null);
   // reviewedIds: tx IDs the user opened via "Ajustar valores" — unlocks "Conciliar" in CENTER
   const [reviewedIds, setReviewedIds]   = useState<Set<string>>(new Set());
   // unlinkedIds: tx IDs where user clicked "Desvincular" — clears AI match, enables direct Conciliar
@@ -332,6 +341,7 @@ export default function BankReconciliationBoard({
   const [showSyncMenu, setShowSyncMenu]       = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [, startTransition]                   = useTransition();
+  const router = useRouter();
   const syncMenuRef        = useRef<HTMLDivElement>(null);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const searchRef          = useRef<HTMLInputElement>(null);
@@ -715,6 +725,71 @@ export default function BankReconciliationBoard({
     void runCoraSync(start, end);
   }
 
+  // ── Server-side ingest (persists to DB, updates all indicators) ──────────────
+  async function handleServerIngest(file: File) {
+    setIsIngesting(true);
+    setIngestProgress("Enviando extrato…");
+    try {
+      // 1. Upload PDF
+      const form = new FormData();
+      form.append("file", file);
+      form.append("bank", uploadBank);
+      form.append("accountName", uploadAccount.trim() || uploadBank);
+      const upRes  = await fetch("/api/ingest/upload", { method: "POST", body: form });
+      const upData = await upRes.json() as { documentId?: string; duplicate?: boolean; message?: string; error?: string };
+
+      if (!upRes.ok) throw new Error(upData.error ?? "Falha no upload");
+      if (upData.duplicate) {
+        showToast("info", `Arquivo já enviado anteriormente: ${upData.message ?? ""}`);
+        setIsIngesting(false);
+        setIngestProgress(null);
+        setShowBankPicker(false);
+        return;
+      }
+
+      const documentId = upData.documentId!;
+      setIngestProgress("Extraindo transações…");
+
+      // 2. Process via SSE pipeline
+      const procRes = await fetch("/api/ingest/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId }),
+      });
+
+      if (!procRes.body) throw new Error("Stream não disponível");
+      const reader  = procRes.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        for (const line of text.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          try {
+            const ev = JSON.parse(line.slice(5)) as { stage?: string; message?: string; done?: boolean; success?: boolean; error?: string; transactionCount?: number };
+            if (ev.message) setIngestProgress(ev.message);
+            if (ev.done) {
+              if (ev.success) {
+                showToast("ok", `${ev.transactionCount ?? ""} transações importadas para ${uploadBank}.`);
+                setShowBankPicker(false);
+                router.refresh();
+              } else {
+                throw new Error(ev.error ?? "Processamento falhou");
+              }
+            }
+          } catch { /* malformed SSE line — skip */ }
+        }
+      }
+    } catch (err) {
+      showToast("err", err instanceof Error ? err.message : "Falha na importação.");
+    } finally {
+      setIsIngesting(false);
+      setIngestProgress(null);
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
@@ -745,14 +820,79 @@ export default function BankReconciliationBoard({
         </div>
       )}
 
-      {/* Hidden file input for import */}
+      {/* Hidden file input — client-side CSV/OFX import (legacy fallback) */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".csv,.ofx,.txt,.pdf"
+        accept=".csv,.ofx,.txt"
         className="hidden"
         onChange={(e) => void handleFileSelect(e)}
       />
+
+      {/* Hidden file input — server-side PDF ingest (persists to DB) */}
+      <input
+        ref={serverFileRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void handleServerIngest(f);
+        }}
+      />
+
+      {/* ── Bank picker (shown before server PDF upload) ─────────────────────── */}
+      {showBankPicker && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-brand-900">Importar extrato PDF</p>
+            <button onClick={() => { setShowBankPicker(false); setIngestProgress(null); }} className="text-brand-400 hover:text-brand-600">
+              <X size={16} />
+            </button>
+          </div>
+          {isIngesting ? (
+            <div className="flex items-center gap-2 text-sm text-brand-700 py-1">
+              <Loader2 size={14} className="animate-spin shrink-0" />
+              <span>{ingestProgress ?? "Processando…"}</span>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-500 mb-1">Banco</label>
+                  <select
+                    value={uploadBank}
+                    onChange={(e) => setUploadBank(e.target.value as BankName)}
+                    className="w-full text-xs rounded-lg border border-gray-200 bg-white px-2.5 py-2 focus:outline-none focus:border-brand-400"
+                  >
+                    {(["BTG Empresas","Itaú","Cora","Nubank","Inter","Santander","Bradesco","Banco do Brasil","XP","Outro"] as BankName[]).map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-500 mb-1">Nome da conta <span className="text-gray-400">(opcional)</span></label>
+                  <input
+                    type="text"
+                    value={uploadAccount}
+                    onChange={(e) => setUploadAccount(e.target.value)}
+                    placeholder={uploadBank === "BTG Empresas" ? "Conta BTG Empresas AWQ" : uploadBank === "Itaú" ? "Conta Itaú Empresas AWQ" : ""}
+                    className="w-full text-xs rounded-lg border border-gray-200 bg-white px-2.5 py-2 focus:outline-none focus:border-brand-400"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => serverFileRef.current?.click()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+              >
+                <Upload size={13} />
+                Selecionar PDF e importar
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Import result panel ──────────────────────────────────────────────── */}
       {importResult && (
@@ -963,14 +1103,18 @@ export default function BankReconciliationBoard({
             })()}
           </div>
 
-          {/* Import */}
+          {/* Import — PDF opens bank picker (server ingest); CSV/OFX goes direct */}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
+            onClick={() => {
+              if (isIngesting) return;
+              setUploadAccount("");
+              setShowBankPicker((v) => !v);
+            }}
+            disabled={isImporting || isIngesting}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
-            {isImporting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            {isImporting ? "Processando…" : "Importar"}
+            {(isImporting || isIngesting) ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            {isIngesting ? "Importando…" : isImporting ? "Processando…" : "Importar"}
           </button>
 
           {/* Sync with dropdown */}
