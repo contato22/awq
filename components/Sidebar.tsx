@@ -49,6 +49,7 @@ import {
     ListOrdered,
     ArrowDownLeft,
     Target,
+    Percent,
     LayoutGrid,
     GanttChart,
     Clock,
@@ -180,6 +181,7 @@ const AWQ_MODULES: AwqModule[] = [
                     { label: "Budget vs Actual", href: "/awq/epm/budget",      icon: Target     },
                     { label: "Forecast",         href: "/awq/forecast",        icon: TrendingUp, badge: "Beta", badgeVariant: "blue" },
                     { label: "Centros de Custo", href: "/awq/epm/cost-centers",icon: LayoutGrid },
+                    { label: "Hurdle",           href: "/awq/epm/hurdle",      icon: Percent    },
                 ],
             },
             {
