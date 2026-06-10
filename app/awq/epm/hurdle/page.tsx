@@ -23,6 +23,11 @@ import {
   type HurdleStatus, type PpmHurdleRow, type BuCashContext,
 } from "@/lib/epm-hurdle";
 import { HurdleSensitivity } from "@/components/HurdleSensitivity";
+import {
+  BuildupWaterfall, BulletChart, BubbleScatter,
+  DivergingBarProjects, CashRunwayChart, FundingGaugeChart, TornadoChart,
+  type ChartProject,
+} from "@/components/HurdleCharts";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -408,6 +413,20 @@ export default async function HurdlePage() {
             Ke = Rf + ERP + Prêmio Tamanho + Prêmio Específico + Prêmio BU.
             Simples Nacional: T = 0 (sem escudo fiscal). ROIC exibido separado — nunca usado como Ke.
           </p>
+
+          {/* Build-up waterfall + Bullet side by side */}
+          {buHurdles.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+              <div className="card p-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Composição do Hurdle por BU</div>
+                <BuildupWaterfall buHurdles={buHurdles} />
+              </div>
+              <div className="card p-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Hurdle vs ROIC Real</div>
+                <BulletChart buHurdles={buHurdles} />
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ── ZONA 4: Candidates ───────────────────────────────────────── */}
@@ -489,6 +508,32 @@ export default async function HurdlePage() {
           </section>
         ) : null}
 
+        {/* Bubble scatter + Diverging bar */}
+        {(projects.length > 0 || ppmRows.length > 0) && (() => {
+          const unified: ChartProject[] = [
+            ...projects.map((p) => ({
+              name: p.name, bu_id: p.bu_id, irrAnnualized: p.irrAnnualized,
+              spread: p.spread, status: p.status, capex: p.capex, npvApprox: p.npvApprox,
+            })),
+            ...ppmRows.map((p) => ({
+              name: p.name, bu_id: p.bu_id, irrAnnualized: p.irrAnnualized,
+              spread: p.spread, status: p.status, capex: p.budgetCost, npvApprox: undefined,
+            })),
+          ];
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="card p-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Pipeline — Capital × Spread</div>
+                <BubbleScatter projects={unified} />
+              </div>
+              <div className="card p-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Spread por Projeto</div>
+                <DivergingBarProjects projects={unified} />
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── ZONA 5: Constraint ───────────────────────────────────────── */}
         {cashErr ? (
           <section>
@@ -534,6 +579,18 @@ export default async function HurdlePage() {
             <p className="text-xs text-gray-400 mt-2">
               DSO/DPO = prazo médio recebimento/pagamento · CCC = DSO − DPO · Funding Gap = CAPEX aprovado − capital já aplicado.
             </p>
+
+            {/* Cash Runway + Funding Gauge */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+              <div className="card p-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Runway de Caixa (6m)</div>
+                <CashRunwayChart cashRows={cashRows} approvedCapex={approvedCapex} />
+              </div>
+              <div className="card p-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Funding Gap por BU</div>
+                <FundingGaugeChart cashRows={cashRows} approvedCapexByBu={approvedCapexByBu} />
+              </div>
+            </div>
           </section>
         ) : null}
 
@@ -545,6 +602,18 @@ export default async function HurdlePage() {
               <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Análise de Sensibilidade</span>
             </div>
             <HurdleSensitivity buHurdles={buHurdles} allProjects={projects} ppmRows={ppmRows} />
+
+            {/* Tornado */}
+            <div className="card p-4 mt-4">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Tornado — Impacto de ±1.5pp por Parâmetro</div>
+              <TornadoChart
+                projects={[
+                  ...projects.map((p) => ({ irrAnnualized: p.irrAnnualized, spread: p.spread, hurdle: p.hurdle, status: p.status, bu_id: p.bu_id })),
+                  ...ppmRows.map((p)  => ({ irrAnnualized: p.irrAnnualized, spread: p.spread, hurdle: p.hurdle, status: p.status, bu_id: p.bu_id })),
+                ]}
+                buHurdles={buHurdles}
+              />
+            </div>
           </section>
         )}
 
