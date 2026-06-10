@@ -10,6 +10,10 @@
 import { sql, USE_DB } from "./db";
 import { getBUData, getConsolidated }    from "./epm-planning-db";
 import { buildDreQuery }                 from "./dre-query";
+import { listProjects, contractValue }   from "./ppm-db";
+import { getAPARKPIs }                   from "./ap-ar-db";
+import type { BuCode as APARBuCode }     from "./ap-ar-db";
+import { getCashPositionByEntity }       from "./financial-db";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -389,4 +393,128 @@ export async function getHurdleSummary() {
     rejected: rejected.length, watch: watch.length,
     totalCapex, approvedCapex, approvalRate, avgIrr, avgHurdle,
   };
+}
+
+// ─── PPM integration ─────────────────────────────────────────────────────────
+// Maps PPM operational projects to hurdle-rate comparison rows.
+// IRR proxy = (contractValue - budgetCost) / budgetCost × 100 (return on cost).
+
+const PPM_BU_TO_HURDLE: Record<string, string> = {
+  AWQ: "holding", JACQES: "jacqes", CAZA: "caza", VENTURE: "venture", ADVISOR: "advisor",
+};
+
+export interface PpmHurdleRow {
+  id:            string;
+  code:          string;
+  name:          string;
+  bu_id:         string;
+  bu:            string;
+  type:          string;
+  phase:         string;
+  health:        string;
+  budgetCost:    number;
+  actualCost:    number;
+  contractRev:   number;
+  actualRevenue: number;
+  completionPct: number;
+  expectedRoi:   number | null;
+  actualRoi:     number | null;
+  hurdle:        number;
+  status:        HurdleStatus;
+}
+
+export async function getPPMHurdleRows(buHurdles: BuHurdleConfig[]): Promise<PpmHurdleRow[]> {
+  try {
+    const hMap = new Map(buHurdles.map((h) => [h.bu_id, h.hurdle]));
+    const projects = await listProjects();
+    return projects
+      .filter((p) => PPM_BU_TO_HURDLE[p.bu_code] != null)
+      .map((p) => {
+        const bu_id = PPM_BU_TO_HURDLE[p.bu_code]!;
+        const hurdle = hMap.get(bu_id) ?? 15;
+        const cv = contractValue(p);
+        const expectedRoi =
+          cv > 0 && p.budget_cost > 0 ? ((cv - p.budget_cost) / p.budget_cost) * 100 : null;
+        const actualRoi =
+          p.actual_cost > 0 && p.budget_cost > 0
+            ? ((p.actual_revenue - p.actual_cost) / p.budget_cost) * 100
+            : null;
+        let status: HurdleStatus = "pending";
+        if (expectedRoi !== null) {
+          if (p.health_status === "red" || expectedRoi < hurdle) status = "rejected";
+          else if (expectedRoi < hurdle + 2 || p.health_status === "yellow") status = "watch";
+          else status = "approved";
+        }
+        return {
+          id: p.project_id, code: p.project_code, name: p.project_name,
+          bu_id, bu: p.bu_name ?? p.bu_code,
+          type: p.project_type, phase: p.phase, health: p.health_status,
+          budgetCost: p.budget_cost, actualCost: p.actual_cost,
+          contractRev: cv, actualRevenue: p.actual_revenue,
+          completionPct: p.completion_pct ?? 0,
+          expectedRoi, actualRoi, hurdle, status,
+        };
+      });
+  } catch { return []; }
+}
+
+// ─── AR/AP & Capital context ──────────────────────────────────────────────────
+// Aggregates AR outstanding, AP outstanding, DSO/DPO, and actual capital deployed
+// (aplicacao_financeira bank transactions) per BU for cash-flow context.
+
+const APAR_BU_TO_HURDLE: Record<string, string> = {
+  AWQ: "holding", JACQES: "jacqes", CAZA: "caza", VENTURE: "venture", ADVISOR: "advisor",
+};
+const ENTITY_TO_HURDLE: Record<string, string> = {
+  AWQ_Holding: "holding", JACQES: "jacqes", Caza_Vision: "caza",
+};
+
+export interface BuCashContext {
+  arOutstanding:  number;
+  arOverdue:      number;
+  apOutstanding:  number;
+  apOverdue:      number;
+  dso:            number | null;
+  dpo:            number | null;
+  ccc:            number | null;
+  capitalDeployed: number;
+}
+
+export async function getBUCashContext(): Promise<Record<string, BuCashContext>> {
+  const ctx: Record<string, BuCashContext> = {};
+  for (const hId of Object.values(APAR_BU_TO_HURDLE)) {
+    ctx[hId] = { arOutstanding: 0, arOverdue: 0, apOutstanding: 0, apOverdue: 0, dso: null, dpo: null, ccc: null, capitalDeployed: 0 };
+  }
+
+  // AR/AP KPIs per BU — parallel fetch
+  await Promise.all(
+    Object.entries(APAR_BU_TO_HURDLE).map(async ([buCode, hId]) => {
+      try {
+        const kpis = await getAPARKPIs(buCode as APARBuCode);
+        ctx[hId] = {
+          ...ctx[hId],
+          arOutstanding: kpis.totalAROutstanding,
+          arOverdue:     kpis.totalAROverdue,
+          apOutstanding: kpis.totalAPOutstanding,
+          apOverdue:     kpis.totalAPOverdue,
+          dso:           kpis.dso,
+          dpo:           kpis.dpo,
+          ccc:           kpis.ccc,
+        };
+      } catch { /* keep zeros */ }
+    })
+  );
+
+  // Capital deployed from conciliação (aplicacao_financeira transactions)
+  try {
+    const positions = await getCashPositionByEntity();
+    for (const pos of positions) {
+      const hId = ENTITY_TO_HURDLE[pos.entity];
+      if (hId && ctx[hId] != null) {
+        ctx[hId].capitalDeployed += pos.investmentApplications;
+      }
+    }
+  } catch { /* keep zeros */ }
+
+  return ctx;
 }

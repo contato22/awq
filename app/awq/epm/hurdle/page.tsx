@@ -1,18 +1,22 @@
 // ─── /awq/epm/hurdle — Hurdle Rate · Projeto / BU ────────────────────────────
 //
-// Avalia projetos e BUs contra hurdle rate (taxa mínima de retorno aceitável).
-// Compara IRR / ROIC / payback de cada projeto com o hurdle definido por BU.
-// Dados: lib/epm-hurdle.ts → epm_hurdle_rates + epm_hurdle_projects (DB ou static fallback)
+// Fontes de dados integradas:
+//   • epm-hurdle.ts  → hurdle rates por BU + projetos de capital (DB/static)
+//   • ppm-db.ts      → projetos operacionais com ROI vs hurdle
+//   • ap-ar-db.ts    → AR/AP outstanding + DSO/DPO por BU
+//   • financial-db.ts → capital aplicado real (conciliação bancária)
 
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
   Percent, TrendingUp, TrendingDown, CheckCircle2,
-  XCircle, AlertTriangle, Info, BarChart3, Clock, Database, Layers,
+  XCircle, AlertTriangle, Info, BarChart3, Clock,
+  Database, Layers, ArrowUpRight, ArrowDownRight, Wallet,
 } from "lucide-react";
 import {
-  getHurdleAnalysis, getHurdleSummary,
-  type BuHurdleConfig, type HurdleProject, type HurdleStatus,
+  getHurdleAnalysis, getHurdleSummary, getPPMHurdleRows, getBUCashContext,
+  type BuHurdleConfig, type HurdleProject, type HurdleStatus, type PpmHurdleRow,
+  type BuCashContext,
 } from "@/lib/epm-hurdle";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
@@ -36,11 +40,7 @@ function spread(irr: number | null, hurdle: number): number | null {
 }
 
 const STATUS_CFG: Record<HurdleStatus, {
-  label: string;
-  icon:  React.ElementType;
-  bg:    string;
-  text:  string;
-  border:string;
+  label: string; icon: React.ElementType; bg: string; text: string; border: string;
 }> = {
   approved: { label: "Aprovado",  icon: CheckCircle2,  bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
   rejected: { label: "Reprovado", icon: XCircle,       bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200"     },
@@ -55,8 +55,7 @@ function StatusBadge({ status }: { status: HurdleStatus }) {
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-      <Icon size={10} />
-      {cfg.label}
+      <Icon size={10} />{cfg.label}
     </span>
   );
 }
@@ -82,7 +81,6 @@ function BuCard({ bu, projects }: { bu: BuHurdleConfig; projects: HurdleProject[
   const buProjects = projects.filter((p) => p.bu_id === bu.bu_id);
   const approved   = buProjects.filter((p) => p.status === "approved").length;
   const capex      = buProjects.reduce((s, p) => s + p.capex, 0);
-
   return (
     <div className="card p-4">
       <div className="flex items-start justify-between mb-3">
@@ -109,7 +107,6 @@ function BuCard({ bu, projects }: { bu: BuHurdleConfig; projects: HurdleProject[
           <div className="font-semibold text-emerald-700">{approved}/{bu.projectCount}</div>
         </div>
       </div>
-      {/* Real BU financials when available */}
       {(bu.revenue != null || bu.ebitda != null || bu.roic != null) && (
         <div className="grid grid-cols-3 gap-2 text-xs border-t border-gray-100 pt-2 mt-1">
           {bu.revenue != null && (
@@ -145,24 +142,85 @@ function ProjectRow({ p }: { p: HurdleProject }) {
         <div className="text-xs text-gray-400 mt-0.5">{p.id} · {p.bu}</div>
         <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{p.description}</div>
       </td>
-      <td className="py-3 px-3 text-right text-sm font-semibold tabular-nums text-gray-700">
-        {fmtBRL(p.capex)}
-      </td>
+      <td className="py-3 px-3 text-right text-sm font-semibold tabular-nums text-gray-700">{fmtBRL(p.capex)}</td>
       <td className="py-3 px-3 text-right">
         <div className="text-sm font-semibold tabular-nums text-gray-900">{fmtPct(p.irr)}</div>
         <div className="text-xs text-gray-400">hurdle: {p.hurdle}%</div>
       </td>
+      <td className="py-3 px-3"><SpreadBar irr={p.irr} hurdle={p.hurdle} /></td>
+      <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-600">{p.roic != null ? fmtPct(p.roic) : "—"}</td>
+      <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-600">{p.paybackMo != null ? `${p.paybackMo}m` : "—"}</td>
+      <td className="py-3 pr-4 pl-3"><StatusBadge status={p.status} /></td>
+    </tr>
+  );
+}
+
+function PpmRow({ p }: { p: PpmHurdleRow }) {
+  const roiToUse  = p.actualRoi !== null ? p.actualRoi : p.expectedRoi;
+  const sp = roiToUse !== null ? roiToUse - p.hurdle : null;
+  return (
+    <tr className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+      <td className="py-3 pl-4 pr-2">
+        <div className="font-medium text-sm text-gray-900">{p.name}</div>
+        <div className="text-xs text-gray-400 mt-0.5">{p.code} · {p.bu}</div>
+        <div className="text-xs text-gray-400 mt-0.5 capitalize">{p.type.replace("_", " ")} · {p.phase}</div>
+      </td>
+      <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-700">
+        <div className="font-semibold">{fmtBRL(p.contractRev)}</div>
+        <div className="text-xs text-gray-400">custo: {fmtBRL(p.budgetCost)}</div>
+      </td>
+      <td className="py-3 px-3 text-right">
+        <div className="text-sm font-semibold tabular-nums text-gray-900">{fmtPct(roiToUse)}</div>
+        <div className="text-xs text-gray-400">hurdle: {p.hurdle}%</div>
+      </td>
       <td className="py-3 px-3">
-        <SpreadBar irr={p.irr} hurdle={p.hurdle} />
+        <div className="flex items-center gap-2">
+          {sp !== null ? (
+            <>
+              <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${sp >= 5 ? "bg-emerald-500" : sp >= 0 ? "bg-amber-400" : "bg-red-500"}`} style={{ width: `${Math.min(Math.abs(sp) * 4, 100)}%` }} />
+              </div>
+              <span className={`text-xs font-semibold tabular-nums ${sp >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {sp >= 0 ? "+" : ""}{sp.toFixed(1)}pp
+              </span>
+            </>
+          ) : <span className="text-gray-300 text-xs">—</span>}
+        </div>
       </td>
-      <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-600">
-        {p.roic != null ? fmtPct(p.roic) : "—"}
+      <td className="py-3 px-3 text-right">
+        <div className="text-sm tabular-nums text-gray-600">{p.completionPct}%</div>
+        <div className={`text-xs ${p.health === "green" ? "text-emerald-600" : p.health === "red" ? "text-red-600" : "text-amber-600"}`}>
+          {p.health}
+        </div>
       </td>
-      <td className="py-3 px-3 text-right text-sm tabular-nums text-gray-600">
-        {p.paybackMo != null ? `${p.paybackMo}m` : "—"}
+      <td className="py-3 pr-4 pl-3"><StatusBadge status={p.status} /></td>
+    </tr>
+  );
+}
+
+function CashContextRow({ buId, buName, ctx }: { buId: string; buName: string; ctx: BuCashContext }) {
+  return (
+    <tr className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors text-xs">
+      <td className="py-3 pl-4 pr-2 font-medium text-gray-900">{buName}</td>
+      <td className="py-3 px-3 text-right">
+        <div className="font-semibold text-emerald-700 tabular-nums">{fmtBRL(ctx.arOutstanding)}</div>
+        {ctx.arOverdue > 0 && <div className="text-red-500 tabular-nums">{fmtBRL(ctx.arOverdue)} vencido</div>}
       </td>
-      <td className="py-3 pr-4 pl-3">
-        <StatusBadge status={p.status} />
+      <td className="py-3 px-3 text-right">
+        <div className="font-semibold text-red-700 tabular-nums">{fmtBRL(ctx.apOutstanding)}</div>
+        {ctx.apOverdue > 0 && <div className="text-red-500 tabular-nums">{fmtBRL(ctx.apOverdue)} vencido</div>}
+      </td>
+      <td className="py-3 px-3 text-right tabular-nums text-gray-700">{ctx.dso !== null ? `${ctx.dso.toFixed(0)}d` : "—"}</td>
+      <td className="py-3 px-3 text-right tabular-nums text-gray-700">{ctx.dpo !== null ? `${ctx.dpo.toFixed(0)}d` : "—"}</td>
+      <td className="py-3 px-3 text-right tabular-nums text-indigo-700 font-semibold">
+        {ctx.capitalDeployed > 0 ? fmtBRL(ctx.capitalDeployed) : "—"}
+      </td>
+      <td className="py-3 pr-4 pl-3 tabular-nums">
+        {ctx.ccc !== null ? (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold border text-xs ${ctx.ccc <= 30 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ctx.ccc <= 60 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-red-50 text-red-700 border-red-200"}`}>
+            {ctx.ccc.toFixed(0)}d
+          </span>
+        ) : "—"}
       </td>
     </tr>
   );
@@ -173,33 +231,34 @@ function ProjectRow({ p }: { p: HurdleProject }) {
 export default async function HurdlePage() {
   let analysis;
   let summary;
+  let ppmRows: PpmHurdleRow[]                   = [];
+  let cashCtx: Record<string, BuCashContext>    = {};
   let loadError = false;
 
   try {
     [analysis, summary] = await Promise.all([getHurdleAnalysis(), getHurdleSummary()]);
+    [ppmRows, cashCtx] = await Promise.all([
+      getPPMHurdleRows(analysis.buHurdles).catch(() => []),
+      getBUCashContext().catch(() => ({})),
+    ]);
   } catch {
     loadError = true;
-    analysis = {
-      buHurdles: [], projects: [], waccDerivation: {}, dataSource: "static" as const,
-    };
-    summary = {
-      total: 0, approved: 0, rejected: 0, watch: 0,
-      totalCapex: 0, approvedCapex: 0, approvalRate: 0, avgIrr: null, avgHurdle: 0,
-    };
+    analysis = { buHurdles: [], projects: [], waccDerivation: {}, dataSource: "static" as const };
+    summary  = { total: 0, approved: 0, rejected: 0, watch: 0, totalCapex: 0, approvedCapex: 0, approvalRate: 0, avgIrr: null, avgHurdle: 0 };
   }
 
   const { buHurdles, projects, dataSource } = analysis;
   const { total, approved, rejected, watch, totalCapex, approvedCapex, approvalRate, avgIrr } = summary;
-
-  const watchList = projects.filter((p) => p.status === "watch");
+  const watchList  = projects.filter((p) => p.status === "watch");
   const isRealData = dataSource === "db";
+
+  // Cash context rows — only show BUs with any AR/AP or capital
+  const cashRows = buHurdles.map((h) => ({ bu: h, ctx: cashCtx[h.bu_id] })).filter(({ ctx }) => ctx != null);
+  const hasCashData = cashRows.some(({ ctx }) => ctx.arOutstanding > 0 || ctx.apOutstanding > 0 || ctx.capitalDeployed > 0);
 
   return (
     <>
-      <Header
-        title="Hurdle Rate"
-        subtitle="EPM · Avaliação de Projetos & BUs · Taxa Mínima de Retorno"
-      />
+      <Header title="Hurdle Rate" subtitle="EPM · Avaliação de Projetos & BUs · Taxa Mínima de Retorno" />
       <div className="page-container">
 
         {/* ── Data source banner ──────────────────────────────────────── */}
@@ -211,7 +270,7 @@ export default async function HurdlePage() {
         ) : isRealData ? (
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs bg-emerald-50 border border-emerald-100 text-emerald-700">
             <Database size={12} className="shrink-0" />
-            <span>Dados ao vivo — hurdle rates e projetos carregados do banco de dados em tempo real.</span>
+            <span>Dados ao vivo — hurdle rates, projetos, PPM, AR/AP e conciliação carregados em tempo real.</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs bg-amber-50 border border-amber-100 text-amber-700">
@@ -225,19 +284,18 @@ export default async function HurdlePage() {
           <Percent size={12} className="shrink-0 mt-0.5" />
           <span>
             <strong>Hurdle Rate</strong> = WACC + Prêmio de Risco por BU.
-            Projetos com IRR abaixo do hurdle destroem valor — devem ser reprovados
-            ou reprojetados antes de aprovação de capital. WACC derivado de dados reais
-            quando disponível (ROIC como proxy do custo de equity).
+            Projetos com IRR/ROI abaixo do hurdle destroem valor. WACC derivado de dados reais (ROIC como proxy de equity).
+            <strong className="ml-1">Fontes:</strong> Hurdle DB · PPM · AR/AP · Conciliação Bancária.
           </span>
         </div>
 
         {/* ── Summary KPIs ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Projetos Avaliados",  value: String(total),               sub: `${approved} aprovados`,             icon: BarChart3,   color: "text-gray-700"    },
-            { label: "Capex Aprovado",       value: fmtBRL(approvedCapex),       sub: `de ${fmtBRL(totalCapex)} total`,    icon: TrendingUp,  color: "text-emerald-600" },
-            { label: "Taxa de Aprovação",    value: `${approvalRate.toFixed(0)}%`, sub: `${rejected} reprovados`,          icon: Percent,     color: "text-brand-600"   },
-            { label: "IRR Médio Aprovados",  value: avgIrr ? fmtPct(avgIrr) : "—", sub: `${watch} em atenção`,            icon: TrendingUp,  color: "text-emerald-600" },
+            { label: "Projetos Capital", value: String(total),               sub: `${approved} aprovados`,              icon: BarChart3,  color: "text-gray-700"    },
+            { label: "Capex Aprovado",   value: fmtBRL(approvedCapex),       sub: `de ${fmtBRL(totalCapex)} total`,     icon: TrendingUp, color: "text-emerald-600" },
+            { label: "Taxa Aprovação",   value: `${approvalRate.toFixed(0)}%`, sub: `${rejected} reprovados`,           icon: Percent,    color: "text-brand-600"   },
+            { label: "Projetos PPM",     value: String(ppmRows.length),       sub: `${ppmRows.filter(r => r.status === "approved").length} acima do hurdle`, icon: TrendingUp, color: "text-emerald-600" },
           ].map(({ label, value, sub, icon: Icon, color }) => (
             <div key={label} className="card p-4">
               <div className="flex items-center justify-between mb-2">
@@ -257,17 +315,47 @@ export default async function HurdlePage() {
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Hurdle por BU</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {buHurdles.map((bu) => (
-              <BuCard key={bu.bu_id} bu={bu} projects={projects} />
-            ))}
+            {buHurdles.map((bu) => <BuCard key={bu.bu_id} bu={bu} projects={projects} />)}
           </div>
         </section>
 
-        {/* ── Tabela de projetos ───────────────────────────────────────── */}
+        {/* ── PPM: Projetos Operacionais vs Hurdle ─────────────────────── */}
+        {ppmRows.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 size={14} className="text-brand-600" />
+              <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">PPM — Projetos Operacionais vs Hurdle</span>
+            </div>
+            <div className="card overflow-hidden p-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-2.5 pl-4 pr-2 text-xs font-semibold text-gray-500">Projeto</th>
+                    <th className="text-right py-2.5 px-3 text-xs font-semibold text-gray-500">Receita / Custo</th>
+                    <th className="text-right py-2.5 px-3 text-xs font-semibold text-gray-500">ROI</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500">Spread</th>
+                    <th className="text-right py-2.5 px-3 text-xs font-semibold text-gray-500">Conclusão</th>
+                    <th className="py-2.5 pr-4 pl-3 text-xs font-semibold text-gray-500">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(["approved", "watch", "rejected", "pending"] as HurdleStatus[]).flatMap((st) =>
+                    ppmRows.filter((r) => r.status === st).map((r) => <PpmRow key={r.id} p={r} />)
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              ROI = (Receita Contratada − Custo Orçado) / Custo Orçado. Projetos com ROI abaixo do hurdle da BU são sinalizados. Fonte: PPM.
+            </p>
+          </section>
+        )}
+
+        {/* ── Tabela de projetos de capital ────────────────────────────── */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Projetos — IRR vs Hurdle</span>
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Projetos de Capital — IRR vs Hurdle</span>
           </div>
           <div className="card overflow-hidden p-0">
             <table className="w-full text-sm">
@@ -283,15 +371,12 @@ export default async function HurdlePage() {
                 </tr>
               </thead>
               <tbody>
-                {/* Aprovados primeiro, depois atenção, reprovados, pendentes */}
                 {(["approved", "watch", "rejected", "pending"] as HurdleStatus[]).flatMap((st) =>
                   projects.filter((p) => p.status === st).map((p) => <ProjectRow key={p.id} p={p} />)
                 )}
                 {projects.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-xs text-gray-400">
-                      Nenhum projeto cadastrado.
-                    </td>
+                    <td colSpan={7} className="py-8 text-center text-xs text-gray-400">Nenhum projeto cadastrado.</td>
                   </tr>
                 )}
               </tbody>
@@ -302,7 +387,7 @@ export default async function HurdlePage() {
           </p>
         </section>
 
-        {/* ── Rejections watchlist ─────────────────────────────────────── */}
+        {/* ── Watch list ───────────────────────────────────────────────── */}
         {watchList.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-3">
@@ -323,6 +408,43 @@ export default async function HurdlePage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* ── AR/AP & Capital Deployed ─────────────────────────────────── */}
+        {hasCashData && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Wallet size={14} className="text-brand-600" />
+              <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">AR · AP · Capital Aplicado — por BU</span>
+            </div>
+            <div className="card overflow-hidden p-0">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-2.5 pl-4 pr-2 font-semibold text-gray-500">BU</th>
+                    <th className="text-right py-2.5 px-3 font-semibold text-gray-500">
+                      <div className="flex items-center justify-end gap-1"><ArrowUpRight size={10} className="text-emerald-500" />AR a receber</div>
+                    </th>
+                    <th className="text-right py-2.5 px-3 font-semibold text-gray-500">
+                      <div className="flex items-center justify-end gap-1"><ArrowDownRight size={10} className="text-red-500" />AP a pagar</div>
+                    </th>
+                    <th className="text-right py-2.5 px-3 font-semibold text-gray-500">DSO</th>
+                    <th className="text-right py-2.5 px-3 font-semibold text-gray-500">DPO</th>
+                    <th className="text-right py-2.5 px-3 font-semibold text-gray-500">Capital Aplicado</th>
+                    <th className="text-right py-2.5 pr-4 pl-3 font-semibold text-gray-500">CCC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashRows.map(({ bu, ctx }) => (
+                    <CashContextRow key={bu.bu_id} buId={bu.bu_id} buName={bu.bu} ctx={ctx} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              DSO = prazo médio de recebimento · DPO = prazo médio de pagamento · CCC = ciclo de conversão de caixa (DSO − DPO) · Capital Aplicado = aplicações financeiras da conciliação bancária.
+            </p>
           </section>
         )}
 
@@ -373,31 +495,30 @@ export default async function HurdlePage() {
             <Info size={14} className="text-gray-400" />
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Metodologia</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-gray-600">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-gray-600">
             <div>
               <div className="font-semibold text-gray-700 mb-1">Hurdle Rate</div>
-              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">
-                Hurdle = WACC + Prêmio de Risco
-              </div>
-              <div className="text-gray-400">Cada BU tem seu perfil de risco refletido no prêmio adicional sobre o WACC do grupo.</div>
-            </div>
-            <div>
-              <div className="font-semibold text-gray-700 mb-1">Critério de Aprovação</div>
-              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">
-                IRR ≥ Hurdle → Aprovado
-              </div>
-              <div className="text-gray-400">Projetos com IRR marginalmente acima do hurdle (&lt;2pp) entram em watchlist para revisão trimestral.</div>
+              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">Hurdle = WACC + Prêmio</div>
+              <div className="text-gray-400">Cada BU tem prêmio adicional sobre o WACC do grupo refletindo seu perfil de risco.</div>
             </div>
             <div>
               <div className="font-semibold text-gray-700 mb-1">WACC Derivado</div>
-              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">
-                WACC = Ke×We + Kd×(1−T)×Wd
-              </div>
+              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">Ke×We + Kd×(1−T)×Wd</div>
               <div className="text-gray-400 space-y-0.5">
-                <div>• <strong>Ke</strong> = ROIC real da BU (proxy equity)</div>
-                <div>• <strong>Kd</strong> = Despesas financeiras / capital</div>
-                <div>• <strong>T</strong> = 34% (IRPJ + CSLL)</div>
+                <div>• Ke = ROIC real da BU</div>
+                <div>• Kd = Despesas fin. / capital</div>
+                <div>• T = 34% (IRPJ + CSLL)</div>
               </div>
+            </div>
+            <div>
+              <div className="font-semibold text-gray-700 mb-1">Projetos PPM</div>
+              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">ROI = (Rev − Custo) / Custo</div>
+              <div className="text-gray-400">Projetos operacionais com ROI abaixo do hurdle da BU são sinalizados para revisão de precificação.</div>
+            </div>
+            <div>
+              <div className="font-semibold text-gray-700 mb-1">Ciclo de Caixa</div>
+              <div className="font-mono bg-white border border-gray-200 rounded px-2 py-1 mb-1.5">CCC = DSO − DPO</div>
+              <div className="text-gray-400">CCC alto indica pressão de capital de giro — aumenta o custo real de projetos com payback longo.</div>
             </div>
           </div>
         </section>
