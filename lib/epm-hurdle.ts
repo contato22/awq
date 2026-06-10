@@ -73,9 +73,10 @@ export interface HurdleProject {
 }
 
 export interface HurdleAnalysis {
-  buHurdles:  BuHurdleConfig[];
-  projects:   HurdleProject[];
-  dataSource: "db" | "static";
+  buHurdles:      BuHurdleConfig[];
+  projects:       HurdleProject[];
+  dataSource:     "db" | "static";
+  projectsFromDb: boolean;  // false = tabela vazia ou inacessível (nunca dados fictícios)
   inputsMeta: {
     rfDaysAgo:  number;
     erpDaysAgo: number;
@@ -153,64 +154,8 @@ const STATIC_HURDLES: Omit<BuHurdleConfig, "projectCount">[] = [
   },
 ];
 
-const STATIC_PROJECTS: Omit<HurdleProject, "hurdle" | "source" | "spread" | "npvApprox">[] = [
-  {
-    id: "PRJ-001", name: "Expansão Sede SP",
-    bu_id: "holding", bu: "AWQ Holding",
-    capex: 850_000, irr: 22.4, irrAnnualized: 22.4, roic: 19.1, paybackMo: 38, durationMo: 36,
-    status: "pending",
-    description: "Ampliação do escritório principal + infraestrutura de TI",
-  },
-  {
-    id: "PRJ-002", name: "Sistema ERP Integrado",
-    bu_id: "holding", bu: "AWQ Holding",
-    capex: 320_000, irr: 11.2, irrAnnualized: 11.2, roic: 9.8, paybackMo: 54, durationMo: 48,
-    status: "pending",
-    description: "Migração para plataforma ERP unificada",
-  },
-  {
-    id: "PRJ-003", name: "Linha Produção JACQES v2",
-    bu_id: "jacqes", bu: "JACQES",
-    capex: 1_200_000, irr: 24.7, irrAnnualized: 24.7, roic: 21.3, paybackMo: 30, durationMo: 24,
-    status: "pending",
-    description: "Nova linha de produção para escalar capacidade em 40%",
-  },
-  {
-    id: "PRJ-004", name: "Automação Logística",
-    bu_id: "jacqes", bu: "JACQES",
-    capex: 450_000, irr: 17.1, irrAnnualized: 17.1, roic: 15.4, paybackMo: 42, durationMo: 36,
-    status: "pending",
-    description: "Automação de processos logísticos",
-  },
-  {
-    id: "PRJ-005", name: "Seed — TechCo A",
-    bu_id: "venture", bu: "AWQ Venture",
-    capex: 200_000, irr: 38.0, irrAnnualized: 38.0, roic: null, paybackMo: null, durationMo: null,
-    status: "pending",
-    description: "Rodada seed com participação de 12% — retorno estimado 3.8x",
-  },
-  {
-    id: "PRJ-006", name: "Seed — FinTech B",
-    bu_id: "venture", bu: "AWQ Venture",
-    capex: 150_000, irr: 19.5, irrAnnualized: 19.5, roic: null, paybackMo: null, durationMo: null,
-    status: "pending",
-    description: "IRR projetado — risco não compensado",
-  },
-  {
-    id: "PRJ-007", name: "Portfolio Series A",
-    bu_id: "venture", bu: "AWQ Venture",
-    capex: 500_000, irr: 31.2, irrAnnualized: 31.2, roic: null, paybackMo: null, durationMo: null,
-    status: "pending",
-    description: "Follow-on em portfólio existente com tração comprovada",
-  },
-  {
-    id: "PRJ-008", name: "Expansão Caza RJ",
-    bu_id: "caza", bu: "Caza Vision",
-    capex: 280_000, irr: null, irrAnnualized: null, roic: null, paybackMo: null, durationMo: null,
-    status: "pending",
-    description: "Análise em andamento — aguardando estudo de viabilidade",
-  },
-];
+// Sem STATIC_PROJECTS — projetos de capital só vêm do DB (epm_hurdle_projects).
+// Use /api/setup/migrate para criar a tabela e cadastre projetos reais.
 
 // ─── DB row mappers ───────────────────────────────────────────────────────────
 
@@ -303,27 +248,15 @@ export async function getHurdleAnalysis(): Promise<HurdleAnalysis> {
     } catch { /* fall through */ }
   }
 
-  if (projectRows.length === 0) {
-    projectRows = STATIC_PROJECTS.map((p) => {
-      const hurdle   = hurdleMap.get(p.bu_id) ?? 26.2;
-      const spreadV  = p.irrAnnualized !== null ? p.irrAnnualized - hurdle : null;
-      return {
-        ...p,
-        hurdle,
-        spread:    spreadV,
-        status:    statusFromSpread(spreadV),
-        npvApprox: p.irrAnnualized !== null ? approxNPV(p.irrAnnualized, hurdle, p.capex) : null,
-        source:    "static" as const,
-      };
-    });
-  }
+  const projectsFromDb = projectRows.length > 0;
+  // Nenhum fallback fictício — se a tabela estiver vazia, projects = []
 
   // ── Enrich BU hurdle configs with real financial data ──────────────────────
   const buHurdles: BuHurdleConfig[] = hurdleRows.map((h) => {
-    const bu   = buMap.get(h.bu_id);
-    const prj  = projectRows.filter((p) => p.bu_id === h.bu_id);
+    const bu       = buMap.get(h.bu_id);
+    const prj      = projectRows.filter((p) => p.bu_id === h.bu_id);
     const roicReal = bu?.roic !== undefined ? bu.roic * 100 : undefined;
-    const eva  = roicReal !== undefined && bu?.capitalAllocated
+    const eva      = roicReal !== undefined && bu?.capitalAllocated
       ? (roicReal - h.hurdle) * bu.capitalAllocated
       : undefined;
     return {
@@ -337,7 +270,7 @@ export async function getHurdleAnalysis(): Promise<HurdleAnalysis> {
     };
   });
 
-  return { buHurdles, projects: projectRows, dataSource, inputsMeta: buildInputsMeta() };
+  return { buHurdles, projects: projectRows, dataSource, projectsFromDb, inputsMeta: buildInputsMeta() };
 }
 
 // ─── Summary (synchronous — zero DB round-trips) ─────────────────────────────
@@ -483,12 +416,8 @@ export async function seedHurdleData(): Promise<{ seeded: string[] }> {
     await upsertHurdleRate(h).catch(() => {});
   }
   seeded.push("epm_hurdle_rates");
-  const hurdleMap = new Map(STATIC_HURDLES.map((h) => [h.bu_id, h.hurdle]));
-  for (const p of STATIC_PROJECTS) {
-    const hurdle = hurdleMap.get(p.bu_id) ?? 26.2;
-    await upsertHurdleProject({ ...p, hurdle }).catch(() => {});
-  }
-  seeded.push("epm_hurdle_projects");
+  // epm_hurdle_projects não recebe dados fictícios — cadastre projetos reais via upsertHurdleProject()
+  seeded.push("epm_hurdle_projects (vazio — cadastre projetos reais)");
   return { seeded };
 }
 

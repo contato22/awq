@@ -281,7 +281,7 @@ export default async function HurdlePage() {
     getBUCashContext(approvedCapexByBu).catch(() => { cashErr = true; return {}; }),
   ]);
 
-  const { buHurdles, projects, dataSource, inputsMeta } = analysis;
+  const { buHurdles, projects, dataSource, projectsFromDb, inputsMeta } = analysis;
   const { total, approved, rejected, watch, totalCapex, approvedCapex, approvalRate,
           weightedSpread, totalNPV, totalEVA } = summary;
 
@@ -455,7 +455,18 @@ export default async function HurdlePage() {
                   projects.filter((p) => p.status === st).map((p) => <ProjectRow key={p.id} p={p} />)
                 )}
                 {projects.length === 0 && (
-                  <tr><td colSpan={7} className="py-8 text-center text-xs text-gray-400">Nenhum projeto cadastrado.</td></tr>
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center">
+                      <div className="flex flex-col items-center gap-1 text-xs text-gray-400">
+                        <BarChart3 size={20} className="text-gray-200" />
+                        <span className="font-medium text-gray-500">Nenhum projeto de capital cadastrado</span>
+                        <span>Insira projetos em <code className="bg-gray-100 px-1 rounded">epm_hurdle_projects</code> para análise de IRR vs hurdle.</span>
+                        {!projectsFromDb && dataSource === "static" && (
+                          <span className="text-amber-500 mt-1">DB inacessível — configure via <code className="bg-amber-50 px-1 rounded">/api/setup/migrate</code></span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
