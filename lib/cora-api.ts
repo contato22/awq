@@ -223,9 +223,22 @@ export interface CoraStatementEntry {
   balance: number | null;
   counterparty: string | null;
   category: string | null;
+  /** Pix endToEndId — chave determinística para dedupe na Conciliação Inteligente. */
+  e2eId: string | null;
+  /** txid / nosso número, quando presente. */
+  txid: string | null;
+  /** CNPJ/CPF da contraparte, quando presente. */
+  counterDoc: string | null;
 }
 
 type CoraRawEntry = Record<string, unknown>;
+
+/** Coerce a raw API value to a trimmed string, or null when absent/empty. */
+function strOrNull(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  return s === "" ? null : s;
+}
 
 function parseDate(raw: unknown): string {
   if (typeof raw !== "string" || !raw) return "";
@@ -304,6 +317,20 @@ function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
     raw.eventAt ?? raw.event_at ?? raw.settledAt ?? raw.settled_at ??
     raw.processedAt ?? raw.processed_at ?? raw.dateTime ?? raw.datetime;
 
+  // Pix endToEndId / txid — pode vir no topo ou aninhado em transaction{}.
+  const e2eId = strOrNull(
+    raw.endToEndId ?? raw.end_to_end_id ?? raw.e2eId ?? raw.e2e_id ??
+    tx.endToEndId ?? tx.end_to_end_id ?? tx.identifier,
+  );
+  const txid = strOrNull(
+    raw.txid ?? raw.txId ?? raw.tx_id ?? tx.txid ?? tx.txId ??
+    raw.documentNumber ?? raw.document_number,
+  );
+  const counterDoc = strOrNull(
+    cp.document ?? cp.documentNumber ?? cp.identity ?? cp.taxId ??
+    raw.counterpartyDocument ?? raw.counterparty_document,
+  );
+
   return {
     id,
     date: parseDate(rawDate),
@@ -313,6 +340,9 @@ function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
     balance:     null,
     counterparty,
     category,
+    e2eId,
+    txid,
+    counterDoc,
   };
 }
 
