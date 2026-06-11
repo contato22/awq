@@ -503,17 +503,22 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
 
   const flowResult = useMemo(() => {
     // Anchor do saldo = caixa real consolidado das contas que alimentam as barras
-    // (todas exceto Cora Enerdy). Cora Holding entra via API live; demais bancos
-    // (Itaú, BTG, etc.) entram via último runningBalance conhecido. Qualquer banco
-    // Cora* além da Holding (= Enerdy) fica de fora.
+    // (todas exceto ENERDY). Cora Holding entra via API live; demais contas
+    // (Itaú, BTG, JACQES Cora, Caza, etc.) entram via último runningBalance
+    // conhecido. ENERDY fica de fora.
     const coraHoldingLive = coraConfigured
       ? (accounts.find((a) => a.key === "AWQ_Holding" && !a.loading)?.balance ?? 0)
       : 0;
 
+    // Último runningBalance por conta. Pula apenas: (a) ENERDY — fora do escopo;
+    // (b) a Cora da HOLDING — já entra via API live (coraHoldingLive), evitando
+    // dupla contagem. A Cora da JACQES (e demais ex-ENERDY) É mantida aqui.
     const otherClosings = new Map<string, { balance: number; date: string }>();
     for (const t of transactions) {
       if (t.runningBalance == null) continue;
-      if ((t.bank ?? "").toLowerCase().includes("cora")) continue;
+      if (t.entity === "ENERDY") continue;
+      const isCora = (t.bank ?? "").toLowerCase().includes("cora");
+      if (isCora && t.entity === "AWQ_Holding") continue;
       const k = `${t.bank}::${t.accountName}`;
       const prev = otherClosings.get(k);
       if (!prev || t.transactionDate > prev.date) {
@@ -541,8 +546,9 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       raw = buildFlowMonthly(chartTxns, 0, fromMonth);
     }
 
-    // Anchor: saldo no fim do periodo visivel = consolidatedRealBalance (Cora Holding +
-    // Itaú + BTG, ex-Enerdy). Fallback: openingBalance (saldos iniciais de extratos).
+    // Anchor: saldo no fim do periodo visivel = consolidatedRealBalance (Cora
+    // Holding live + Itaú + BTG + JACQES + Caza, ex-ENERDY). Fallback:
+    // openingBalance (saldos iniciais de extratos).
     // openingDay1 = targetEndSaldo - netDoPeriodo. Acumula forward a partir dai.
     const targetEndSaldo = consolidatedRealBalance !== 0
       ? consolidatedRealBalance
