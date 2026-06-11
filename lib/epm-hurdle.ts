@@ -143,11 +143,6 @@ const STATIC_HURDLES: Omit<BuHurdleConfig, "projectCount">[] = [
     regime: "simples", rfSource: HURDLE_CONFIG.rfSource, erpSource: HURDLE_CONFIG.erpSource,
   },
   {
-    bu_id: "holding", bu: "AWQ Holding",
-    hurdle: 26.2, rf: 14.5, matureERP: 4.23, sizePremium: 3.5, specificPremium: 4.0, buRiskPremium: 0.0,
-    regime: "simples", rfSource: HURDLE_CONFIG.rfSource, erpSource: HURDLE_CONFIG.erpSource,
-  },
-  {
     bu_id: "venture", bu: "AWQ Venture",
     hurdle: 35.2, rf: 14.5, matureERP: 4.23, sizePremium: 3.5, specificPremium: 4.0, buRiskPremium: 9.0,
     regime: "simples", rfSource: HURDLE_CONFIG.rfSource, erpSource: HURDLE_CONFIG.erpSource,
@@ -453,13 +448,18 @@ export interface PpmHurdleRow {
 
 export async function getPPMHurdleRows(buHurdles: BuHurdleConfig[]): Promise<PpmHurdleRow[]> {
   try {
-    const hMap     = new Map(buHurdles.map((h) => [h.bu_id, h.hurdle]));
+    const hMap = new Map(buHurdles.map((h) => [h.bu_id, h.hurdle]));
+    // Hurdle consolidado do grupo = média simples das BUs operacionais
+    const grupoHurdle = buHurdles.length > 0
+      ? buHurdles.reduce((s, h) => s + h.hurdle, 0) / buHurdles.length
+      : 26.2;
     const projects = await listProjects();
     return projects
       .filter((p) => PPM_BU_TO_HURDLE[p.bu_code] != null)
       .map((p) => {
         const bu_id  = PPM_BU_TO_HURDLE[p.bu_code]!;
-        const hurdle = hMap.get(bu_id) ?? 26.2;
+        // Projetos AWQ (Holding) usam o hurdle consolidado, não um hurdle de BU operacional
+        const hurdle = hMap.get(bu_id) ?? grupoHurdle;
         const cv     = contractValue(p);
 
         // Duration from dates

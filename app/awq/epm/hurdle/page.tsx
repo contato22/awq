@@ -276,12 +276,12 @@ function PpmRow({ p }: { p: PpmHurdleRow }) {
 
 // ─── Zone 5: Cash constraint row ─────────────────────────────────────────────
 
-function CashRow({ buName, ctx }: { buName: string; ctx: BuCashContext }) {
+function CashRow({ buName, ctx, isGroup = false }: { buName: string; ctx: BuCashContext; isGroup?: boolean }) {
   const cccBg = ctx.ccc === null ? "" : ctx.ccc <= 30 ? "bg-emerald-50 text-emerald-700" : ctx.ccc <= 60 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700";
   return (
-    <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-xs">
+    <tr className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-xs${isGroup ? " bg-brand-50/30 border-t-2 border-t-brand-100" : ""}`}>
       <td className="py-3 pl-4 pr-3">
-        <span className="font-semibold text-gray-800">{buName}</span>
+        <span className={`font-semibold ${isGroup ? "text-brand-700 italic" : "text-gray-800"}`}>{buName}</span>
       </td>
       <td className="py-3 px-3 text-right">
         <div className="font-bold text-emerald-700 tabular-nums">{fmtBRL(ctx.arOutstanding)}</div>
@@ -356,10 +356,20 @@ export default async function HurdlePage() {
   const { total, approved, rejected, watch, totalCapex, approvedCapex, approvalRate,
           weightedSpread, totalNPV, totalEVA } = summary;
 
+  // Hurdle consolidado do grupo = média simples das BUs operacionais
+  // AWQ Holding não é BU — é o acúmulo de todas as BUs
+  const grupoHurdle = buHurdles.length > 0
+    ? buHurdles.reduce((s, h) => s + h.hurdle, 0) / buHurdles.length
+    : 0;
+
+  // BUs operacionais nas linhas de caixa (Holding separada abaixo)
   const cashRows = buHurdles
     .map((h) => ({ bu: h, ctx: cashCtx[h.bu_id] }))
     .filter(({ ctx }) => ctx != null);
-  const hasCashData = cashRows.some(
+  const holdingCtx = cashCtx["holding"] ?? null;
+  const holdingHasCash = holdingCtx !== null &&
+    (holdingCtx.arOutstanding > 0 || holdingCtx.apOutstanding > 0 || holdingCtx.capitalDeployed > 0);
+  const hasCashData = holdingHasCash || cashRows.some(
     ({ ctx }) => ctx.arOutstanding > 0 || ctx.apOutstanding > 0 || ctx.capitalDeployed > 0,
   );
 
@@ -497,15 +507,32 @@ export default async function HurdlePage() {
 
         {/* ── ZONA 3: The Bar ───────────────────────────────────────────── */}
         <section>
-          <SectionHeader icon={ShieldAlert} title="The Bar — Custo de Capital" count={buHurdles.length} />
+          <SectionHeader icon={ShieldAlert} title="The Bar — Custo de Capital por BU" count={buHurdles.length} />
           <div className="mb-2 flex items-center gap-2 text-[11px] text-gray-400">
             <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">Ke = Rf + ERP + Tamanho + Específico + BU</span>
             <span>· Simples: T = 0 · ROIC ≠ Ke</span>
           </div>
           {buHurdles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-              {buHurdles.map((bu) => <BuBarCard key={bu.bu_id} bu={bu} />)}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {buHurdles.map((bu) => <BuBarCard key={bu.bu_id} bu={bu} />)}
+              </div>
+              {/* Grupo AWQ = consolidação das BUs (não é BU operacional) */}
+              <div className="mt-3 flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl bg-brand-50/60 border border-brand-100">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-brand-500 mb-0.5">Grupo AWQ — Hurdle Consolidado</div>
+                  <div className="text-[11px] text-gray-400">
+                    Média simples das {buHurdles.length} BUs operacionais · aplicado a projetos PPM da Holding
+                  </div>
+                </div>
+                <div className="ml-auto text-2xl font-black tabular-nums text-brand-700">
+                  {fmtPct(grupoHurdle)}
+                </div>
+                <div className="text-[10px] text-gray-400">
+                  AWQ Holding = acúmulo das BUs — não possui hurdle próprio
+                </div>
+              </div>
+            </>
           ) : (
             <div className="card p-8 text-center">
               <ShieldAlert size={24} className="text-gray-200 mx-auto mb-2" />
@@ -668,6 +695,9 @@ export default async function HurdlePage() {
                 </thead>
                 <tbody>
                   {cashRows.map(({ bu, ctx }) => <CashRow key={bu.bu_id} buName={bu.bu} ctx={ctx} />)}
+                  {holdingHasCash && holdingCtx && (
+                    <CashRow buName="AWQ Holding (grupo)" ctx={holdingCtx} isGroup />
+                  )}
                 </tbody>
               </table>
             </div>
