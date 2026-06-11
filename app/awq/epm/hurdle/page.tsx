@@ -332,7 +332,8 @@ export default async function HurdlePage() {
   } catch {
     analysisErr = true;
     analysis = {
-      buHurdles: [], projects: [], dataSource: "static" as const,
+      buHurdles: [], projects: [], dataSource: "static" as const, dbUp: false,
+      projectsFromDb: false,
       inputsMeta: { rfDaysAgo: 0, erpDaysAgo: 0, stale: false, rfSource: "", erpSource: "" },
     };
     summary = {
@@ -352,7 +353,7 @@ export default async function HurdlePage() {
     getBUCashContext(approvedCapexByBu).catch(() => { cashErr = true; return {}; }),
   ]);
 
-  const { buHurdles, projects, dataSource, projectsFromDb, inputsMeta } = analysis;
+  const { buHurdles, projects, dataSource, dbUp, projectsFromDb, inputsMeta } = analysis;
   const { total, approved, rejected, watch, totalCapex, approvedCapex, approvalRate,
           weightedSpread, totalNPV, totalEVA } = summary;
 
@@ -587,9 +588,19 @@ export default async function HurdlePage() {
                     <td colSpan={7} className="py-12 text-center">
                       <BarChart3 size={28} className="text-gray-100 mx-auto mb-3" />
                       <p className="text-sm font-medium text-gray-500">Nenhum projeto de capital cadastrado</p>
-                      <p className="text-xs text-gray-400 mt-1">Insira em <code className="bg-gray-100 px-1 rounded font-mono">epm_hurdle_projects</code></p>
-                      {!projectsFromDb && dataSource === "static" && (
-                        <p className="text-xs text-amber-500 mt-2">DB inacessível — configure via <code className="bg-amber-50 px-1 rounded">/api/setup/migrate</code></p>
+                      {dbUp ? (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Insira projetos em <code className="bg-gray-100 px-1 rounded font-mono">epm_hurdle_projects</code> para análise de IRR vs hurdle.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Insira em <code className="bg-gray-100 px-1 rounded font-mono">epm_hurdle_projects</code>
+                          </p>
+                          <p className="text-xs text-amber-500 mt-2">
+                            DATABASE_URL não configurado — tabelas EPM não acessíveis.
+                          </p>
+                        </>
                       )}
                     </td>
                   </tr>

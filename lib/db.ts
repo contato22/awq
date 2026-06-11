@@ -116,4 +116,41 @@ async function _runMigration(): Promise<void> {
 
   await sql`ALTER TABLE financial_documents DISABLE ROW LEVEL SECURITY`;
   await sql`ALTER TABLE bank_transactions   DISABLE ROW LEVEL SECURITY`;
+
+  // ── EPM Hurdle Rate tables ────────────────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_hurdle_rates (
+      bu_id                TEXT PRIMARY KEY,
+      bu_name              TEXT NOT NULL,
+      wacc_pct             NUMERIC(5,2) NOT NULL DEFAULT 26.2,
+      risk_premium_pct     NUMERIC(5,2) NOT NULL DEFAULT 0,
+      hurdle_pct           NUMERIC(5,2) NOT NULL DEFAULT 26.2,
+      rf_pct               NUMERIC(5,2),
+      mature_erp_pct       NUMERIC(5,2),
+      size_premium_pct     NUMERIC(5,2),
+      specific_premium_pct NUMERIC(5,2),
+      bu_risk_premium_pct  NUMERIC(5,2),
+      regime               TEXT DEFAULT 'simples',
+      rf_source            TEXT,
+      erp_source           TEXT,
+      inputs_updated_at    TIMESTAMPTZ DEFAULT now(),
+      updated_at           TEXT
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_hurdle_projects (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      bu_id       TEXT NOT NULL,
+      bu_name     TEXT NOT NULL,
+      capex       NUMERIC(15,2) DEFAULT 0,
+      irr_pct     NUMERIC(6,2),
+      roic_pct    NUMERIC(6,2),
+      payback_mo  INTEGER,
+      duration_mo INTEGER,
+      status      TEXT NOT NULL DEFAULT 'pending',
+      description TEXT,
+      updated_at  TEXT
+    )
+  `;
 }

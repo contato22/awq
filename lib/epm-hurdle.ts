@@ -76,7 +76,8 @@ export interface HurdleAnalysis {
   buHurdles:      BuHurdleConfig[];
   projects:       HurdleProject[];
   dataSource:     "db" | "static";
-  projectsFromDb: boolean;  // false = tabela vazia ou inacessível (nunca dados fictícios)
+  dbUp:           boolean;       // true = DATABASE_URL configurado e conexão OK
+  projectsFromDb: boolean;       // false = tabela vazia (nunca dados fictícios)
   inputsMeta: {
     rfDaysAgo:  number;
     erpDaysAgo: number;
@@ -215,15 +216,28 @@ export async function getHurdleAnalysis(): Promise<HurdleAnalysis> {
   let hurdleRows: Omit<BuHurdleConfig, "projectCount">[] = [];
   let projectRows: HurdleProject[] = [];
   let dataSource: "db" | "static" = "static";
+  let dbUp = false;
 
   if (sql && USE_DB) {
+    // Ensure tables exist (idempotent — safe on every cold start)
+    await initHurdleDB().catch(() => {});
+    dbUp = true;
+
     try {
       const rows = await sql`SELECT * FROM epm_hurdle_rates ORDER BY bu_id`;
       if (rows.length > 0) {
         hurdleRows = rows.map((r) => rowToHurdle(r as Record<string, unknown>));
         dataSource = "db";
+      } else {
+        // Table exists but empty — seed from build-up defaults so Zone 3 renders
+        await Promise.all(STATIC_HURDLES.map((h) => upsertHurdleRate(h).catch(() => {})));
+        const seeded = await sql`SELECT * FROM epm_hurdle_rates ORDER BY bu_id`.catch(() => []);
+        if (seeded.length > 0) {
+          hurdleRows = seeded.map((r) => rowToHurdle(r as Record<string, unknown>));
+          dataSource = "db";
+        }
       }
-    } catch { /* fall through */ }
+    } catch { /* fall through to STATIC_HURDLES */ }
   }
 
   if (hurdleRows.length === 0) {
@@ -240,7 +254,7 @@ export async function getHurdleAnalysis(): Promise<HurdleAnalysis> {
         projectRows = rows.map((r) => rowToProject(r as Record<string, unknown>, hurdleMap));
         dataSource  = "db";
       }
-    } catch { /* fall through */ }
+    } catch { /* fall through — table may be empty, that's OK */ }
   }
 
   const projectsFromDb = projectRows.length > 0;
@@ -265,7 +279,7 @@ export async function getHurdleAnalysis(): Promise<HurdleAnalysis> {
     };
   });
 
-  return { buHurdles, projects: projectRows, dataSource, projectsFromDb, inputsMeta: buildInputsMeta() };
+  return { buHurdles, projects: projectRows, dataSource, dbUp, projectsFromDb, inputsMeta: buildInputsMeta() };
 }
 
 // ─── Summary (synchronous — zero DB round-trips) ─────────────────────────────
