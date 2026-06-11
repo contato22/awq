@@ -3,8 +3,8 @@ name: Post-Deploy Seeds (Jun 2026)
 # Triggers BTG and Itaú extract seeds automatically after a successful
 # deploy to production. Idempotent — safe to run multiple times.
 #
-# Auth: uses NEXTAUTH_SECRET as x-seed-secret header (already in GitHub Secrets
-# and Vercel env vars — no new secrets needed).
+# Auth: uses ERP Supabase anon key (public, hardcoded in lib/supabase.ts).
+# No GitHub Secret needed — key is already in the open codebase.
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
             -X POST https://awq-brown.vercel.app/api/setup/seed-btg-extract-jun2026 \
-            -H "x-seed-secret: ${{ secrets.NEXTAUTH_SECRET }}" \
+            -H "x-seed-secret: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs" \
             -H "Content-Type: application/json")
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n 1)
@@ -48,7 +48,7 @@ jobs:
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
             -X POST https://awq-brown.vercel.app/api/setup/seed-itau-extract-jun2026 \
-            -H "x-seed-secret: ${{ secrets.NEXTAUTH_SECRET }}" \
+            -H "x-seed-secret: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs" \
             -H "Content-Type: application/json")
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n 1)
