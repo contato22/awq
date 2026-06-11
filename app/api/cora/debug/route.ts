@@ -134,6 +134,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       results.db_bank_transactions   = txnErr
         ? { error: txnErr.message, code: txnErr.code }
         : { count: txnCount };
+
+      // Per-entity breakdown: total vs. com running_balance. Confirma se JACQES
+      // (e demais ex-ENERDY) têm running_balance — necessário p/ a linha de saldo
+      // consolidada do chart (FinancialOverviewV2 dailySaldo/consolidatedRealBalance).
+      const entities = ["AWQ_Holding", "JACQES", "Caza_Vision", "ENERDY"];
+      const breakdown: Record<string, { total: number | null; withRunningBalance: number | null }> = {};
+      for (const e of entities) {
+        const { count: total } = await erpAnon
+          .from("bank_transactions")
+          .select("*", { count: "exact", head: true })
+          .eq("entity", e);
+        const { count: withRb } = await erpAnon
+          .from("bank_transactions")
+          .select("*", { count: "exact", head: true })
+          .eq("entity", e)
+          .not("running_balance", "is", null);
+        breakdown[e] = { total: total ?? null, withRunningBalance: withRb ?? null };
+      }
+      results.db_entity_breakdown = breakdown;
     }
   } catch (dbErr) {
     results.db_status = dbErr instanceof Error ? dbErr.message : String(dbErr);
