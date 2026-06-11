@@ -554,16 +554,22 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     // O Cora preenche `running_balance` em cada transação com o saldo após ela.
     // Pegamos o último runningBalance conhecido de cada dia (Cora Holding) e
     // carregamos forward p/ dias sem movimentação. Somamos closings estáticos
-    // das outras contas Holding (Itaú, BTG) p/ chegar no saldo consolidado.
+    // das demais contas consolidadas (Itaú, BTG, JACQES, … ex-ENERDY) p/ chegar
+    // no saldo consolidado — mesmo escopo do snapshot e do override live.
     // Isso garante que a linha reflita o extrato real, não a soma cumulativa
     // de amounts (que pode divergir quando há registros faltantes).
     let dailySaldo: number[] | null = null;
     if (viewMode === "diario") {
-      // Closings de outras contas Holding — não variam diariamente nesta janela
-      let otherHoldingClosings = 0;
+      // Closings estáticos das demais contas consolidadas (ex-ENERDY) — não
+      // variam diariamente nesta janela. Inclui Itaú/BTG da Holding + JACQES +
+      // demais entidades, p/ a linha de saldo ficar no MESMO escopo consolidado
+      // do snapshot persistido e do override live (consolidatedRealBalance).
+      // Antes somava só AWQ_Holding, o que gerava degraus no Y ao alternar com
+      // dias que usam snapshot (escopo consolidado, com JACQES).
+      let otherConsolidatedClosings = 0;
       for (const [k, v] of otherClosings.entries()) {
         const firstTx = transactions.find((t) => `${t.bank}::${t.accountName}` === k);
-        if (firstTx?.entity === "AWQ_Holding") otherHoldingClosings += v.balance;
+        if (firstTx && firstTx.entity !== "ENERDY") otherConsolidatedClosings += v.balance;
       }
 
       // Cora Holding: agrupa por dia, mantém maior `runningBalance` index — como
@@ -604,7 +610,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         dailySaldo = raw.data.map((d) => {
           const cora = d.date ? coraDailyMap.get(d.date) : undefined;
           if (cora != null) last = cora;
-          return Math.round(last + otherHoldingClosings);
+          return Math.round(last + otherConsolidatedClosings);
         });
       }
     }
