@@ -119,7 +119,9 @@ function buildInputsMeta(): HurdleAnalysis["inputsMeta"] {
   return {
     rfDaysAgo,
     erpDaysAgo,
-    stale:     rfDaysAgo > 90 || erpDaysAgo > 90,
+    // Rf (Selic) muda a cada ~45d (COPOM) → alerta se > 90d
+    // ERP (Damodaran) é publicação anual (jan) → alerta se > 400d
+    stale:     rfDaysAgo > 90 || erpDaysAgo > 400,
     rfSource:  HURDLE_CONFIG.rfSource,
     erpSource: HURDLE_CONFIG.erpSource,
   };
@@ -265,8 +267,9 @@ export async function getHurdleAnalysis(): Promise<HurdleAnalysis> {
     const bu       = buMap.get(h.bu_id);
     const prj      = projectRows.filter((p) => p.bu_id === h.bu_id);
     const roicReal = bu?.roic !== undefined ? bu.roic * 100 : undefined;
+    // EVA = (ROIC% − hurdle%) / 100 × capital — spread em pp → decimal antes de multiplicar
     const eva      = roicReal !== undefined && bu?.capitalAllocated
-      ? (roicReal - h.hurdle) * bu.capitalAllocated
+      ? ((roicReal - h.hurdle) / 100) * bu.capitalAllocated
       : undefined;
     return {
       ...h,
