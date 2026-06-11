@@ -1,0 +1,70 @@
+name: Post-Deploy Seeds (Jun 2026)
+
+# Triggers BTG and Itaú extract seeds automatically after a successful
+# deploy to production. Idempotent — safe to run multiple times.
+#
+# Auth: uses NEXTAUTH_SECRET as x-seed-secret header (already in GitHub Secrets
+# and Vercel env vars — no new secrets needed).
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    name: Seed BTG + Itaú Jun 2026
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for Vercel deployment
+        if: github.event_name == 'push'
+        run: |
+          echo "Waiting 90s for Vercel to build and promote deployment..."
+          sleep 90
+
+      - name: Seed BTG Jun 2026 (08–10/06)
+        id: seed_btg
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
+            -X POST https://awq-brown.vercel.app/api/setup/seed-btg-extract-jun2026 \
+            -H "x-seed-secret: ${{ secrets.NEXTAUTH_SECRET }}" \
+            -H "Content-Type: application/json")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          STATUS=$(echo "$RESPONSE" | tail -n 1)
+          echo "btg_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "btg_body=$BODY" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS — $BODY"
+          if [ "$STATUS" != "200" ]; then
+            echo "WARN: BTG seed returned $STATUS"
+          fi
+
+      - name: Seed Itaú Jun 2026 (02/06)
+        id: seed_itau
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
+            -X POST https://awq-brown.vercel.app/api/setup/seed-itau-extract-jun2026 \
+            -H "x-seed-secret: ${{ secrets.NEXTAUTH_SECRET }}" \
+            -H "Content-Type: application/json")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          STATUS=$(echo "$RESPONSE" | tail -n 1)
+          echo "itau_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "itau_body=$BODY" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS — $BODY"
+          if [ "$STATUS" != "200" ]; then
+            echo "WARN: Itaú seed returned $STATUS"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Post-Deploy Seeds" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Seed | HTTP | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| BTG Jun 2026 | ${{ steps.seed_btg.outputs.btg_status }} | ${{ steps.seed_btg.outputs.btg_body }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Itaú Jun 2026 | ${{ steps.seed_itau.outputs.itau_status }} | ${{ steps.seed_itau.outputs.itau_body }} |" >> $GITHUB_STEP_SUMMARY
