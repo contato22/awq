@@ -201,3 +201,11 @@ export function subsetSum(
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/**
+ * Gate de publicação: o saldo só é definitivo quando cobertura ≥ 98% E
+ * divergência = R$ 0,00. Antes disso, rotular "provisório — não conciliado".
+ */
+export function isGatePassed(cobertura: number, divergencia: number): boolean {
+  return cobertura >= 0.98 && Math.abs(divergencia) < 0.005;
+}

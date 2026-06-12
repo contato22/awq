@@ -5,7 +5,7 @@
 
 import {
   scoreCandidate, stateFromScore, jaroWinkler, normalizeKey,
-  calendarDayDiff, businessDayDiff, subsetSum, TETO_TARIFA,
+  calendarDayDiff, businessDayDiff, subsetSum, isGatePassed, TETO_TARIFA,
 } from "../lib/recon-scoring";
 
 let pass = 0, fail = 0;
@@ -71,6 +71,12 @@ check("39 exceção", stateFromScore(39) === "exception");
   const two = subsetSum([250, 750, 999], 1000, 5, 0.01);
   check("subsetSum 250+750=1000", !!two && two.length === 2);
 }
+
+// Gate de publicação (Teste 9)
+check("gate: 95% cobertura → provisório", isGatePassed(0.95, 0) === false);
+check("gate: 98% + divergência 0 → definitivo", isGatePassed(0.98, 0) === true);
+check("gate: 98% + divergência 50 → provisório", isGatePassed(0.98, 50) === false);
+check("gate: 100% + div 0 → definitivo", isGatePassed(1, 0) === true);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

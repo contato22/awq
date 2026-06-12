@@ -33,6 +33,7 @@ import {
 
 // ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
 const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverviewV2"), { ssr: false });
+const ConciliacaoInteligente = nextDynamic(() => import("@/components/ConciliacaoInteligenteSection"), { ssr: false });
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -140,6 +141,9 @@ export default async function ConciliacaoPage() {
           openingBalance={openingBalance}
           balanceSnapshots={balanceSnapshots}
         />
+
+        {/* ── Conciliação Inteligente (subseção: tabs + motor + gate) ── */}
+        <ConciliacaoInteligente />
 
         {/* ── Painel de conciliação ── */}
         <section className="space-y-4">
