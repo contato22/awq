@@ -557,52 +557,73 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     const openingDay1 = targetEndSaldo - periodNet;
 
     // ── Saldo line: fechamento REAL consolidado ao fim de cada período ──
-    // O Cora (e demais extratos) preenchem `running_balance` em cada transação
-    // com o saldo da conta após ela. Para refletir o fechamento histórico real
-    // — não um valor estático de hoje colado no passado — fazemos carry-forward
-    // POR CONTA: para cada conta ex-ENERDY, o saldo até a data de corte do ponto
-    // é o último running_balance conhecido daquela conta até essa data; somamos
-    // entre contas. A data de corte é o fim do período: fim do dia (diário), fim
-    // do mês (mensal) ou fim do ano (anual). Assim cada ponto do Y é o saldo
-    // consolidado realmente fechado naquele período (Holding Cora + Itaú + BTG +
-    // JACQES + …), e não a soma cumulativa de amounts. Vale para os 3 modos.
+    // Reconstrói o saldo de CADA conta (ex-ENERDY) em qualquer data de corte e
+    // soma entre contas. Fonte de verdade: `running_balance` (saldo da conta após
+    // a tx). Para tornar o histórico ROBUSTO mesmo quando transações antigas não
+    // têm running_balance, ancoramos no running_balance conhecido mais próximo e
+    // caminhamos pelos `amount`s (créditos somam, débitos subtraem):
+    //   • âncora <= corte  → saldo da âncora + Σ deltas das tx após a âncora até o corte
+    //   • só âncora futura → saldo da âncora − Σ deltas das tx entre o corte e a âncora
+    // Assim basta UMA âncora de running_balance por conta para reconstruir todo o
+    // histórico diário/mensal/anual — não exige running_balance em cada tx. A data
+    // de corte é o fim do período (dia/mês/ano). Vale para os 3 modos.
     let derivedSaldo: number[] | null = null;
     {
-      // Timeline por conta: último running_balance de cada dia, ordenado asc.
-      // Inclui TODO o histórico (não só o período visível) p/ o carry-forward
-      // refletir saldos anteriores ao primeiro ponto do gráfico.
-      const tmp = new Map<string, Map<string, number>>();   // acct → (YYYY-MM-DD → saldo do dia)
+      // Por conta: movimentos (date, delta) + âncoras de running_balance, asc.
+      const acctTx = new Map<string, { date: string; delta: number; rb: number | null }[]>();
       for (const t of transactions) {
-        if (t.entity === "ENERDY") continue;                // fora do escopo
-        if (t.runningBalance == null) continue;
+        if (t.entity === "ENERDY") continue;                  // fora do escopo
         const k = `${t.bank}::${t.accountName}`;
-        // Sem timestamp intra-dia: a última tx vista no dia vence (extrato já
-        // devolve ordenado por data; aceitamos a última como fechamento do dia).
-        let dm = tmp.get(k);
-        if (!dm) { dm = new Map(); tmp.set(k, dm); }
-        dm.set(t.transactionDate, t.runningBalance);
+        let arr = acctTx.get(k);
+        if (!arr) { arr = []; acctTx.set(k, arr); }
+        arr.push({
+          date: t.transactionDate,
+          delta: t.direction === "credit" ? t.amount : -t.amount,
+          rb: t.runningBalance ?? null,
+        });
       }
-      const acctTimeline = new Map<string, { date: string; bal: number }[]>();
-      for (const [k, dm] of tmp) {
-        acctTimeline.set(k, Array.from(dm.entries())
-          .map(([date, bal]) => ({ date, bal }))
-          .sort((a, b) => a.date.localeCompare(b.date)));
-      }
+      for (const arr of acctTx.values()) arr.sort((a, b) => a.date.localeCompare(b.date));
+      const hasAnchor = Array.from(acctTx.values()).some((arr) => arr.some((e) => e.rb != null));
 
-      // Saldo consolidado fechado até `cutoff` (inclusive): por conta, último
-      // running_balance com date <= cutoff (0 se a conta ainda não tem histórico).
+      // Saldo de UMA conta na data de corte, reconstruído a partir da âncora de
+      // running_balance mais próxima + os fluxos de amount entre âncora e corte.
+      const accountClosingAsOf = (
+        arr: { date: string; delta: number; rb: number | null }[], cutoff: string,
+      ): number => {
+        // (1) última âncora com date <= cutoff → soma os deltas posteriores até o corte
+        let aIdx = -1;
+        for (let i = 0; i < arr.length; i++) if (arr[i].rb != null && arr[i].date <= cutoff) aIdx = i;
+        if (aIdx >= 0) {
+          let bal = arr[aIdx].rb as number;
+          const aDate = arr[aIdx].date;
+          for (let i = aIdx + 1; i < arr.length; i++) {
+            if (arr[i].date > aDate && arr[i].date <= cutoff) bal += arr[i].delta;
+          }
+          return bal;
+        }
+        // (2) sem âncora <= cutoff: usa a 1ª âncora futura e REVERTE os fluxos
+        let fIdx = -1;
+        for (let i = 0; i < arr.length; i++) if (arr[i].rb != null && arr[i].date > cutoff) { fIdx = i; break; }
+        if (fIdx >= 0) {
+          let bal = arr[fIdx].rb as number;
+          const fDate = arr[fIdx].date;
+          for (let i = 0; i < arr.length; i++) {
+            if (arr[i].date > cutoff && arr[i].date <= fDate) bal -= arr[i].delta;
+          }
+          return bal;
+        }
+        // (3) conta sem nenhuma âncora de running_balance → absoluto desconhecido
+        return 0;
+      };
+
       const consolidatedClosingAsOf = (cutoff: string): number => {
         let sum = 0;
-        for (const arr of acctTimeline.values()) {
-          let bal = 0;
-          for (const e of arr) { if (e.date <= cutoff) bal = e.bal; else break; }
-          sum += bal;
-        }
+        for (const arr of acctTx.values()) sum += accountClosingAsOf(arr, cutoff);
         return Math.round(sum);
       };
 
       // Se nenhuma conta tem running_balance, mantém o cálculo cumulativo legado.
-      if (acctTimeline.size > 0) {
+      if (hasAnchor) {
         derivedSaldo = raw.data.map((d) => {
           const dt = d.date ?? "";
           let cutoff: string;
