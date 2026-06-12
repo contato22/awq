@@ -51,8 +51,12 @@ kkhxxsrgsewjfvnnssyf.supabase.co -> HTTP 403 (connect 0.02s)   # 403 = sem apike
 
 Configurar como **env/secret no ambiente do agente** (nunca no chat/repo): `SUPABASE_URL`,
 `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `PREVIEW_URL` (deploy Ready),
-`SESSION_COOKIE` (sessão autenticada) e `CORA_ACCOUNTS` (IDs reais por BU). Pré-aplicar a
-**migration 003** no Supabase SQL Editor.
+`SESSION_COOKIE` (sessão autenticada) e `CORA_ACCOUNT_AWQ` (id real da conta). Pré-aplicar as
+**migrations 003/004/005** no Supabase SQL Editor (e cadastrar as contas reais em `bu_bank_account`).
+
+**Runner:** com os secrets presentes, rode `bash scripts/verify-real.sh` — ele executa os checks
+A–I contra o ambiente real, regenera este `verify-real-report.md` com as evidências (mascarando
+credenciais) e sai com código ≠ 0 se algum 🔴 (B/E/F/G) reprovar.
 
 ## Notas de escopo (importantes)
 
