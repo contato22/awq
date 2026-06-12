@@ -556,54 +556,65 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     const periodNet = raw.totalIn - raw.totalOut;
     const openingDay1 = targetEndSaldo - periodNet;
 
-    // ── Saldo line (diário): fechamento REAL consolidado de CADA dia ──
+    // ── Saldo line: fechamento REAL consolidado ao fim de cada período ──
     // O Cora (e demais extratos) preenchem `running_balance` em cada transação
     // com o saldo da conta após ela. Para refletir o fechamento histórico real
-    // de cada dia — não um valor estático de hoje colado no passado — fazemos
-    // carry-forward POR CONTA: para cada conta ex-ENERDY, o saldo do dia D é o
-    // último running_balance conhecido daquela conta até D; somamos entre contas.
-    // Assim cada ponto do Y é o saldo consolidado realmente fechado naquele dia
-    // (Holding Cora + Itaú + BTG + JACQES + …), e não a soma cumulativa de amounts.
-    let dailySaldo: number[] | null = null;
-    if (viewMode === "diario") {
-      const firstDay = raw.data[0]?.date ?? `${monthNav}-01`;
-
-      // Por conta: (a) fechamento conhecido em cada dia; (b) carry-in = último
-      // running_balance estritamente antes do período visível.
-      const acctDay   = new Map<string, Map<string, number>>();        // acctKey → (YYYY-MM-DD → saldo)
-      const acctPrior = new Map<string, { bal: number; date: string }>();
+    // — não um valor estático de hoje colado no passado — fazemos carry-forward
+    // POR CONTA: para cada conta ex-ENERDY, o saldo até a data de corte do ponto
+    // é o último running_balance conhecido daquela conta até essa data; somamos
+    // entre contas. A data de corte é o fim do período: fim do dia (diário), fim
+    // do mês (mensal) ou fim do ano (anual). Assim cada ponto do Y é o saldo
+    // consolidado realmente fechado naquele período (Holding Cora + Itaú + BTG +
+    // JACQES + …), e não a soma cumulativa de amounts. Vale para os 3 modos.
+    let derivedSaldo: number[] | null = null;
+    {
+      // Timeline por conta: último running_balance de cada dia, ordenado asc.
+      // Inclui TODO o histórico (não só o período visível) p/ o carry-forward
+      // refletir saldos anteriores ao primeiro ponto do gráfico.
+      const tmp = new Map<string, Map<string, number>>();   // acct → (YYYY-MM-DD → saldo do dia)
       for (const t of transactions) {
-        if (t.entity === "ENERDY") continue;          // fora do escopo
+        if (t.entity === "ENERDY") continue;                // fora do escopo
         if (t.runningBalance == null) continue;
         const k = `${t.bank}::${t.accountName}`;
-        // Sem timestamp intra-dia: o último visto no dia vence (extrato Cora já
-        // devolve ordenado por data; aceitamos a última tx vista como fechamento).
-        let dm = acctDay.get(k);
-        if (!dm) { dm = new Map(); acctDay.set(k, dm); }
+        // Sem timestamp intra-dia: a última tx vista no dia vence (extrato já
+        // devolve ordenado por data; aceitamos a última como fechamento do dia).
+        let dm = tmp.get(k);
+        if (!dm) { dm = new Map(); tmp.set(k, dm); }
         dm.set(t.transactionDate, t.runningBalance);
-        if (t.transactionDate < firstDay) {
-          const prev = acctPrior.get(k);
-          if (!prev || t.transactionDate >= prev.date) {
-            acctPrior.set(k, { bal: t.runningBalance, date: t.transactionDate });
-          }
-        }
+      }
+      const acctTimeline = new Map<string, { date: string; bal: number }[]>();
+      for (const [k, dm] of tmp) {
+        acctTimeline.set(k, Array.from(dm.entries())
+          .map(([date, bal]) => ({ date, bal }))
+          .sort((a, b) => a.date.localeCompare(b.date)));
       }
 
+      // Saldo consolidado fechado até `cutoff` (inclusive): por conta, último
+      // running_balance com date <= cutoff (0 se a conta ainda não tem histórico).
+      const consolidatedClosingAsOf = (cutoff: string): number => {
+        let sum = 0;
+        for (const arr of acctTimeline.values()) {
+          let bal = 0;
+          for (const e of arr) { if (e.date <= cutoff) bal = e.bal; else break; }
+          sum += bal;
+        }
+        return Math.round(sum);
+      };
+
       // Se nenhuma conta tem running_balance, mantém o cálculo cumulativo legado.
-      const eligibleAccts = Array.from(acctDay.keys());
-      if (eligibleAccts.length > 0) {
-        // Saldo corrente por conta, inicializado com o carry-in (0 se a conta
-        // ainda não tem histórico antes do período → contribui 0 até sua 1ª tx).
-        const carry = new Map<string, number>();
-        for (const k of eligibleAccts) carry.set(k, acctPrior.get(k)?.bal ?? 0);
-        dailySaldo = raw.data.map((d) => {
-          let sum = 0;
-          for (const k of eligibleAccts) {
-            const v = d.date ? acctDay.get(k)!.get(d.date) : undefined;
-            if (v != null) carry.set(k, v);   // fecha o dia com o saldo real da conta
-            sum += carry.get(k) ?? 0;
+      if (acctTimeline.size > 0) {
+        derivedSaldo = raw.data.map((d) => {
+          const dt = d.date ?? "";
+          let cutoff: string;
+          if (dt.length === 4) {
+            cutoff = `${dt}-12-31`;                          // anual → fim do ano
+          } else if (dt.length === 7) {
+            const yr = parseInt(dt.slice(0, 4)), mo = parseInt(dt.slice(5, 7));
+            cutoff = `${dt}-${String(daysInMonthFn(yr, mo)).padStart(2, "0")}`; // mensal → fim do mês
+          } else {
+            cutoff = dt || today();                          // diário → o próprio dia
           }
-          return Math.round(sum);
+          return consolidatedClosingAsOf(cutoff);
         });
       }
     }
@@ -660,7 +671,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           : dlen === 7 ? monthlySnapshotMap.get(d.date)
           : snapshotMap.get(d.date))
         : undefined;
-      const saldoFromRB = dailySaldo?.[idx];
+      const saldoFromRB = derivedSaldo?.[idx];
       // Prioridade: snapshot persistido → runningBalance derivado → soma cumulativa
       const saldo = saldoFromSnapshot != null
         ? Math.round(saldoFromSnapshot)
