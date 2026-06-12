@@ -1,0 +1,68 @@
+name: Conciliação — bootstrap & verify (manual)
+
+# Aplica o schema + backfill da Conciliação Inteligente na Supabase de produção,
+# e/ou verifica o estado. Roda no runner do GitHub (egress aberto) — diferente do
+# sandbox do agente, que tem o host do Supabase bloqueado.
+#
+# Pré-requisito: adicionar o secret do repositório
+#   SUPABASE_DB_URL = connection string do Postgres do Supabase
+#   (Supabase → Project Settings → Database → Connection string → "Session"/URI)
+#
+# Dispare manualmente em Actions → "Conciliação — bootstrap & verify" → Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "bootstrap (aplica migrations+backfill e verifica) | verify (só lê contagens)"
+        type: choice
+        default: bootstrap
+        options: [bootstrap, verify]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala psql
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Checa secret
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$PGURL" ]; then
+            echo "::error::Defina o secret SUPABASE_DB_URL (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          echo "secret presente."
+
+      - name: Bootstrap (migrations + backfill + fila ENERDY)
+        if: ${{ inputs.mode == 'bootstrap' }}
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          echo "Aplicando _bootstrap_conciliacao_full.sql (idempotente)…"
+          psql "$PGURL" -v ON_ERROR_STOP=1 -f supabase/migrations/_bootstrap_conciliacao_full.sql
+          echo "Recarregando schema cache do PostgREST…"
+          psql "$PGURL" -c "notify pgrst, 'reload schema';"
+
+      - name: Verify (somente contagens — sem dados financeiros)
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          echo "== tabelas criadas (esperado 8) =="
+          psql "$PGURL" -c "select count(*) as tabelas from information_schema.tables where table_schema='public' and table_name in ('accounting_period','bank_transaction','ledger_entry','recon_group','recon_match','recon_rule','recon_payee_memory','bu_bank_account');"
+          echo "== views (esperado 3) =="
+          psql "$PGURL" -c "select count(*) as views from information_schema.views where table_name in ('v_saldo_conciliado','v_consolidado_grupo','v_legado_enerdy_revisao');"
+          echo "== cobertura por BU =="
+          psql "$PGURL" -c "select bu, count(*) total, count(*) filter (where recon_status in ('matched','partial')) conciliado, count(*) filter (where recon_status='unmatched') excecoes from bank_transaction group by bu order by bu;"
+          echo "== fila de classificação ENERDY =="
+          psql "$PGURL" -c "select count(*) as enerdy_aguardando from ledger_entry where legacy_label='ENERDY' and needs_classification;"
+          echo "== entities legadas não mapeadas (falha fechada — não ingeridas) =="
+          psql "$PGURL" -c "select bt.entity, count(*) n from bank_transactions bt left join bu_bank_account m on m.account_id=bt.entity and m.active where m.account_id is null group by bt.entity order by 2 desc;"
