@@ -556,67 +556,54 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     const periodNet = raw.totalIn - raw.totalOut;
     const openingDay1 = targetEndSaldo - periodNet;
 
-    // ── Saldo line (diário): usa runningBalance REAL do extrato Cora Holding ──
-    // O Cora preenche `running_balance` em cada transação com o saldo após ela.
-    // Pegamos o último runningBalance conhecido de cada dia (Cora Holding) e
-    // carregamos forward p/ dias sem movimentação. Somamos closings estáticos
-    // das demais contas consolidadas (Itaú, BTG, JACQES, … ex-ENERDY) p/ chegar
-    // no saldo consolidado — mesmo escopo do snapshot e do override live.
-    // Isso garante que a linha reflita o extrato real, não a soma cumulativa
-    // de amounts (que pode divergir quando há registros faltantes).
+    // ── Saldo line (diário): fechamento REAL consolidado de CADA dia ──
+    // O Cora (e demais extratos) preenchem `running_balance` em cada transação
+    // com o saldo da conta após ela. Para refletir o fechamento histórico real
+    // de cada dia — não um valor estático de hoje colado no passado — fazemos
+    // carry-forward POR CONTA: para cada conta ex-ENERDY, o saldo do dia D é o
+    // último running_balance conhecido daquela conta até D; somamos entre contas.
+    // Assim cada ponto do Y é o saldo consolidado realmente fechado naquele dia
+    // (Holding Cora + Itaú + BTG + JACQES + …), e não a soma cumulativa de amounts.
     let dailySaldo: number[] | null = null;
     if (viewMode === "diario") {
-      // Closings estáticos das demais contas consolidadas (ex-ENERDY) — não
-      // variam diariamente nesta janela. Inclui Itaú/BTG da Holding + JACQES +
-      // demais entidades, p/ a linha de saldo ficar no MESMO escopo consolidado
-      // do snapshot persistido e do override live (consolidatedRealBalance).
-      // Antes somava só AWQ_Holding, o que gerava degraus no Y ao alternar com
-      // dias que usam snapshot (escopo consolidado, com JACQES).
-      let otherConsolidatedClosings = 0;
-      for (const [k, v] of otherClosings.entries()) {
-        const firstTx = transactions.find((t) => `${t.bank}::${t.accountName}` === k);
-        if (firstTx && firstTx.entity !== "ENERDY") otherConsolidatedClosings += v.balance;
-      }
-
-      // Cora Holding: agrupa por dia, mantém maior `runningBalance` index — como
-      // não há timestamp intra-dia, usamos o último elemento iterado por dia
-      // (DB normalmente devolve ordenado por data). Quando há múltiplas tx no
-      // mesmo dia, o ideal seria a última cronológica; aqui aceitamos a última
-      // vista, que é o que o extrato Cora retorna.
-      const coraDailyMap = new Map<string, number>();
-      for (const t of transactions) {
-        if (t.entity !== "AWQ_Holding") continue;
-        if (!(t.bank ?? "").toLowerCase().includes("cora")) continue;
-        if (t.runningBalance == null) continue;
-        coraDailyMap.set(t.transactionDate, t.runningBalance);
-      }
-
-      // Para anchor anterior ao mês visível, busca o último Cora runningBalance
-      // antes do `from` p/ inicializar o carry-forward. Se não existir, usa
-      // a derivação por net acumulado (fallback).
       const firstDay = raw.data[0]?.date ?? `${monthNav}-01`;
-      let priorCora: number | null = null;
-      let priorDate = "";
+
+      // Por conta: (a) fechamento conhecido em cada dia; (b) carry-in = último
+      // running_balance estritamente antes do período visível.
+      const acctDay   = new Map<string, Map<string, number>>();        // acctKey → (YYYY-MM-DD → saldo)
+      const acctPrior = new Map<string, { bal: number; date: string }>();
       for (const t of transactions) {
-        if (t.entity !== "AWQ_Holding") continue;
-        if (!(t.bank ?? "").toLowerCase().includes("cora")) continue;
+        if (t.entity === "ENERDY") continue;          // fora do escopo
         if (t.runningBalance == null) continue;
-        if (t.transactionDate >= firstDay) continue;
-        if (t.transactionDate >= priorDate) {
-          priorCora = t.runningBalance;
-          priorDate = t.transactionDate;
+        const k = `${t.bank}::${t.accountName}`;
+        // Sem timestamp intra-dia: o último visto no dia vence (extrato Cora já
+        // devolve ordenado por data; aceitamos a última tx vista como fechamento).
+        let dm = acctDay.get(k);
+        if (!dm) { dm = new Map(); acctDay.set(k, dm); }
+        dm.set(t.transactionDate, t.runningBalance);
+        if (t.transactionDate < firstDay) {
+          const prev = acctPrior.get(k);
+          if (!prev || t.transactionDate >= prev.date) {
+            acctPrior.set(k, { bal: t.runningBalance, date: t.transactionDate });
+          }
         }
       }
 
-      // Se temos pelo menos algum runningBalance Cora no/antes do período,
-      // construímos a linha de saldo via carry-forward. Caso contrário,
-      // mantemos o cálculo cumulativo legado.
-      if (coraDailyMap.size > 0 || priorCora != null) {
-        let last = priorCora ?? 0;
+      // Se nenhuma conta tem running_balance, mantém o cálculo cumulativo legado.
+      const eligibleAccts = Array.from(acctDay.keys());
+      if (eligibleAccts.length > 0) {
+        // Saldo corrente por conta, inicializado com o carry-in (0 se a conta
+        // ainda não tem histórico antes do período → contribui 0 até sua 1ª tx).
+        const carry = new Map<string, number>();
+        for (const k of eligibleAccts) carry.set(k, acctPrior.get(k)?.bal ?? 0);
         dailySaldo = raw.data.map((d) => {
-          const cora = d.date ? coraDailyMap.get(d.date) : undefined;
-          if (cora != null) last = cora;
-          return Math.round(last + otherConsolidatedClosings);
+          let sum = 0;
+          for (const k of eligibleAccts) {
+            const v = d.date ? acctDay.get(k)!.get(d.date) : undefined;
+            if (v != null) carry.set(k, v);   // fecha o dia com o saldo real da conta
+            sum += carry.get(k) ?? 0;
+          }
+          return Math.round(sum);
         });
       }
     }
