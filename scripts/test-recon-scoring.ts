@@ -5,7 +5,7 @@
 
 import {
   scoreCandidate, stateFromScore, jaroWinkler, normalizeKey,
-  calendarDayDiff, businessDayDiff, TETO_TARIFA,
+  calendarDayDiff, businessDayDiff, subsetSum, TETO_TARIFA,
 } from "../lib/recon-scoring";
 
 let pass = 0, fail = 0;
@@ -60,6 +60,16 @@ check("39 exceção", stateFromScore(39) === "exception");
     { openAmount: 1000, dueDate: "2026-03-10", counterparty: "ACME", counterDoc: "12345678000190", memoryKnown: true },
   );
   check("memória eleva a auto (97)", br.total === 97 && stateFromScore(br.total) === "auto", JSON.stringify(br));
+}
+
+// subset-sum (Via 3)
+{
+  const idx = subsetSum([300, 300, 400], 1000, 5, 0.01);
+  check("subsetSum acha 300+300+400=1000", !!idx && idx.length === 3);
+  check("subsetSum sem solução → null", subsetSum([700], 1000, 5, 0.01) === null);
+  check("subsetSum respeita maxItens", subsetSum([100, 100, 100, 100, 100, 100], 600, 5, 0.01) === null);
+  const two = subsetSum([250, 750, 999], 1000, 5, 0.01);
+  check("subsetSum 250+750=1000", !!two && two.length === 2);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

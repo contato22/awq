@@ -154,6 +154,50 @@ export function stateFromScore(score: number): MatchState {
   return "exception";
 }
 
+/**
+ * Subset-sum limitado (Via 3 — fuzzy N:1 / 1:N). Acha um subconjunto de `values`
+ * que some `target` dentro de `tol`, com no máximo `maxItems` itens. Retorna os
+ * índices (no array original) do primeiro subconjunto encontrado, ou null.
+ *
+ * Poda: descarta itens > target+tol (todos positivos), ordena desc e corta ramos
+ * cujo acumulado já passou do alvo. Itens individuais idênticos não são deduzidos
+ * (300 + 300 é válido). Chamador deve limitar o tamanho do pool (ex.: ≤30).
+ */
+export function subsetSum(
+  values: number[],
+  target: number,
+  maxItems = 5,
+  tol = 0.01,
+): number[] | null {
+  // Mantém o índice original ao filtrar/ordenar.
+  const items = values
+    .map((v, i) => ({ v, i }))
+    .filter((x) => x.v > tol && x.v <= target + tol)
+    .sort((a, b) => b.v - a.v);
+
+  const chosen: number[] = [];
+  let found: number[] | null = null;
+
+  function dfs(start: number, remaining: number) {
+    if (found) return;
+    if (Math.abs(remaining) <= tol && chosen.length > 0) {
+      found = chosen.map((k) => items[k].i);
+      return;
+    }
+    if (chosen.length >= maxItems || remaining < -tol) return;
+    for (let k = start; k < items.length; k++) {
+      if (items[k].v > remaining + tol) continue; // poda (ordenado desc)
+      chosen.push(k);
+      dfs(k + 1, round2(remaining - items[k].v));
+      chosen.pop();
+      if (found) return;
+    }
+  }
+
+  dfs(0, target);
+  return found;
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }

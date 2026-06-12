@@ -159,15 +159,59 @@ export async function getOpenLedgerEntries(bu: BU): Promise<EngineLedger[]> {
   return (data ?? []) as EngineLedger[];
 }
 
-/** Conjunto de chaves normalizadas presentes em recon_payee_memory (para o score). */
-export async function getMemoryKeys(bu: BU): Promise<Set<string>> {
+export interface MemRecord {
+  kind: string | null;
+  categoria: string | null;
+  conta_contabil: string | null;
+}
+
+/** Memória de aprendizado por contraparte normalizada (Via 4 + score). */
+export async function getMemory(bu: BU): Promise<Map<string, MemRecord>> {
   const client = requireDb();
   const { data, error } = await client
     .from("recon_payee_memory")
-    .select("counterparty_key")
+    .select("counterparty_key,kind,categoria,conta_contabil")
     .eq("bu", bu);
   if (error) throw error;
-  return new Set((data ?? []).map((r) => (r as { counterparty_key: string }).counterparty_key));
+  const map = new Map<string, MemRecord>();
+  for (const r of data ?? []) {
+    const row = r as { counterparty_key: string } & MemRecord;
+    map.set(row.counterparty_key, { kind: row.kind, categoria: row.categoria, conta_contabil: row.conta_contabil });
+  }
+  return map;
+}
+
+/**
+ * Grava/incrementa a memória ao resolver uma exceção (chamada pela UI/PR-5).
+ * Faz upsert com incremento de hit_count e atualização de last_seen.
+ */
+export async function upsertPayeeMemory(
+  bu: BU,
+  counterpartyKey: string,
+  rec: MemRecord,
+): Promise<void> {
+  const client = requireDb();
+  const { data, error } = await client
+    .from("recon_payee_memory")
+    .select("hit_count")
+    .eq("bu", bu)
+    .eq("counterparty_key", counterpartyKey)
+    .maybeSingle();
+  if (error) throw error;
+  const hit = ((data as { hit_count?: number } | null)?.hit_count ?? 0) + 1;
+  const { error: upErr } = await client.from("recon_payee_memory").upsert(
+    {
+      bu,
+      counterparty_key: counterpartyKey,
+      kind: rec.kind,
+      categoria: rec.categoria,
+      conta_contabil: rec.conta_contabil,
+      hit_count: hit,
+      last_seen: new Date().toISOString(),
+    },
+    { onConflict: "bu,counterparty_key" },
+  );
+  if (upErr) throw upErr;
 }
 
 /**

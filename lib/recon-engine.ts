@@ -10,7 +10,7 @@
 import {
   getUnmatchedBankTx,
   getOpenLedgerEntries,
-  getMemoryKeys,
+  getMemory,
   getActivelyMatchedTxIds,
   createGroupWithMatches,
   insertLedgerEntry,
@@ -21,11 +21,13 @@ import {
   type NewLedgerInput,
   type NewGroupInput,
   type NewMatchInput,
+  type MemRecord,
 } from "@/lib/recon-db";
 import {
   scoreCandidate,
   stateFromScore,
   normalizeKey,
+  subsetSum,
   TETO_TARIFA,
   type ScoreCand,
 } from "@/lib/recon-scoring";
@@ -48,7 +50,7 @@ const CENT = 0.01;
 export interface ReconcileDeps {
   getUnmatchedBankTx(bu: BU): Promise<EngineBankTx[]>;
   getOpenLedgerEntries(bu: BU): Promise<EngineLedger[]>;
-  getMemoryKeys(bu: BU): Promise<Set<string>>;
+  getMemory(bu: BU): Promise<Map<string, MemRecord>>;
   getActivelyMatchedTxIds(bu: BU): Promise<Set<string>>;
   createGroupWithMatches(group: NewGroupInput, matches: NewMatchInput[]): Promise<string>;
   insertLedgerEntry(input: NewLedgerInput): Promise<string>;
@@ -59,7 +61,7 @@ export interface ReconcileDeps {
 const defaultDeps: ReconcileDeps = {
   getUnmatchedBankTx,
   getOpenLedgerEntries,
-  getMemoryKeys,
+  getMemory,
   getActivelyMatchedTxIds,
   createGroupWithMatches,
   insertLedgerEntry,
@@ -77,12 +79,13 @@ function compatibleKind(direction: "IN" | "OUT", kind: string): boolean {
  * Persiste grupos/matches e materializa recon_status / open_amount.
  */
 export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Promise<ReconcileResult> {
-  const [unmatched, ledgerAll, memoryKeys, alreadyMatched] = await Promise.all([
+  const [unmatched, ledgerAll, memory, alreadyMatched] = await Promise.all([
     deps.getUnmatchedBankTx(bu),
     deps.getOpenLedgerEntries(bu),
-    deps.getMemoryKeys(bu),
+    deps.getMemory(bu),
     deps.getActivelyMatchedTxIds(bu),
   ]);
+  const memoryKeys = new Set(memory.keys());
 
   // open_amount é mutável durante o run — trabalha numa cópia em memória.
   const ledger = ledgerAll.map((l) => ({ ...l }));
@@ -195,8 +198,63 @@ export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Prom
       continue;
     }
 
-    // ── SEM MATCH — permanece 'unmatched' (fila de Exceções). Pré-classificação
-    //    por recon_rule e criação de lançamento provisório entram no PR-4 (Via 4).
+    // ── VIA 3 — FUZZY N:1 / 1:N (subset-sum por contraparte) ──
+    const cpKey = tx.counterparty ? normalizeKey(tx.counterparty) : "";
+    if (cpKey) {
+      const pool = ledger.filter(
+        (c) =>
+          c.open_amount > 0 &&
+          compatibleKind(tx.direction, c.kind) &&
+          normalizeKey(c.counterparty) === cpKey &&
+          (c.due_date == null || calWithin(tx.value_date, c.due_date, 7)),
+      );
+      // Pool grande → abortar subset-sum (não travar o run); cai p/ exceção.
+      if (pool.length > 0 && pool.length <= 30) {
+        const idx = subsetSum(pool.map((p) => p.open_amount), absTx, 5, CENT);
+        // N:1 exige ≥2 itens (1 item exato já seria pego pela Via 2).
+        if (idx && idx.length >= 2) {
+          const picked = idx.map((i) => pool[i]);
+          await applyFuzzy(tx, picked, 75, "matched");
+          result.suggested++;
+          continue;
+        }
+        // Adiantamento: tx cobre todo o pool e ainda sobra (excedente = advance).
+        const poolSum = round2(pool.reduce((a, c) => a + c.open_amount, 0));
+        if (poolSum > CENT && poolSum < absTx - CENT) {
+          await applyFuzzy(tx, pool, 70, "partial");
+          result.suggested++;
+          continue;
+        }
+      }
+    }
+
+    // ── VIA 4 — MEMÓRIA (cria lançamento provisório do banco) ──
+    const mem = cpKey ? memory.get(cpKey) : undefined;
+    if (mem) {
+      const leId = await deps.insertLedgerEntry({
+        bu,
+        kind: mem.kind ?? "AR",
+        amount: round2(absTx),
+        open_amount: 0,
+        categoria: mem.categoria ?? "memoria",
+        conta_contabil: mem.conta_contabil ?? "x",
+        counterparty: tx.counterparty,
+        doc_ref: tx.e2e_id ?? tx.txid,
+        origem: "banco",
+        status: "conciliado",
+      });
+      await deps.createGroupWithMatches(
+        { bu, confidence: 60, method: "memory", state: "suggested" },
+        [{ bank_tx_id: tx.id, ledger_id: leId, applied_amount: round2(absTx) }],
+      );
+      await deps.setBankTxStatus(tx.id, "matched");
+      result.suggested++;
+      continue;
+    }
+
+    // ── SEM MATCH — permanece 'unmatched' (fila de Exceções). A pré-classificação
+    //    por recon_rule é aplicada na resolução (UI/PR-5); não persistimos um
+    //    lançamento provisório aqui para manter o run idempotente.
     result.exceptions++;
   }
 
@@ -220,6 +278,29 @@ export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Prom
     cand.open_amount = newOpen;
     await deps.updateLedgerOpen(cand.id, newOpen, newOpen <= CENT ? "conciliado" : "parcial");
     await deps.setBankTxStatus(tx.id, applied >= absTx - CENT ? "matched" : "partial");
+  }
+
+  // ── helper local: aplica match fuzzy N:1 (fecha cada lançamento do subset) ──
+  async function applyFuzzy(
+    tx: EngineBankTx,
+    picked: EngineLedger[],
+    confidence: number,
+    txStatus: "matched" | "partial",
+  ) {
+    const matches = picked.map((c) => ({
+      bank_tx_id: tx.id,
+      ledger_id: c.id,
+      applied_amount: round2(c.open_amount),
+    }));
+    await deps.createGroupWithMatches(
+      { bu, confidence, method: "fuzzy", state: "suggested" },
+      matches,
+    );
+    for (const c of picked) {
+      await deps.updateLedgerOpen(c.id, 0, "conciliado");
+      c.open_amount = 0;
+    }
+    await deps.setBankTxStatus(tx.id, txStatus);
   }
 }
 
