@@ -24,7 +24,9 @@ type Tab = "overview" | "queue" | "rules";
 interface Metrics {
   total: number; matched: number;
   counts: { auto: number; suggested: number; weak: number; exceptions: number };
-  firstPass: number; cobertura: number; divergencia: number; agingMax: number; gatePassed: boolean;
+  firstPass: number; cobertura: number; divergencia: number; agingMax: number;
+  leadTimeP95: number; retrabalho: number; agingExcecaoOver7: number; agingArApOpen: number;
+  gatePassed: boolean;
 }
 interface Ledger { id: string; kind: string; categoria: string; counterparty: string | null; applied: number }
 interface QueueItem {
@@ -256,6 +258,49 @@ function OverviewTab({ m, saldo }: { m: Metrics; saldo: Saldo[] }) {
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* Painel de métricas (§7) */}
+      <MetricsPanel m={m} />
+    </div>
+  );
+}
+
+// Painel de métricas com metas (§7 do spec).
+function MetricsPanel({ m }: { m: Metrics }) {
+  const rows: { metric: string; value: string; meta: string; ok: boolean }[] = [
+    { metric: "First-pass match rate", value: pct(m.firstPass), meta: "≥ 60%", ok: m.firstPass >= 0.6 },
+    { metric: "Cobertura", value: pct(m.cobertura), meta: "≥ 98%", ok: m.cobertura >= 0.98 },
+    { metric: "Lead time p95", value: `${m.leadTimeP95}d`, meta: "≤ 2d", ok: m.leadTimeP95 <= 2 },
+    { metric: "Retrabalho", value: pct(m.retrabalho), meta: "≤ 5%", ok: m.retrabalho <= 0.05 },
+    { metric: "Aging de exceção (>7d)", value: `${m.agingExcecaoOver7}`, meta: "0", ok: m.agingExcecaoOver7 === 0 },
+    { metric: "Divergência de saldo", value: brl(m.divergencia), meta: "R$ 0,00", ok: m.divergencia === 0 },
+    { metric: "Aging AR/AP aberto", value: `${m.agingArApOpen}`, meta: "exposto", ok: true },
+  ];
+  return (
+    <div className="rounded-xl border border-gray-100 p-3">
+      <p className="text-[11px] font-semibold text-gray-500 mb-2">Painel de métricas</p>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left text-gray-400 border-b border-gray-100">
+            <th className="py-1.5 font-semibold">Métrica</th>
+            <th className="py-1.5 font-semibold text-right">Atual</th>
+            <th className="py-1.5 font-semibold text-right">Meta</th>
+            <th className="py-1.5 font-semibold text-right">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.metric} className="border-b border-gray-50">
+              <td className="py-1.5 text-gray-700">{r.metric}</td>
+              <td className="py-1.5 text-right tabular-nums font-semibold text-gray-800">{r.value}</td>
+              <td className="py-1.5 text-right tabular-nums text-gray-400">{r.meta}</td>
+              <td className="py-1.5 text-right">
+                <span className={r.ok ? "text-emerald-600" : "text-amber-600"}>{r.ok ? "✓" : "•"}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

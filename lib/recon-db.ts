@@ -9,7 +9,7 @@
 // IMPORTANTE: importar APENAS de Route Handlers / Server Actions.
 
 import { erpAdmin, erpAnon } from "@/lib/supabase";
-import { isGatePassed } from "@/lib/recon-scoring";
+import { isGatePassed, percentile } from "@/lib/recon-scoring";
 import type { BankTxRow, ReconBankTxInput, IngestResult, BU, ReconStatus } from "@/lib/recon-types";
 
 const db = erpAdmin ?? erpAnon;
@@ -322,6 +322,10 @@ export interface ReconMetrics {
   cobertura: number;        // matched / total (0..1)
   divergencia: number;      // saldo extrato − saldo razão (R$)
   agingMax: number;         // dias da exceção mais antiga
+  leadTimeP95: number;      // p95 de dias entre value_date e conciliação
+  retrabalho: number;       // grupos reverted / grupos criados (0..1)
+  agingExcecaoOver7: number;// exceções abertas há > 7 dias
+  agingArApOpen: number;    // recebível/pagável vencido sem tx (lançamentos doc)
   gatePassed: boolean;      // cobertura ≥ 98% E divergência = 0
 }
 
@@ -394,15 +398,55 @@ export async function getReconMetrics(bu: BU): Promise<ReconMetrics> {
 
   const td = today();
   let agingMax = 0;
+  let agingExcecaoOver7 = 0;
   for (const t of tx) {
-    if (t.recon_status === "unmatched") agingMax = Math.max(agingMax, daysBetween(t.value_date, td));
+    if (t.recon_status !== "unmatched") continue;
+    const age = daysBetween(t.value_date, td);
+    agingMax = Math.max(agingMax, age);
+    if (age > 7) agingExcecaoOver7++;
   }
+
+  // Retrabalho: grupos reverted / grupos criados (revertidos + ativos).
+  const { count: revertedCount } = await client
+    .from("recon_group")
+    .select("id", { count: "exact", head: true })
+    .eq("bu", bu)
+    .eq("state", "reverted");
+  const created = groups.length + (revertedCount ?? 0);
+  const retrabalho = created > 0 ? (revertedCount ?? 0) / created : 0;
+
+  // Lead time p95: dias entre value_date da tx e matched_at do grupo (não revertido).
+  const { data: lt } = await client
+    .from("recon_group")
+    .select("matched_at,recon_match(bank_transaction(value_date))")
+    .eq("bu", bu)
+    .neq("state", "reverted")
+    .not("matched_at", "is", null);
+  const leadDays: number[] = [];
+  for (const g of (lt ?? []) as any[]) {
+    const matchedAt = g.matched_at ? String(g.matched_at).slice(0, 10) : null;
+    const vd = (g.recon_match ?? []).find((m: any) => m.bank_transaction)?.bank_transaction?.value_date;
+    if (matchedAt && vd) leadDays.push(daysBetween(vd, matchedAt));
+  }
+  const leadTimeP95 = percentile(leadDays, 95);
+
+  // Aging AR/AP aberto: lançamentos (documento) vencidos ainda em aberto.
+  const { count: arApOpen } = await client
+    .from("ledger_entry")
+    .select("id", { count: "exact", head: true })
+    .eq("bu", bu)
+    .eq("origem", "documento")
+    .in("status", ["aberto", "parcial"])
+    .lt("due_date", td);
 
   const cobertura = total > 0 ? matched / total : 0;
   const firstPass = total > 0 ? counts.auto / total : 0;
   const gatePassed = isGatePassed(cobertura, divergencia);
 
-  return { bu, total, matched, counts, firstPass, cobertura, divergencia, agingMax, gatePassed };
+  return {
+    bu, total, matched, counts, firstPass, cobertura, divergencia, agingMax,
+    leadTimeP95, retrabalho, agingExcecaoOver7, agingArApOpen: arApOpen ?? 0, gatePassed,
+  };
 }
 
 /** Fila de conciliação por estado (grupos não revertidos + exceções). */

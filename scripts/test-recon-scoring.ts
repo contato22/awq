@@ -5,7 +5,7 @@
 
 import {
   scoreCandidate, stateFromScore, jaroWinkler, normalizeKey,
-  calendarDayDiff, businessDayDiff, subsetSum, isGatePassed, TETO_TARIFA,
+  calendarDayDiff, businessDayDiff, subsetSum, isGatePassed, percentile, TETO_TARIFA,
 } from "../lib/recon-scoring";
 
 let pass = 0, fail = 0;
@@ -77,6 +77,12 @@ check("gate: 95% cobertura → provisório", isGatePassed(0.95, 0) === false);
 check("gate: 98% + divergência 0 → definitivo", isGatePassed(0.98, 0) === true);
 check("gate: 98% + divergência 50 → provisório", isGatePassed(0.98, 50) === false);
 check("gate: 100% + div 0 → definitivo", isGatePassed(1, 0) === true);
+
+// Percentil (lead time p95)
+check("percentile vazio = 0", percentile([], 95) === 0);
+check("percentile p95 de 1..100 = 95", percentile(Array.from({ length: 100 }, (_, i) => i + 1), 95) === 95);
+check("percentile p95 [1,2,3,4] = 4", percentile([1, 2, 3, 4], 95) === 4);
+check("percentile p50 [1,2,3,4] = 2", percentile([1, 2, 3, 4], 50) === 2);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
