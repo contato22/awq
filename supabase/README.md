@@ -11,6 +11,15 @@ paste the file contents → **Run**), in order. All are idempotent / safe to re-
 | 004 | `migrations/004_recon_rls_hardening.sql` | Endurece a RLS: REVOKE `anon` nas tabelas `recon_*`, RLS **fail-closed** (sem `app.current_bu` → 0 linhas), e `bank_transaction.source` aceita `'legacy'` (backfill). Rode após a 003. |
 | 005 | `migrations/005_bu_bank_account_enerdy.sql` | `bu_bank_account` (mapeamento BU↔conta, fonte de verdade do `sync`/`backfill`) + colunas `legacy_label`/`needs_classification` em `ledger_entry` + view `v_legado_enerdy_revisao`. **Após aplicar, o operador deve inserir as contas Cora reais** em `bu_bank_account` (placeholder comentado no arquivo) — sem isso o `sync` rejeita por "conta não mapeada" (falha fechada). |
 
+## Atalho: ativar a Conciliação Inteligente numa única colagem
+
+Para ligar o módulo de uma vez (schema + backfill do legado + fila ENERDY), cole
+**`migrations/_bootstrap_conciliacao_full.sql`** inteiro no SQL Editor e rode. Ele
+concatena 003+004+005 e já faz o backfill de `bank_transactions` → `bank_transaction`
+(idempotente, falha fechada por `bu_bank_account`). Depois disso o front sai de
+"em configuração". Alternativa automatizada: `npx tsx scripts/bootstrap-prod.ts`
+(via Supabase Management API, requer `SUPABASE_ACCESS_TOKEN`).
+
 ## RLS por BU (migration 003)
 
 As tabelas `recon_*` isolam linhas por BU via o GUC de sessão `app.current_bu`.

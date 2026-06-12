@@ -36,7 +36,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   } catch (err) {
     const pgErr = err as { message?: string; code?: string };
     const detail = pgErr?.message ?? (err instanceof Error ? err.message : String(err));
-    const isMissingTable = pgErr?.code === "42P01" || detail.includes("does not exist");
+    // Schema ainda não pronto: tabela inexistente (42P01) OU PostgREST sem o
+    // objeto no cache (PGRST205 / "schema cache") logo após migrar → estado neutro.
+    const isMissingTable =
+      pgErr?.code === "42P01" ||
+      pgErr?.code === "PGRST205" ||
+      detail.includes("does not exist") ||
+      detail.includes("schema cache");
     return NextResponse.json(
       {
         error: isMissingTable

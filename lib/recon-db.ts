@@ -535,23 +535,33 @@ export async function getReconQueue(bu: BU): Promise<QueueItem[]> {
   return items;
 }
 
-/** Série da view v_saldo_conciliado (alimenta o gráfico — Teste 12). */
+/**
+ * Série de saldo conciliado por mês (entradas/saídas/resultado). Calculada a
+ * partir da TABELA-BASE bank_transaction (não da view v_saldo_conciliado) para
+ * evitar a falha "view não está no schema cache" do PostgREST logo após migrar.
+ */
 export async function getSaldoConciliado(
   bu: BU,
 ): Promise<{ refMonth: string; entradas: number; saidas: number; resultado: number }[]> {
   const client = requireDb();
   const { data, error } = await client
-    .from("v_saldo_conciliado")
-    .select("bu,ref_month,entradas,saidas,resultado")
+    .from("bank_transaction")
+    .select("value_date,amount,direction,recon_status")
     .eq("bu", bu)
-    .order("ref_month", { ascending: true });
+    .in("recon_status", ["matched", "partial"]);
   if (error) throw error;
-  return ((data ?? []) as any[]).map((r) => ({
-    refMonth: r.ref_month,
-    entradas: Number(r.entradas ?? 0),
-    saidas: Number(r.saidas ?? 0),
-    resultado: Number(r.resultado ?? 0),
-  }));
+  const byMonth = new Map<string, { entradas: number; saidas: number; resultado: number }>();
+  for (const r of (data ?? []) as { value_date: string; amount: number; direction: "IN" | "OUT" }[]) {
+    const month = `${String(r.value_date).slice(0, 7)}-01`;
+    const acc = byMonth.get(month) ?? { entradas: 0, saidas: 0, resultado: 0 };
+    const amt = Number(r.amount) || 0;
+    if (r.direction === "IN") acc.entradas += amt; else acc.saidas += amt;
+    acc.resultado += amt;
+    byMonth.set(month, acc);
+  }
+  return [...byMonth.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([refMonth, v]) => ({ refMonth, ...v }));
 }
 
 export interface RuleRow {
@@ -753,13 +763,19 @@ export interface EnerdyRevisaoRow {
   is_intercompany: boolean; needs_classification: boolean;
 }
 
-/** Lançamentos legado ENERDY aguardando classificação (view v_legado_enerdy_revisao). */
+/**
+ * Lançamentos legado ENERDY aguardando classificação. Lê a TABELA-BASE
+ * ledger_entry (não a view v_legado_enerdy_revisao) para não depender do schema
+ * cache do PostgREST logo após migrar.
+ */
 export async function getEnerdyRevisao(bu: BU): Promise<EnerdyRevisaoRow[]> {
   const client = requireDb();
   const { data, error } = await client
-    .from("v_legado_enerdy_revisao")
-    .select("*")
+    .from("ledger_entry")
+    .select("id,bu,amount,due_date,counterparty,doc_ref,categoria,is_intercompany,needs_classification")
     .eq("bu", bu)
+    .eq("legacy_label", "ENERDY")
+    .eq("needs_classification", true)
     .order("due_date", { ascending: true })
     .limit(500);
   if (error) throw error;
