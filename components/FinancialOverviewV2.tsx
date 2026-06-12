@@ -528,11 +528,16 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     let consolidatedRealBalance = coraHoldingLive;
     for (const v of otherClosings.values()) consolidatedRealBalance += v.balance;
 
-    // Escopo do chart = todas as contas (exceto ENERDY). Inclui intercompany e
-    // aplicacoes financeiras — soma bruta de AR (creditos) e AP (debitos) em
-    // todas as contas bancarias da Holding (AWQ Cora + Itau + BTG + JACQES +
-    // Caza_Vision), igual ao extrato consolidado da Holding.
-    const chartTxns = transactions.filter(t => t.entity !== "ENERDY");
+    // Escopo das BARRAS (AR/AP) = contas ex-ENERDY, EXCLUINDO movimentos que não
+    // são receita/despesa real: transferências internas entre contas da Holding,
+    // aplicações/resgates e reserva de limite (todos marcados
+    // excludedFromConsolidated). Assim uma transferência Cora→Itaú não conta como
+    // recebimento (positivo) nem pagamento — é só mudança entre contas. Alinha as
+    // barras com os KPIs (que já filtram excludedFromConsolidated).
+    // OBS: a LINHA DE SALDO (derivedSaldo) usa `transactions` completo, pois cada
+    // conta precisa do seu movimento para reconstruir o saldo; no consolidado a
+    // transferência se anula (sai de uma conta, entra em outra) → saldo intacto.
+    const chartTxns = transactions.filter(t => t.entity !== "ENERDY" && !t.excludedFromConsolidated);
 
     let raw: FlowResult;
     if (viewMode === "diario") {
@@ -901,7 +906,7 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa</h3>
             <p className="text-[10px] text-gray-400 mt-0.5 hidden sm:block">
-              Recebimentos e pagamentos · soma bruta de todas as contas (exceto ENERDY)
+              Recebimentos e pagamentos · contas ex-ENERDY (exclui transferências internas)
             </p>
           </div>
 
