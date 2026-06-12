@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import {
-  approveGroup, revertGroup, upsertPayeeMemory, upsertRule, deleteRule, deleteMemory,
+  approveGroup, revertGroup, upsertPayeeMemory, upsertRule, deleteRule, deleteMemory, classifyLegacy,
 } from "@/lib/recon-db";
 import type { BU } from "@/lib/recon-types";
 
@@ -49,6 +49,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       case "mem.del":
         await deleteMemory(body.bu as BU, body.counterpartyKey);
         break;
+      case "classify_enerdy": {
+        // Operador decide: fee intercompany (elimina do consolidado) ou operacional AWQ.
+        const ids = Array.isArray(body.ledgerIds) ? body.ledgerIds : [body.ledgerId];
+        await classifyLegacy(ids.filter(Boolean), body.intercompany === true);
+        break;
+      }
       default:
         return NextResponse.json({ error: `Ação desconhecida: ${action}` }, { status: 400 });
     }

@@ -9,6 +9,7 @@ paste the file contents → **Run**), in order. All are idempotent / safe to re-
 | 002 | `migrations/002_add_enrd_bu.sql` | Adiciona a BU `ENRD` |
 | 003 | `migrations/003_conciliacao_inteligente.sql` | Conciliação Inteligente: 7 tabelas (`accounting_period`, `bank_transaction`, `ledger_entry`, `recon_group`, `recon_match`, `recon_rule`, `recon_payee_memory`) + 2 views (`v_saldo_conciliado`, `v_consolidado_grupo`) + índices + lock de período + RLS por BU |
 | 004 | `migrations/004_recon_rls_hardening.sql` | Endurece a RLS: REVOKE `anon` nas tabelas `recon_*`, RLS **fail-closed** (sem `app.current_bu` → 0 linhas), e `bank_transaction.source` aceita `'legacy'` (backfill). Rode após a 003. |
+| 005 | `migrations/005_bu_bank_account_enerdy.sql` | `bu_bank_account` (mapeamento BU↔conta, fonte de verdade do `sync`/`backfill`) + colunas `legacy_label`/`needs_classification` em `ledger_entry` + view `v_legado_enerdy_revisao`. **Após aplicar, o operador deve inserir as contas Cora reais** em `bu_bank_account` (placeholder comentado no arquivo) — sem isso o `sync` rejeita por "conta não mapeada" (falha fechada). |
 
 ## RLS por BU (migration 003)
 

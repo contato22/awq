@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import {
-  getReconMetrics, getReconQueue, getSaldoConciliado, getRules, getMemoryList,
+  getReconMetrics, getReconQueue, getSaldoConciliado, getRules, getMemoryList, getEnerdyRevisao,
 } from "@/lib/recon-db";
 import type { BU } from "@/lib/recon-types";
 
@@ -24,14 +24,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const [metrics, queue, saldo, rules, memory] = await Promise.all([
+    const [metrics, queue, saldo, rules, memory, enerdyRevisao] = await Promise.all([
       getReconMetrics(bu),
       getReconQueue(bu),
       getSaldoConciliado(bu),
       getRules(bu),
       getMemoryList(bu),
+      getEnerdyRevisao(bu),
     ]);
-    return NextResponse.json({ bu, metrics, queue, saldo, rules, memory });
+    return NextResponse.json({ bu, metrics, queue, saldo, rules, memory, enerdyRevisao });
   } catch (err) {
     const pgErr = err as { message?: string; code?: string };
     const detail = pgErr?.message ?? (err instanceof Error ? err.message : String(err));

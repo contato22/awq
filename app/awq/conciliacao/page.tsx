@@ -153,6 +153,7 @@ export default async function ConciliacaoPage() {
               {reconGate.gatePassed
                 ? "Saldo definitivo — conciliação dentro do gate (cobertura ≥ 98% · divergência R$ 0,00)"
                 : `Saldo provisório — não conciliado · cobertura ${(reconGate.cobertura * 100).toFixed(0)}% · divergência ${reconGate.divergencia.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+              {reconGate.needsClassification > 0 && ` · sujeito a reclassificação (${reconGate.needsClassification} legado ENERDY)`}
             </p>
           </div>
         )}

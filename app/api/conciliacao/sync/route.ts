@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured, type CoraAccount } from "@/lib/cora-api";
-import { upsertBankTransactions } from "@/lib/recon-db";
+import { upsertBankTransactions, getBankAccountMap } from "@/lib/recon-db";
 import { coraEntryToInput } from "@/lib/recon-ingest";
 import { reconcile } from "@/lib/recon-engine";
 import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
@@ -38,18 +38,38 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const body = (await req.json().catch(() => ({}))) as {
-    bu?: string;
     coraAccount?: string;
     accountId?: string;
     startDate?: string;
     endDate?: string;
+    // `bu` no body é IGNORADO de propósito — a fonte de verdade é bu_bank_account.
   };
 
-  const bu = (body.bu === "ENRD" ? "ENRD" : "AWQ") as BU;
   const coraAccount = (body.coraAccount ?? "AWQ_Holding") as CoraAccount;
   const accountId   = body.accountId ?? coraAccount;
   const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgoBRT(30);
   const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : todayBRT();
+
+  // Fix 1: BU resolvido da tabela bu_bank_account pelo account_id (não do body).
+  // Conta não mapeada/inativa → falha fechada: não ingere.
+  let bu: BU;
+  try {
+    const map = await getBankAccountMap();
+    const resolved = map.get(accountId);
+    if (!resolved) {
+      return NextResponse.json(
+        {
+          error: `Conta não mapeada: account_id="${accountId}" não está em bu_bank_account (ativa). Cadastre o mapeamento BU↔conta antes de sincronizar.`,
+          unmappedAccount: accountId,
+        },
+        { status: 422 },
+      );
+    }
+    bu = resolved;
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Falha ao resolver BU da conta: ${detail}` }, { status: 500 });
+  }
 
   // RLS por BU: usuário BU-locked só sincroniza a própria BU.
   const lockedBU = req.headers.get("x-bu-lock");

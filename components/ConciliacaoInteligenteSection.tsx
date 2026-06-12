@@ -26,7 +26,11 @@ interface Metrics {
   counts: { auto: number; suggested: number; weak: number; exceptions: number };
   firstPass: number; cobertura: number; divergencia: number; agingMax: number;
   leadTimeP95: number; retrabalho: number; agingExcecaoOver7: number; agingArApOpen: number;
-  gatePassed: boolean;
+  needsClassification: number; gatePassed: boolean;
+}
+interface EnerdyRow {
+  id: string; amount: number; due_date: string | null; counterparty: string | null;
+  doc_ref: string | null; categoria: string; is_intercompany: boolean;
 }
 interface Ledger { id: string; kind: string; categoria: string; counterparty: string | null; applied: number }
 interface QueueItem {
@@ -46,7 +50,7 @@ interface Memory {
   bu: string; counterparty_key: string; kind: string | null; categoria: string | null;
   conta_contabil: string | null; hit_count: number | null; last_seen: string | null;
 }
-interface Data { metrics: Metrics; queue: QueueItem[]; saldo: Saldo[]; rules: Rule[]; memory: Memory[] }
+interface Data { metrics: Metrics; queue: QueueItem[]; saldo: Saldo[]; rules: Rule[]; memory: Memory[]; enerdyRevisao: EnerdyRow[] }
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
@@ -176,7 +180,15 @@ export default function ConciliacaoInteligenteSection() {
 
       {!loading && !error && data && m && (
         <>
-          {tab === "overview" && <OverviewTab m={m} saldo={data.saldo} />}
+          {tab === "overview" && (
+            <OverviewTab
+              m={m} saldo={data.saldo} enerdy={data.enerdyRevisao}
+              onClassify={async (ids, intercompany) => {
+                const ok = await act({ action: "classify_enerdy", ledgerIds: ids, intercompany });
+                if (ok) load();
+              }}
+            />
+          )}
           {tab === "queue" && (
             <QueueTab
               queue={data.queue} counts={m.counts} filter={filter} setFilter={setFilter}
@@ -201,7 +213,10 @@ export default function ConciliacaoInteligenteSection() {
 }
 
 // ── Tab 1: Visão Geral ───────────────────────────────────────────────────────
-function OverviewTab({ m, saldo }: { m: Metrics; saldo: Saldo[] }) {
+function OverviewTab({ m, saldo, enerdy, onClassify }: {
+  m: Metrics; saldo: Saldo[]; enerdy: EnerdyRow[];
+  onClassify: (ids: string[], intercompany: boolean) => void;
+}) {
   const chartData = saldo.map((s) => ({
     mes: s.refMonth?.slice(0, 7) ?? "",
     Entradas: s.entradas ?? 0,
@@ -221,8 +236,60 @@ function OverviewTab({ m, saldo }: { m: Metrics; saldo: Saldo[] }) {
           {m.gatePassed
             ? "Saldo definitivo — cobertura ≥ 98% e divergência R$ 0,00"
             : `Provisório — não conciliado (cobertura ${pct(m.cobertura)}, divergência ${brl(m.divergencia)})`}
+          {m.needsClassification > 0 && " · sujeito a reclassificação (legado ENERDY)"}
         </p>
       </div>
+
+      {/* Aviso de legado ENERDY aguardando classificação */}
+      {m.needsClassification > 0 && (
+        <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} className="text-orange-600 shrink-0" />
+            <p className="text-xs font-semibold text-orange-800">
+              {m.needsClassification} lançamento(s) legado ENERDY aguardando classificação
+            </p>
+          </div>
+          <p className="text-[11px] text-orange-700">
+            Decida o tratamento contábil de cada um: <b>fee intercompany</b> (eliminado do
+            consolidado de grupo) ou <b>operacional AWQ</b> (permanece). O consolidado pode mudar
+            após a classificação.
+          </p>
+          <div className="space-y-1 max-h-64 overflow-y-auto">
+            {enerdy.map((e) => (
+              <div key={e.id} className="flex items-center justify-between gap-2 text-xs rounded-lg border border-orange-100 bg-white px-3 py-2">
+                <div className="min-w-0">
+                  <span className="text-gray-700 truncate">{e.counterparty ?? e.doc_ref ?? "—"}</span>
+                  <span className="text-gray-400 ml-2 tabular-nums">{brl(e.amount)}</span>
+                  {e.due_date && <span className="text-gray-300 ml-2">{e.due_date}</span>}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => onClassify([e.id], true)}
+                    className="px-2 py-1 rounded-md bg-violet-50 text-violet-700 font-semibold hover:bg-violet-100">
+                    Intercompany
+                  </button>
+                  <button onClick={() => onClassify([e.id], false)}
+                    className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200">
+                    Operacional
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {enerdy.length > 1 && (
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => onClassify(enerdy.map((e) => e.id), true)}
+                className="text-[11px] text-violet-700 font-semibold hover:underline">
+                Marcar todos como intercompany
+              </button>
+              <span className="text-gray-300">·</span>
+              <button onClick={() => onClassify(enerdy.map((e) => e.id), false)}
+                className="text-[11px] text-gray-600 font-semibold hover:underline">
+                Marcar todos como operacional
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

@@ -250,6 +250,8 @@ export interface NewLedgerInput {
   origem?: "documento" | "banco";
   is_intercompany?: boolean;
   status?: string;
+  legacy_label?: string | null;
+  needs_classification?: boolean;
 }
 
 /** Insere um lançamento (ex.: DIFF de tarifa) e devolve o id. */
@@ -327,6 +329,7 @@ export interface ReconMetrics {
   retrabalho: number;       // grupos reverted / grupos criados (0..1)
   agingExcecaoOver7: number;// exceções abertas há > 7 dias
   agingArApOpen: number;    // recebível/pagável vencido sem tx (lançamentos doc)
+  needsClassification: number; // legado ENERDY aguardando classificação
   gatePassed: boolean;      // cobertura ≥ 98% E divergência = 0
 }
 
@@ -440,13 +443,16 @@ export async function getReconMetrics(bu: BU): Promise<ReconMetrics> {
     .in("status", ["aberto", "parcial"])
     .lt("due_date", td);
 
+  const needsClassification = await getNeedsClassificationCount(bu);
+
   const cobertura = total > 0 ? matched / total : 0;
   const firstPass = total > 0 ? counts.auto / total : 0;
   const gatePassed = isGatePassed(cobertura, divergencia);
 
   return {
     bu, total, matched, counts, firstPass, cobertura, divergencia, agingMax,
-    leadTimeP95, retrabalho, agingExcecaoOver7, agingArApOpen: arApOpen ?? 0, gatePassed,
+    leadTimeP95, retrabalho, agingExcecaoOver7, agingArApOpen: arApOpen ?? 0,
+    needsClassification, gatePassed,
   };
 }
 
@@ -646,4 +652,116 @@ export async function approveGroup(groupId: string, by: string): Promise<void> {
     .update({ state: "manual", matched_by: by })
     .eq("id", groupId);
   if (error) throw error;
+}
+
+// ─── Fix 1: mapeamento BU↔conta (bu_bank_account) ────────────────────────────
+
+/** Map account_id → BU para contas ATIVAS. Fonte de verdade do BU (não o body). */
+export async function getBankAccountMap(): Promise<Map<string, BU>> {
+  const client = requireDb();
+  const { data, error } = await client
+    .from("bu_bank_account")
+    .select("account_id,bu")
+    .eq("active", true);
+  if (error) throw error;
+  const map = new Map<string, BU>();
+  for (const r of (data ?? []) as { account_id: string; bu: BU }[]) map.set(r.account_id, r.bu);
+  return map;
+}
+
+// ─── Fix 2: fila de classificação do legado ENERDY ───────────────────────────
+
+/**
+ * Garante que cada tx legada ENERDY (já em bank_transaction) tenha um
+ * ledger_entry provisório marcado para classificação + grupo/match, para entrar
+ * em v_consolidado_grupo e poder ser eliminada se for intercompany. Idempotente:
+ * tx que já tem match é pulada.
+ */
+export async function ensureEnerdyClassificationQueue(bu: BU, e2eIds: string[]): Promise<number> {
+  if (e2eIds.length === 0) return 0;
+  const client = requireDb();
+  let created = 0;
+  for (let i = 0; i < e2eIds.length; i += 200) {
+    const chunk = e2eIds.slice(i, i + 200);
+    const { data: txs, error } = await client
+      .from("bank_transaction")
+      .select("id,amount,direction,counterparty,value_date,e2e_id")
+      .eq("bu", bu)
+      .in("e2e_id", chunk);
+    if (error) throw error;
+    for (const tx of (txs ?? []) as { id: string; amount: number; direction: "IN" | "OUT"; counterparty: string | null; value_date: string }[]) {
+      // já processada?
+      const { count } = await client
+        .from("recon_match")
+        .select("id", { count: "exact", head: true })
+        .eq("bank_tx_id", tx.id);
+      if ((count ?? 0) > 0) continue;
+
+      const abs = Math.abs(tx.amount);
+      const leId = await insertLedgerEntry({
+        bu,
+        kind: tx.direction === "IN" ? "AR" : "AP",
+        amount: abs,
+        open_amount: 0,
+        categoria: "a_classificar",
+        conta_contabil: "a_classificar",
+        counterparty: tx.counterparty,
+        due_date: tx.value_date,
+        origem: "banco",
+        status: "conciliado",
+        is_intercompany: false,
+        legacy_label: "ENERDY",
+        needs_classification: true,
+      });
+      await createGroupWithMatches(
+        { bu, confidence: 0, method: "manual", state: "suggested", matched_by: "backfill-enerdy" },
+        [{ bank_tx_id: tx.id, ledger_id: leId, applied_amount: abs }],
+      );
+      await setBankTxStatus(tx.id, "matched");
+      created++;
+    }
+  }
+  return created;
+}
+
+/** Classifica lançamentos legado ENERDY (operador). Sai da fila de revisão. */
+export async function classifyLegacy(ledgerIds: string[], intercompany: boolean): Promise<void> {
+  if (ledgerIds.length === 0) return;
+  const client = requireDb();
+  const { error } = await client
+    .from("ledger_entry")
+    .update({ is_intercompany: intercompany, needs_classification: false })
+    .in("id", ledgerIds);
+  if (error) throw error;
+}
+
+/** Contagem de lançamentos aguardando classificação (legado ENERDY). */
+export async function getNeedsClassificationCount(bu: BU): Promise<number> {
+  const client = requireDb();
+  const { count, error } = await client
+    .from("ledger_entry")
+    .select("id", { count: "exact", head: true })
+    .eq("bu", bu)
+    .eq("needs_classification", true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export interface EnerdyRevisaoRow {
+  id: string; bu: string; amount: number; due_date: string | null;
+  counterparty: string | null; doc_ref: string | null; categoria: string;
+  is_intercompany: boolean; needs_classification: boolean;
+}
+
+/** Lançamentos legado ENERDY aguardando classificação (view v_legado_enerdy_revisao). */
+export async function getEnerdyRevisao(bu: BU): Promise<EnerdyRevisaoRow[]> {
+  const client = requireDb();
+  const { data, error } = await client
+    .from("v_legado_enerdy_revisao")
+    .select("*")
+    .eq("bu", bu)
+    .order("due_date", { ascending: true })
+    .limit(500);
+  if (error) throw error;
+  return (data ?? []) as EnerdyRevisaoRow[];
 }
