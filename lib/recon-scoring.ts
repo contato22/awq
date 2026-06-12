@@ -2,7 +2,9 @@
 // Implementa a tabela de score normalizada (cap 100) e os thresholds → estado.
 // E2E NÃO entra aqui (é trava da Via 1 no motor).
 
-export const TETO_TARIFA = 5.0; // teto de diferença tratada como tarifa/IOF/juros (R$)
+// Teto de diferença tratada como tarifa/IOF/juros (R$). Configurável via env
+// RECON_TETO_TARIFA (default 5,00) sem precisar de deploy de código.
+export const TETO_TARIFA = Number(process.env.RECON_TETO_TARIFA ?? 5) || 5;
 
 export type MatchState = "auto" | "suggested" | "weak" | "exception";
 
@@ -208,6 +210,47 @@ function round2(n: number): number {
  */
 export function isGatePassed(cobertura: number, divergencia: number): boolean {
   return cobertura >= 0.98 && Math.abs(divergencia) < 0.005;
+}
+
+// ── Regras de classificação (recon_rule) ─────────────────────────────────────
+export interface RuleLike {
+  priority: number;
+  match_field: "counterparty" | "raw_descr" | "counter_doc" | string;
+  pattern: string;
+  set_kind?: string | null;
+  set_categoria?: string | null;
+  set_conta?: string | null;
+  set_intercompany?: boolean | null;
+  active?: boolean | null;
+}
+
+export interface TxFields {
+  counterparty: string | null;
+  raw_descr: string | null;
+  counter_doc: string | null;
+}
+
+/**
+ * Primeira regra ativa (menor priority) cujo `pattern` casa o campo indicado da
+ * tx. Tenta regex (case-insensitive); se o pattern for regex inválido, cai para
+ * substring case-insensitive (semântica ilike aproximada).
+ */
+export function matchRule(tx: TxFields, rules: RuleLike[]): RuleLike | null {
+  const active = rules.filter((r) => r.active !== false).sort((a, b) => a.priority - b.priority);
+  for (const r of active) {
+    const field = (tx as unknown as Record<string, string | null>)[r.match_field];
+    if (!field) continue;
+    if (patternMatches(r.pattern, field)) return r;
+  }
+  return null;
+}
+
+function patternMatches(pattern: string, value: string): boolean {
+  try {
+    return new RegExp(pattern, "i").test(value);
+  } catch {
+    return value.toLowerCase().includes(pattern.toLowerCase());
+  }
 }
 
 /** Percentil (método "nearest-rank") sobre uma lista numérica. */

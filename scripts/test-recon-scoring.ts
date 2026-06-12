@@ -5,7 +5,7 @@
 
 import {
   scoreCandidate, stateFromScore, jaroWinkler, normalizeKey,
-  calendarDayDiff, businessDayDiff, subsetSum, isGatePassed, percentile, TETO_TARIFA,
+  calendarDayDiff, businessDayDiff, subsetSum, isGatePassed, percentile, matchRule, TETO_TARIFA,
 } from "../lib/recon-scoring";
 
 let pass = 0, fail = 0;
@@ -83,6 +83,21 @@ check("percentile vazio = 0", percentile([], 95) === 0);
 check("percentile p95 de 1..100 = 95", percentile(Array.from({ length: 100 }, (_, i) => i + 1), 95) === 95);
 check("percentile p95 [1,2,3,4] = 4", percentile([1, 2, 3, 4], 95) === 4);
 check("percentile p50 [1,2,3,4] = 2", percentile([1, 2, 3, 4], 50) === 2);
+
+// matchRule (recon_rule)
+{
+  const rules = [
+    { priority: 20, match_field: "raw_descr", pattern: "iof", set_categoria: "iof", active: true },
+    { priority: 10, match_field: "raw_descr", pattern: "tarifa", set_categoria: "tarifa", active: true },
+    { priority: 5,  match_field: "counterparty", pattern: "ACME", set_categoria: "x", active: false },
+  ];
+  const r1 = matchRule({ counterparty: null, raw_descr: "Tarifa Cora", counter_doc: null }, rules);
+  check("matchRule casa por prioridade", r1?.set_categoria === "tarifa");
+  const r2 = matchRule({ counterparty: "ACME LTDA", raw_descr: null, counter_doc: null }, rules);
+  check("matchRule ignora regra inativa", r2 === null);
+  const r3 = matchRule({ counterparty: null, raw_descr: "cobrança IOF", counter_doc: null }, rules);
+  check("matchRule casa regex case-insensitive", r3?.set_categoria === "iof");
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

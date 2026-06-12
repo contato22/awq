@@ -5,7 +5,7 @@
 export type BU = "AWQ" | "ENRD";
 
 export type ReconStatus = "unmatched" | "partial" | "matched" | "ignored";
-export type TxSource    = "cora_api" | "ofx" | "csv";
+export type TxSource    = "cora_api" | "ofx" | "csv" | "legacy";
 
 /** Linha de bank_transaction. value_date e direction são colunas GERADAS no DB. */
 export interface BankTxRow {

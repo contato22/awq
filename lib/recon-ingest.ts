@@ -32,6 +32,38 @@ export function coraEntryToInput(
   };
 }
 
+// ── Legado (bank_transactions, schema antigo) → input ───────────────────────
+// Mapeia uma transação do schema legado para o novo. Todas as entities legadas
+// (AWQ_Holding, JACQES, ENERDY, Caza_Vision, …) pertencem ao grupo AWQ; ENRD não
+// tem dados bancários legados. Dedupe via surrogate `legacy:<id>`.
+export interface LegacyTx {
+  id: string;
+  entity: string;
+  transactionDate: string;          // YYYY-MM-DD
+  amount: number;                   // já sinalizado (+ crédito / − débito)
+  direction: "credit" | "debit";
+  counterpartyName: string | null;
+  descriptionOriginal?: string | null;
+  accountName?: string | null;
+}
+
+export function legacyTxToInput(t: LegacyTx): ReconBankTxInput {
+  // amount no legado já é sinalizado (+ crédito / − débito); normaliza por garantia.
+  const signed = t.direction === "debit" ? -Math.abs(t.amount) : Math.abs(t.amount);
+  return {
+    accountId:    t.accountName ?? t.entity,
+    postedAt:     dateToNoonBRT(t.transactionDate),
+    amount:       signed,
+    counterparty: t.counterpartyName,
+    counterDoc:   null,
+    e2eId:        null,
+    txid:         null,
+    rawDescr:     t.descriptionOriginal ?? null,
+    source:       "legacy",
+    sourceId:     t.id,
+  };
+}
+
 // ── OFX (SGML) → input ───────────────────────────────────────────────────────
 // Parser tolerante: extrai blocos <STMTTRN>…</STMTTRN> (ou até a próxima tag de
 // fechamento implícita no OFX 1.x sem fechamento). Campos: TRNAMT, DTPOSTED,

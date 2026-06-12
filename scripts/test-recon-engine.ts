@@ -12,7 +12,7 @@
 
 import { reconcile, type ReconcileDeps } from "../lib/recon-engine";
 import type {
-  EngineBankTx, EngineLedger, NewLedgerInput, NewGroupInput, NewMatchInput, MemRecord,
+  EngineBankTx, EngineLedger, NewLedgerInput, NewGroupInput, NewMatchInput, MemRecord, RuleRow,
 } from "../lib/recon-db";
 
 // ── Fake store espelhando a semântica do schema 003 ──────────────────────────
@@ -20,6 +20,7 @@ function makeStore(
   txs: EngineBankTx[],
   ledgers: EngineLedger[],
   memory: Map<string, MemRecord> = new Map(),
+  rules: RuleRow[] = [],
 ) {
   const tx = new Map(txs.map((t) => [t.id, { ...t }]));
   const led = new Map(ledgers.map((l) => [l.id, { ...l }]));
@@ -37,6 +38,7 @@ function makeStore(
       );
     },
     async getMemory() { return memory; },
+    async getRules() { return rules; },
     async getActivelyMatchedTxIds(bu) {
       const active = new Set(groups.filter((g) => g.bu === bu && g.state !== "reverted").map((g) => g.id));
       return new Set(
@@ -68,7 +70,7 @@ function makeStore(
 function mkTx(p: Partial<EngineBankTx> & { id: string; amount: number; value_date: string }): EngineBankTx {
   return {
     bu: "AWQ", direction: p.amount >= 0 ? "IN" : "OUT", counterparty: null, counter_doc: null,
-    e2e_id: null, txid: null, recon_status: "unmatched", ...p,
+    e2e_id: null, txid: null, raw_descr: null, recon_status: "unmatched", ...p,
   } as EngineBankTx;
 }
 function mkLed(p: Partial<EngineLedger> & { id: string; kind: string; amount: number; open_amount: number }): EngineLedger {
@@ -183,6 +185,25 @@ async function main() {
     const le = [...s.led.values()].find((l) => l.kind === "AP" && l.categoria === "despesa_pessoal");
     check("lançamento provisório criado da memória", !!le);
     check("tx matched", s.tx.get("t6")!.recon_status === "matched");
+  }
+
+  // ── PR-hardening — DIFF classificado por recon_rule ──
+  console.log("PR-hardening — DIFF classificado por recon_rule");
+  {
+    const rules: RuleRow[] = [{
+      id: "r1", bu: "AWQ", priority: 10, match_field: "raw_descr", pattern: "tarifa",
+      set_kind: "DIFF", set_categoria: "tarifa_bancaria", set_conta: "4.1.tarifas",
+      set_intercompany: false, active: true,
+    }];
+    const s = makeStore(
+      [mkTx({ id: "t7", amount: 998, value_date: "2026-03-10", counter_doc: "12345678000190", raw_descr: "Tarifa Cora pacote" })],
+      [mkLed({ id: "a7", kind: "AR", amount: 1000, open_amount: 1000, due_date: "2026-03-10", counter_doc: "12345678000190" })],
+      new Map(), rules,
+    );
+    await reconcile("AWQ", s.deps);
+    const diffLed = [...s.led.values()].find((l) => l.kind === "DIFF");
+    check("DIFF criado", !!diffLed);
+    check("DIFF categoria veio da regra", !!diffLed && diffLed.categoria === "tarifa_bancaria", diffLed?.categoria);
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

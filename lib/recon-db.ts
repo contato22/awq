@@ -116,6 +116,7 @@ export interface EngineBankTx {
   counter_doc: string | null;
   e2e_id: string | null;
   txid: string | null;
+  raw_descr: string | null;
   recon_status: ReconStatus;
 }
 
@@ -139,7 +140,7 @@ export async function getUnmatchedBankTx(bu: BU): Promise<EngineBankTx[]> {
   const client = requireDb();
   const { data, error } = await client
     .from("bank_transaction")
-    .select("id,bu,amount,value_date,direction,counterparty,counter_doc,e2e_id,txid,recon_status")
+    .select("id,bu,amount,value_date,direction,counterparty,counter_doc,e2e_id,txid,raw_descr,recon_status")
     .eq("bu", bu)
     .eq("recon_status", "unmatched")
     .order("value_date", { ascending: true });

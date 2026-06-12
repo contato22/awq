@@ -22,12 +22,15 @@ import {
   type NewGroupInput,
   type NewMatchInput,
   type MemRecord,
+  type RuleRow,
+  getRules,
 } from "@/lib/recon-db";
 import {
   scoreCandidate,
   stateFromScore,
   normalizeKey,
   subsetSum,
+  matchRule,
   TETO_TARIFA,
   type ScoreCand,
 } from "@/lib/recon-scoring";
@@ -45,6 +48,9 @@ export interface ReconcileResult {
 }
 
 const CENT = 0.01;
+// Parâmetros do motor configuráveis por env (sem deploy):
+const WINDOW_DAYS = Number(process.env.RECON_WINDOW_DAYS ?? 7) || 7;   // janela ±dias
+const VALUE_TOL   = Number(process.env.RECON_VALUE_TOL ?? 0.03) || 0.03; // tolerância de valor (±%)
 
 /** Dependências de DB do motor — injetáveis para teste (default = recon-db). */
 export interface ReconcileDeps {
@@ -52,6 +58,7 @@ export interface ReconcileDeps {
   getOpenLedgerEntries(bu: BU): Promise<EngineLedger[]>;
   getMemory(bu: BU): Promise<Map<string, MemRecord>>;
   getActivelyMatchedTxIds(bu: BU): Promise<Set<string>>;
+  getRules(bu: BU): Promise<RuleRow[]>;
   createGroupWithMatches(group: NewGroupInput, matches: NewMatchInput[]): Promise<string>;
   insertLedgerEntry(input: NewLedgerInput): Promise<string>;
   setBankTxStatus(id: string, status: "matched" | "partial"): Promise<void>;
@@ -63,6 +70,7 @@ const defaultDeps: ReconcileDeps = {
   getOpenLedgerEntries,
   getMemory,
   getActivelyMatchedTxIds,
+  getRules,
   createGroupWithMatches,
   insertLedgerEntry,
   setBankTxStatus,
@@ -79,11 +87,12 @@ function compatibleKind(direction: "IN" | "OUT", kind: string): boolean {
  * Persiste grupos/matches e materializa recon_status / open_amount.
  */
 export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Promise<ReconcileResult> {
-  const [unmatched, ledgerAll, memory, alreadyMatched] = await Promise.all([
+  const [unmatched, ledgerAll, memory, alreadyMatched, rules] = await Promise.all([
     deps.getUnmatchedBankTx(bu),
     deps.getOpenLedgerEntries(bu),
     deps.getMemory(bu),
     deps.getActivelyMatchedTxIds(bu),
+    deps.getRules(bu),
   ]);
   const memoryKeys = new Set(memory.keys());
 
@@ -117,9 +126,9 @@ export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Prom
       (c) =>
         c.open_amount > 0 &&
         compatibleKind(tx.direction, c.kind) &&
-        (c.due_date == null || calWithin(tx.value_date, c.due_date, 7)) &&
-        absTx >= c.open_amount * 0.97 - TETO_TARIFA &&
-        absTx <= c.open_amount * 1.03 + TETO_TARIFA,
+        (c.due_date == null || calWithin(tx.value_date, c.due_date, WINDOW_DAYS)) &&
+        absTx >= c.open_amount * (1 - VALUE_TOL) - TETO_TARIFA &&
+        absTx <= c.open_amount * (1 + VALUE_TOL) + TETO_TARIFA,
     );
 
     let best: EngineLedger | null = null;
@@ -149,14 +158,20 @@ export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Prom
 
       if (absDiff > CENT && absDiff <= TETO_TARIFA) {
         // Diferença dentro do teto → tarifa/IOF/juros. O DIFF absorve a sobra e
-        // o lançamento FECHA (razão fecha — teste 6).
+        // o lançamento FECHA (razão fecha — teste 6). Classifica o DIFF por
+        // recon_rule quando alguma casar (ex.: "Tarifa Cora", "IOF").
+        const rule = matchRule(
+          { counterparty: tx.counterparty, raw_descr: tx.raw_descr, counter_doc: tx.counter_doc },
+          rules,
+        );
         const diffLedgerId = await deps.insertLedgerEntry({
           bu,
           kind: "DIFF",
           amount: round2(bestDiff),
           open_amount: 0,
-          categoria: "despesa_financeira",
-          conta_contabil: "4.x despesa_financeira",
+          categoria: rule?.set_categoria ?? "despesa_financeira",
+          conta_contabil: rule?.set_conta ?? "4.x despesa_financeira",
+          is_intercompany: rule?.set_intercompany ?? false,
           counterparty: tx.counterparty,
           doc_ref: tx.e2e_id ?? tx.txid,
           origem: "banco",
@@ -206,7 +221,7 @@ export async function reconcile(bu: BU, deps: ReconcileDeps = defaultDeps): Prom
           c.open_amount > 0 &&
           compatibleKind(tx.direction, c.kind) &&
           normalizeKey(c.counterparty) === cpKey &&
-          (c.due_date == null || calWithin(tx.value_date, c.due_date, 7)),
+          (c.due_date == null || calWithin(tx.value_date, c.due_date, WINDOW_DAYS)),
       );
       // Pool grande → abortar subset-sum (não travar o run); cai p/ exceção.
       if (pool.length > 0 && pool.length <= 30) {
