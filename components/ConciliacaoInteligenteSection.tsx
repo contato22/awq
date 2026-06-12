@@ -69,6 +69,7 @@ export default function ConciliacaoInteligenteSection() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSetup, setPendingSetup] = useState(false);
   const [selected, setSelected] = useState<QueueItem | null>(null);
   const [filter, setFilter] = useState<QueueItem["state"] | "all">("all");
 
@@ -78,11 +79,15 @@ export default function ConciliacaoInteligenteSection() {
   }, [lockedBU]);
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setPendingSetup(false);
     try {
       const r = await fetch(`/api/conciliacao/data?bu=${bu}`, { cache: "no-store" });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error ?? "Falha ao carregar");
+      if (!r.ok) {
+        // Schema ainda não migrado → estado neutro "em configuração" (não erro técnico).
+        if (j.missingMigration) { setPendingSetup(true); setData(null); return; }
+        throw new Error(j.error ?? "Falha ao carregar");
+      }
       setData(j);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro");
@@ -168,7 +173,16 @@ export default function ConciliacaoInteligenteSection() {
         </div>
       )}
 
-      {error && !loading && (
+      {pendingSetup && !loading && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center space-y-1">
+          <p className="text-sm font-semibold text-gray-700">Conciliação Inteligente em configuração</p>
+          <p className="text-xs text-gray-500">
+            O módulo está pronto. Aguardando a preparação da base de conciliação para exibir os dados.
+          </p>
+        </div>
+      )}
+
+      {error && !loading && !pendingSetup && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
           <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
           <div>
@@ -178,7 +192,7 @@ export default function ConciliacaoInteligenteSection() {
         </div>
       )}
 
-      {!loading && !error && data && m && (
+      {!loading && !error && !pendingSetup && data && m && (
         <>
           {tab === "overview" && (
             <OverviewTab
