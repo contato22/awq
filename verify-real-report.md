@@ -39,10 +39,10 @@ kkhxxsrgsewjfvnnssyf.supabase.co -> HTTP 403 (connect 0.02s)   # 403 = sem apike
 |---|---|---|---|
 | A · Migration aplicada | 🟡 | BLOQUEADO | falta `SUPABASE_DB_URL` ou `SUPABASE_SERVICE_ROLE_KEY` |
 | B · RLS fechado (sonda PostgREST) | 🔴 | BLOQUEADO | falta `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` |
-| C · Mapeamento BU↔Cora | 🟠 | BLOQUEADO | falta acesso ao DB; tabela `bu_bank_account` não existe nesta branch (ver nota) |
+| C · Mapeamento BU↔Cora | 🟠 | BLOQUEADO | falta acesso ao DB; mapeamento é por request, não tabela `bu_bank_account` (ver nota) |
 | D · Ingestão real + dedupe | 🟠 | BLOQUEADO | falta `PREVIEW_URL` + `SESSION_COOKIE` + `CORA_ACCOUNTS` |
-| E · Motor end-to-end | 🔴 | BLOQUEADO | falta acesso ao DB (PostgREST/psql) |
-| F · Backfill dos 1.400 | 🔴 | BLOQUEADO | falta acesso ao DB; backfill (PR-backfill) não está nesta branch (ver nota) |
+| E · Motor end-to-end | 🔴 | BLOQUEADO (lógica validada em PG local — ver nota) | falta acesso ao DB real |
+| F · Backfill dos 1.400 | 🔴 | BLOQUEADO (rota implementada — ver nota) | falta acesso ao DB real |
 | G · Cobertura real + gate | 🔴 | BLOQUEADO | falta acesso ao DB + `PREVIEW_URL` |
 | H · Intercompany / consolidado | 🟠 | BLOQUEADO | falta acesso ao DB |
 | I · Painel de métricas (cross-check) | 🟠 | BLOQUEADO | falta `PREVIEW_URL` + acesso ao DB |
@@ -56,18 +56,19 @@ Configurar como **env/secret no ambiente do agente** (nunca no chat/repo): `SUPA
 
 ## Notas de escopo (importantes)
 
-1. **Pré-requisitos do §1 não pertencem a esta branch.** O runbook pressupõe `PR-RLS`
-   (revoke anon + fail-closed), `PR-backfill` (1.400 → `bank_transaction`) e `PR-hardening`.
-   Esta branch (#469) entrega **PR-1…PR-6** apenas. Logo:
-   - Check C referencia `bu_bank_account` — tabela inexistente aqui (o mapeamento BU↔conta hoje
-     é parâmetro de request em `/api/conciliacao/sync`, não tabela).
-   - Check F referencia o backfill — não implementado aqui; `bank_transaction` nasce vazia e é
-     populada por `sync`/`import`.
-   - Check B: esta branch dá `GRANT ... TO anon` nas tabelas com RLS por BU via GUC `app.current_bu`
-     (permissiva quando vazio). O "revoke anon + fail-closed" do `PR-RLS` endureceria isso. A sonda
-     B contra o DB real diria a verdade — mas requer credenciais.
-   Com credenciais, espera-se que **B/C/F REPROVEM** até esses PRs entrarem — e essa reprovação é
-   o comportamento esperado, não deve ser mascarada.
+1. **Pré-requisitos do §1 — AGORA implementados nesta branch e validados localmente** (commit `ab617d0`):
+   - **PR-RLS** (migration `004`): `REVOKE anon` nas tabelas `recon_*` + RLS **fail-closed**
+     (sem `app.current_bu` → 0 linhas). Validado em Postgres local: anon=`permission denied`,
+     authenticated sem contexto=0, com contexto=só a BU, superuser(proxy service_role)=tudo.
+     → Com credenciais, espera-se que o **Check B PASSE**.
+   - **PR-backfill**: `POST /api/conciliacao/backfill` migra `bank_transactions`→`bank_transaction`,
+     idempotente por `(bu,e2e_id)`. → destrava o **Check F**.
+   - **PR-hardening**: teto/janela/tolerância por env; DIFF classificado por `recon_rule`;
+     **teste de integração contra Postgres REAL** (`npm run test:recon:int`, 5/5) validando a
+     invariante `Σ applied = abs(amount)`, unicidade e idempotência **no banco**. → reforça o **Check E**.
+   - **Ressalva Check C:** o mapeamento BU↔conta Cora continua sendo **parâmetro de request** em
+     `/api/conciliacao/sync` (não a tabela `bu_bank_account` que o runbook assume). Follow-up à parte
+     se o gate exigir a tabela.
 
 2. **Verificação possível no sandbox (não substitui o real):** a lógica de schema da migration 003
    foi exercida contra um Postgres local — idempotente; Teste 7 (intercompany excluído de
