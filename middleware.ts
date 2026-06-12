@@ -24,6 +24,7 @@ const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
     /^\/api\/crm(\/|$)/,
     /^\/api\/ppm(\/|$)/,
     /^\/api\/enrd(\/|$)/,
+    /^\/api\/conciliacao(\/|$)/,
   ],
 };
 

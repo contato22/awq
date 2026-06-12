@@ -19,6 +19,7 @@ import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getSnapshots } from "@/lib/balance-snapshots";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
+import { getReconMetrics, type ReconMetrics } from "@/lib/recon-db";
 import { todayBRT, daysAheadBRT } from "@/lib/date-brt";
 import {
   AlertCircle,
@@ -33,6 +34,7 @@ import {
 
 // ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
 const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverviewV2"), { ssr: false });
+const ConciliacaoInteligente = nextDynamic(() => import("@/components/ConciliacaoInteligenteSection"), { ssr: false });
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -67,6 +69,13 @@ export default async function ConciliacaoPage() {
         account_code: i.account_code,
       }));
   } catch { /* AR EPM unavailable — show empty state */ }
+
+  // Gate de publicação do cockpit — saldo só é definitivo com cobertura ≥ 98%
+  // E divergência R$ 0,00. Erro de DB não pode derrubar a página (regra SSR).
+  let reconGate: ReconMetrics | null = null;
+  try {
+    reconGate = await getReconMetrics("AWQ");
+  } catch { /* schema 003 ausente ou DB indisponível — sem badge de gate */ }
 
   try {
     [transactions, documents] = await Promise.all([
@@ -132,6 +141,23 @@ export default async function ConciliacaoPage() {
           </div>
         )}
 
+        {/* ── Gate de publicação do saldo (cockpit) ── */}
+        {reconGate && (
+          <div className={`rounded-xl border p-3 flex items-center gap-2.5 ${
+            reconGate.gatePassed ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
+          }`}>
+            {reconGate.gatePassed
+              ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              : <AlertCircle size={16} className="text-amber-600 shrink-0" />}
+            <p className={`text-xs font-semibold ${reconGate.gatePassed ? "text-emerald-800" : "text-amber-800"}`}>
+              {reconGate.gatePassed
+                ? "Saldo definitivo — conciliação dentro do gate (cobertura ≥ 98% · divergência R$ 0,00)"
+                : `Saldo provisório — não conciliado · cobertura ${(reconGate.cobertura * 100).toFixed(0)}% · divergência ${reconGate.divergencia.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+              {reconGate.needsClassification > 0 && ` · sujeito a reclassificação (${reconGate.needsClassification} legado ENERDY)`}
+            </p>
+          </div>
+        )}
+
         {/* ── Visão geral financeira: chart + contas + AR/AP ── */}
         <FinancialOverview
           transactions={transactions}
@@ -140,6 +166,9 @@ export default async function ConciliacaoPage() {
           openingBalance={openingBalance}
           balanceSnapshots={balanceSnapshots}
         />
+
+        {/* ── Conciliação Inteligente (subseção: tabs + motor + gate) ── */}
+        <ConciliacaoInteligente />
 
         {/* ── Painel de conciliação ── */}
         <section className="space-y-4">
