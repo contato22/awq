@@ -45,6 +45,10 @@ interface FlowRow {
   recebimentos: number;   // positive (credits — green bars going up)
   pagamentos: number;     // negative (debits — red bars going down)
   saldo: number;          // running balance (navy dotted line)
+  // Verificação em tempo real: diferença entre o saldo exibido e o esperado
+  // pela invariante saldo(D) ≈ saldo(D-1) + net das contas com running_balance.
+  // null = sem base reconstruível pra auditar esse bucket. |delta| > 0.01 = divergente.
+  saldoDelta?: number | null;
 }
 
 interface FlowResult {
@@ -573,6 +577,13 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
     // histórico diário/mensal/anual — não exige running_balance em cada tx. A data
     // de corte é o fim do período (dia/mês/ano). Vale para os 3 modos.
     let derivedSaldo: number[] | null = null;
+    // Net por bucket das contas que TÊM âncora de running_balance — mesmo
+    // perímetro que a linha de saldo consegue reconstruir/validar. Inclui
+    // transferências internas/aplicações/resgates DE PROPÓSITO: o running_balance
+    // do banco reflete TODO movimento da conta, então a invariante só fecha se a
+    // soma incluir esses lançamentos (uma transferência entre contas rastreadas
+    // se anula no consolidado). null quando não há nenhuma âncora pra auditar.
+    let auditNetByKey: Map<string, number> | null = null;
     {
       // Por conta: movimentos (date, delta) + âncoras de running_balance, asc.
       const acctTx = new Map<string, { date: string; delta: number; rb: number | null }[]>();
@@ -589,6 +600,25 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       }
       for (const arr of acctTx.values()) arr.sort((a, b) => a.date.localeCompare(b.date));
       const hasAnchor = Array.from(acctTx.values()).some((arr) => arr.some((e) => e.rb != null));
+
+      // Contas com âncora → perímetro auditável. Agrega o net por bucket
+      // (dia/mês/ano) só dessas contas. A chave do bucket espelha raw.data[].date:
+      // diário=YYYY-MM-DD, mensal=YYYY-MM, anual=YYYY.
+      if (hasAnchor) {
+        const anchoredKeys = new Set<string>();
+        for (const [k, arr] of acctTx) if (arr.some((e) => e.rb != null)) anchoredKeys.add(k);
+        auditNetByKey = new Map<string, number>();
+        for (const t of transactions) {
+          if (t.entity === "ENERDY") continue;
+          const k = `${t.bank}::${t.accountName}`;
+          if (!anchoredKeys.has(k)) continue;
+          const key = viewMode === "diario" ? t.transactionDate
+            : viewMode === "anual" ? t.transactionDate.slice(0, 4)
+            : t.transactionDate.slice(0, 7);
+          const delta = t.direction === "credit" ? t.amount : -t.amount;
+          auditNetByKey.set(key, (auditNetByKey.get(key) ?? 0) + delta);
+        }
+      }
 
       // Saldo de UMA conta na data de corte, reconstruído a partir da âncora de
       // running_balance mais próxima + os fluxos de amount entre âncora e corte.
@@ -688,6 +718,17 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
       // Live continua exposto no card "Caixa Total" pra quem quer ver o agora.
     }
 
+    // ── Verificação em tempo real da linha de saldo ──
+    // Invariante: saldo(D) ≈ saldo(D-1) + Σ net das contas com running_balance
+    // entre os dois pontos. Só audita buckets cujo saldo vem de fonte real
+    // (snapshot persistido ou running_balance derivado) — fallback cumulativo
+    // fecha a invariante por construção, então é ignorado. Carrega o último
+    // saldo real pra frente acumulando o net dos buckets intermediários, de
+    // modo que lacunas (dias sem fonte real) não geram falso positivo.
+    let lastRealSaldo: number | null = null;
+    let netSinceReal = 0;
+    let mismatchCount = 0, mismatchTotal = 0;
+
     let cum = 0;
     const data = raw.data.map((d, idx) => {
       cum += d.recebimentos - d.pagamentos;
@@ -699,18 +740,36 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
         : undefined;
       const saldoFromRB = derivedSaldo?.[idx];
       // Prioridade: snapshot persistido → runningBalance derivado → soma cumulativa
+      const isRealSource = saldoFromSnapshot != null || saldoFromRB != null;
       const saldo = saldoFromSnapshot != null
         ? Math.round(saldoFromSnapshot)
         : (saldoFromRB != null ? saldoFromRB : Math.round(openingDay1 + cum));
+
+      let saldoDelta: number | null = null;
+      if (auditNetByKey) {
+        netSinceReal += auditNetByKey.get(d.date ?? "") ?? 0;
+        if (isRealSource) {
+          if (lastRealSaldo !== null) {
+            const expected = lastRealSaldo + netSinceReal;
+            const delta = saldo - expected;
+            saldoDelta = round2(delta);
+            if (Math.abs(delta) > 0.01) { mismatchCount += 1; mismatchTotal += Math.abs(delta); }
+          }
+          lastRealSaldo = saldo;
+          netSinceReal = 0;
+        }
+      }
+
       return {
         ...d,
         // AP rendered as negative so the bar grows downward from y=0
         pagamentos: -d.pagamentos,
         saldo,
+        saldoDelta,
       };
     });
 
-    return { ...raw, data };
+    return { ...raw, data, mismatchCount, mismatchTotal: round2(mismatchTotal) };
   }, [transactions, viewMode, monthNav, openingBalance, coraConfigured, accounts, balanceSnapshots]);
 
   const loadBalance = useCallback(async (key: string) => {
@@ -1196,6 +1255,55 @@ export default function FinancialOverviewV2({ transactions, arPending, coraConfi
                 </button>
               )}
             </div>
+          )}
+
+          {/* ── Verificação em tempo real da linha de saldo ──────────────────
+              Compara saldo(D) exibido vs saldo(D-1) + net das contas com
+              running_balance. Divergência = snapshot/saldo desatualizado, txn
+              faltando no sync ou running_balance gravado errado. */}
+          {flowResult.mismatchCount > 0 && (
+            <details className="mt-3 rounded-lg bg-amber-50 border border-amber-200 text-[11px] overflow-hidden">
+              <summary className="px-3 py-2 cursor-pointer flex items-center justify-between gap-2 hover:bg-amber-100/60">
+                <span className="font-semibold text-amber-800 flex items-center gap-1.5">
+                  <WifiOff size={12} /> {flowResult.mismatchCount} {viewMode === "diario" ? "dia" : viewMode === "mensal" ? "mês" : "ano"}{flowResult.mismatchCount === 1 ? "" : "s"} com divergência no saldo
+                </span>
+                <span className="text-amber-700 tabular-nums">Σ |Δ| = {fmtBRL(flowResult.mismatchTotal)}</span>
+              </summary>
+              <div className="px-3 pb-3 pt-1 border-t border-amber-200 bg-white/40">
+                <p className="text-[10px] text-amber-700 leading-relaxed mb-2">
+                  Invariante: <span className="font-mono">saldo(D) ≈ saldo(D-1) + créditos(D) − débitos(D)</span> (contas com extrato).
+                  Pontos abaixo têm saldo exibido (snapshot/running_balance) que não bate com a soma das transações importadas.
+                  Causas comuns: snapshot diário desatualizado, txn faltando no sync, ou <span className="font-mono">running_balance</span> gravado errado.
+                </p>
+                <table className="w-full text-[10px] font-mono text-amber-900">
+                  <thead>
+                    <tr className="text-amber-700">
+                      <th className="text-left py-0.5">Período</th>
+                      <th className="text-right py-0.5">Saldo exibido</th>
+                      <th className="text-right py-0.5">Δ (exibido − esperado)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {flowResult.data
+                      .filter((d) => d.saldoDelta != null && Math.abs(d.saldoDelta) > 0.01)
+                      .map((d) => (
+                        <tr key={d.label} className="border-t border-amber-100">
+                          <td className="py-0.5">{formatTooltipHeader(d, d.label)}</td>
+                          <td className="text-right py-0.5">{fmtBRL(d.saldo)}</td>
+                          <td className={`text-right py-0.5 font-bold ${(d.saldoDelta ?? 0) > 0 ? "text-emerald-700" : "text-red-700"}`}>
+                            {(d.saldoDelta ?? 0) > 0 ? "+" : ""}{fmtBRL(d.saldoDelta ?? 0)}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+          {flowResult.hasData && flowResult.mismatchCount === 0 && flowResult.data.some((d) => d.saldoDelta != null) && (
+            <p className="mt-3 text-center text-[10px] text-emerald-600 flex items-center justify-center gap-1">
+              <CheckCircle2 size={11} /> Saldo consistente com os extratos {viewMode === "diario" ? `em ${monthLabel}` : "no período"}
+            </p>
           )}
 
           {/* Bottom legend row — entity toggles only */}
