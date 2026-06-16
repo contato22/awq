@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLockedBU } from "@/lib/use-locked-bu";
 import {
   LayoutDashboard, Plus, Search, Filter, TrendingUp, TrendingDown,
@@ -195,16 +196,19 @@ function ProjectRow({ project }: { project: PpmProject }) {
 
 export default function PpmPortfolioPage() {
   const { lockedBU, sessionLoading } = useLockedBU();
+  const searchParams = useSearchParams();
+  const buFromUrl = searchParams?.get("bu") ?? "";
   const [projects,  setProjects]  = useState<PpmProject[]>([]);
   const [metrics,   setMetrics]   = useState<PpmPortfolioMetrics | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState("");
-  const [filterBU,      setFilterBU]      = useState(lockedBU ?? "");
+  const [filterBU,      setFilterBU]      = useState(lockedBU ?? buFromUrl);
   const [filterStatus,  setFilterStatus]  = useState("");
   const [filterHealth,  setFilterHealth]  = useState("");
   const [filterType,    setFilterType]    = useState("");
 
-  useEffect(() => { if (lockedBU) setFilterBU(lockedBU); }, [lockedBU]);
+  // Role-locked roles sempre vencem; caso contrário usa ?bu= como filtro inicial.
+  useEffect(() => { if (lockedBU) setFilterBU(lockedBU); else if (buFromUrl) setFilterBU(buFromUrl); }, [lockedBU, buFromUrl]);
 
   const load = useCallback(async () => {
     setLoading(true);

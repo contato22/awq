@@ -475,7 +475,7 @@ const JACQES_MODULES: BUModule[] = [
         { label: "Oportunidades",  href: "/crm/opportunities",       icon: ArrowUpRight },
     ]},
     { id: "ppm",  label: "PPM",    description: "Projetos & Portfólio",     icon: Briefcase,  items: [
-        { label: "Portfolio",      href: "/awq/ppm?bu=JACQES",       icon: Briefcase     },
+        { label: "Portfolio",      href: "/jacqes/ppm",              icon: Briefcase     },
         { label: "Calendário",     href: "/awq/ppm/calendar",        icon: Calendar      },
         { label: "Gantt",          href: "/awq/ppm/gantt",           icon: GanttChart    },
         { label: "Tarefas",        href: "/awq/ppm/tasks",           icon: ClipboardList },
