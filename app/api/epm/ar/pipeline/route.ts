@@ -1,7 +1,8 @@
 // GET /api/epm/ar/pipeline
 // Returns aggregated pipeline status: Cadastro → Conciliação → DFC → DRE → Balanço
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { getPddRate } from "@/lib/ar-coa";
 
@@ -12,7 +13,10 @@ async function ensureDB() {
 
 function r2(n: number) { return Math.round(n * 100) / 100; }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "financeiro", "EPM AR Pipeline");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const items = await getAllAR();

@@ -4,6 +4,7 @@
 // Response: { success, data: { performance, sla, bottlenecks } }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   initBpmDB,
   getProcessPerformance,
@@ -20,6 +21,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "BPM Analytics");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const view = req.nextUrl.searchParams.get("view") ?? "all";

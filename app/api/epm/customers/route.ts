@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   getCustomers,
   addCustomer,
@@ -13,7 +14,10 @@ async function ensureDB() {
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "financeiro", "EPM Customers");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     return ok(await getCustomers());
@@ -21,6 +25,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "financeiro", "EPM Customers");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body = await req.json();

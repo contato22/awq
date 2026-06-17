@@ -3,6 +3,7 @@
 // Body: { task_id, escalated_by, escalate_to?, reason? }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   initBpmDB,
   getProcessTask,
@@ -21,6 +22,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "approve", "holding", "BPM Escalate Task");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body: { task_id: string; escalated_by: string; escalate_to?: string; reason?: string } = await req.json();

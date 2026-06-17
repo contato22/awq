@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, getOpportunity, updateOpportunity, getAccount } from "@/lib/crm-db";
 import { sql } from "@/lib/db";
+import { getAuthIdentity } from "@/lib/api-auth";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -15,6 +16,9 @@ const BU_REVENUE_ACCOUNT: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
+    const identity = await getAuthIdentity(req);
+    if (!identity) return err("Não autenticado", 401);
+
     await initCrmDB();
     const { opportunity_id } = await req.json();
     if (!opportunity_id) return err("opportunity_id required", 400);
@@ -23,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!opp) return err("Opportunity not found", 404);
 
     // BU isolation: bloqueia sync de opportunity fora da BU travada do usuário.
-    const lockedBU = req.headers.get("x-bu-lock") ?? undefined;
+    const lockedBU = identity.buLock ?? undefined;
     if (lockedBU && opp.bu !== lockedBU) return err("Opportunity not found", 404);
 
     if (opp.stage !== "closed_won") return err("Opportunity must be closed_won", 400);

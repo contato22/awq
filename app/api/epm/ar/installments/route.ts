@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { createARInstallments, initAPARDB, type BuCode } from "@/lib/ap-ar-db";
 
 let _ready = false;
@@ -10,6 +11,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "financeiro", "EPM AR Installments");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body = await req.json();
