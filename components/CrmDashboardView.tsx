@@ -104,7 +104,7 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardPr
 }
 
 // ─── BU filter options ────────────────────────────────────────────────────────
-const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
 type BuFilter = typeof BUS[number];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
