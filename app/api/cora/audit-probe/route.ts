@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions } from "@/lib/financial-db";
 import { todayBRT } from "@/lib/date-brt";
+import { verifyProbeSecret } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
@@ -29,6 +30,10 @@ interface AccountAudit {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  // Endpoint público pra GitHub Actions — exige Bearer PROBE_SECRET em produção.
+  const denied = verifyProbeSecret(req);
+  if (denied) return denied;
+
   if (!isCoraConfigured()) {
     return NextResponse.json({ error: "Integração Cora não configurada." }, { status: 501 });
   }
