@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getForcedBu } from "@/lib/api-guard";
+import { getForcedBu, apiGuard } from "@/lib/api-guard";
 import { listOpportunities } from "@/lib/crm-db";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import type { CrmOpportunity } from "@/lib/crm-types";
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "CRM Pipeline");
+  if (denied) return denied;
+
   try {
     const forcedBu = await getForcedBu(req);
     const allOpps = await listOpportunities(forcedBu ? { bu: forcedBu } : undefined);

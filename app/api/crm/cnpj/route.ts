@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initCrmDB, createAccount } from "@/lib/crm-db";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
@@ -166,6 +167,9 @@ function mapToAccountData(j: BrApiResp): CnpjData {
 // GET /api/crm/cnpj?cnpj=12345678000190
 // GET /api/crm/cnpj?cnpj=12345678000190&save=true&bu=JACQES  → also creates account in DB
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "CRM CNPJ Lookup");
+  if (denied) return denied;
+
   try {
     const raw = req.nextUrl.searchParams.get("cnpj") ?? "";
     const d = digits(raw);
