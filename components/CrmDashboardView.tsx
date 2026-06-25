@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode, ElementType } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
@@ -9,7 +10,7 @@ import {
   Users, Target, DollarSign, TrendingUp, CheckCircle2,
   Activity, AlertTriangle, Clock, ClipboardList,
   Phone, Mail, CalendarClock, BarChart3, FileText,
-  MessageSquare, Zap, Filter,
+  MessageSquare, Zap, Filter, Plus, ArrowUpRight,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
@@ -86,11 +87,12 @@ interface KpiCardProps {
   iconColor: string;
   iconBg: string;
   sub?: string;
+  href?: string;
 }
 
-function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardProps) {
-  return (
-    <div className="card p-4 flex items-center gap-3">
+function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub, href }: KpiCardProps) {
+  const inner = (
+    <>
       <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
         <Icon size={16} className={iconColor} />
       </div>
@@ -99,8 +101,26 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardPr
         <div className="text-xs text-gray-500 mt-0.5 truncate">{label}</div>
         {sub && <div className="text-xs text-gray-400 truncate">{sub}</div>}
       </div>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="card card-hover p-4 flex items-center gap-3 group relative"
+        aria-label={`${label}: abrir detalhes`}
+      >
+        <ArrowUpRight
+          size={13}
+          className="absolute top-2.5 right-2.5 text-gray-300 opacity-0 group-hover:opacity-100 group-hover:text-brand-500 transition-all"
+        />
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className="card p-4 flex items-center gap-3">{inner}</div>;
 }
 
 // ─── BU filter options ────────────────────────────────────────────────────────
@@ -277,7 +297,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
       <Header title={pageTitle} subtitle={pageSubtitle} />
       <div className="page-container">
 
-        {/* BU Filter */}
+        {/* BU Filter + Quick actions */}
         <div className="flex items-center gap-2 flex-wrap">
           <Filter size={13} className="text-gray-400 shrink-0" />
           <span className="text-xs text-gray-500 shrink-0">Filtrar por BU:</span>
@@ -294,22 +314,34 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               {b}
             </button>
           ))}
-          {isStatic && (
-            <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-              Snapshot estático
-            </span>
-          )}
+
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+            {isStatic && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                Snapshot estático
+              </span>
+            )}
+            <Link href="/crm/leads/add" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-white border border-gray-200 hover:border-brand-200 hover:text-brand-700 hover:bg-brand-50 transition-all">
+              <Plus size={13} /> Lead
+            </Link>
+            <Link href="/crm/activities/add" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-white border border-gray-200 hover:border-brand-200 hover:text-brand-700 hover:bg-brand-50 transition-all">
+              <Plus size={13} /> Atividade
+            </Link>
+            <Link href="/crm/opportunities/add" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 transition-all shadow-sm">
+              <Plus size={13} /> Oportunidade
+            </Link>
+          </div>
         </div>
 
         {/* ── KPI Row ───────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiCard label="Leads novos"           value={analytics.leadsNew ?? 0}                icon={Users}        iconColor="text-blue-600"    iconBg="bg-blue-50" />
-          <KpiCard label="Oportunidades abertas" value={analytics.openOpportunities ?? 0}        icon={Target}       iconColor="text-brand-600"  iconBg="bg-brand-50" />
-          <KpiCard label="Pipeline total"         value={formatBRL(analytics.pipelineValue ?? 0)} icon={BarChart3}    iconColor="text-amber-600"   iconBg="bg-amber-50" />
-          <KpiCard label="Forecast ponderado"     value={formatBRL(analytics.weightedForecast ?? 0)} icon={DollarSign} iconColor="text-emerald-600" iconBg="bg-emerald-50" sub="prob. ponderada" />
-          <KpiCard label="Fechado no mês"         value={formatBRL(analytics.closedWonThisMonth ?? 0)} icon={CheckCircle2} iconColor="text-green-600" iconBg="bg-green-50" />
-          <KpiCard label="Win Rate"               value={`${analytics.winRate ?? 0}%`}           icon={TrendingUp}   iconColor="text-blue-600"    iconBg="bg-blue-50" />
+          <KpiCard label="Leads novos"           value={analytics.leadsNew ?? 0}                icon={Users}        iconColor="text-blue-600"    iconBg="bg-blue-50"    href="/crm/leads" />
+          <KpiCard label="Oportunidades abertas" value={analytics.openOpportunities ?? 0}        icon={Target}       iconColor="text-brand-600"  iconBg="bg-brand-50"   href="/crm/opportunities" />
+          <KpiCard label="Pipeline total"         value={formatBRL(analytics.pipelineValue ?? 0)} icon={BarChart3}    iconColor="text-amber-600"   iconBg="bg-amber-50"   href="/crm/opportunities" />
+          <KpiCard label="Forecast ponderado"     value={formatBRL(analytics.weightedForecast ?? 0)} icon={DollarSign} iconColor="text-emerald-600" iconBg="bg-emerald-50" sub="prob. ponderada" href="/crm/analytics" />
+          <KpiCard label="Fechado no mês"         value={formatBRL(analytics.closedWonThisMonth ?? 0)} icon={CheckCircle2} iconColor="text-green-600" iconBg="bg-green-50"   href="/crm/analytics" />
+          <KpiCard label="Win Rate"               value={`${analytics.winRate ?? 0}%`}           icon={TrendingUp}   iconColor="text-blue-600"    iconBg="bg-blue-50"    href="/crm/analytics" />
         </div>
 
         {/* ── Pipeline Funnel ───────────────────────────────────────────────── */}
