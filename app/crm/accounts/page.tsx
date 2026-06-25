@@ -142,7 +142,7 @@ export default function AccountsPage() {
           <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-gray-100 bg-gray-50/60">
                   {["Empresa", "Tipo", "BU", "Cidade", "Owner", "Opps", "Health", "Risco", ""].map(h => (
                     <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 whitespace-nowrap uppercase tracking-wide">{h}</th>
                   ))}

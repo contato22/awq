@@ -85,14 +85,19 @@ export default function ActivitiesPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total", value: activities.length, color: "text-gray-700" },
-            { label: "Agendadas", value: tasksScheduled, color: "text-blue-600" },
-            { label: "Concluídas hoje", value: completedToday, color: "text-emerald-600" },
-            { label: "Ligações", value: activities.filter(a=>a.activity_type==="call").length, color: "text-brand-600" },
+            { label: "Total", value: activities.length, icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Agendadas", value: tasksScheduled, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Concluídas hoje", value: completedToday, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Ligações", value: activities.filter(a=>a.activity_type==="call").length, icon: Phone, color: "text-brand-600", bg: "bg-brand-50" },
           ].map(k => (
-            <div key={k.label} className="card p-5">
-              <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
+            <div key={k.label} className="card p-4 flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl ${k.bg} flex items-center justify-center shrink-0`}>
+                <k.icon size={16} className={k.color} />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-gray-900">{k.value}</div>
+                <div className="text-xs text-gray-500">{k.label}</div>
+              </div>
             </div>
           ))}
         </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
-import { Users, Plus, Search, Mail, Phone, Linkedin, Trash2, Check, X as XIcon } from "lucide-react";
+import { Users, Plus, Search, Mail, Phone, Linkedin, Trash2, Check, X as XIcon, Crown, Briefcase, Star } from "lucide-react";
 import type { CrmContact } from "@/lib/crm-types";
 
 const SENIORITY_LABELS: Record<string, string> = {
@@ -53,14 +53,19 @@ export default function ContactsPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total Contatos", value: contacts.length },
-            { label: "C-Level",        value: contacts.filter(c=>c.seniority==="c_level").length },
-            { label: "Diretores",      value: contacts.filter(c=>c.seniority==="director").length },
-            { label: "Primários",      value: contacts.filter(c=>c.is_primary_contact).length },
+            { label: "Total Contatos", value: contacts.length,                                          icon: Users,     color: "text-blue-600",  bg: "bg-blue-50" },
+            { label: "C-Level",        value: contacts.filter(c=>c.seniority==="c_level").length,        icon: Crown,     color: "text-brand-600", bg: "bg-brand-50" },
+            { label: "Diretores",      value: contacts.filter(c=>c.seniority==="director").length,       icon: Briefcase, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Primários",      value: contacts.filter(c=>c.is_primary_contact).length,           icon: Star,      color: "text-emerald-600", bg: "bg-emerald-50" },
           ].map(k => (
-            <div key={k.label} className="card p-5">
-              <div className="text-2xl font-bold text-gray-900">{k.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
+            <div key={k.label} className="card p-4 flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl ${k.bg} flex items-center justify-center shrink-0`}>
+                <k.icon size={16} className={k.color} />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-gray-900">{k.value}</div>
+                <div className="text-xs text-gray-500">{k.label}</div>
+              </div>
             </div>
           ))}
         </div>
@@ -87,7 +92,7 @@ export default function ContactsPage() {
           <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-gray-100 bg-gray-50/60">
                   {["Contato","Empresa","Cargo","Senioridade","Canais","Principal",""].map(h=>(
                     <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 whitespace-nowrap uppercase tracking-wide">{h}</th>
                   ))}

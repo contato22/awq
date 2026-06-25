@@ -197,7 +197,7 @@ export default function LeadsPage() {
               <Users size={16} className="text-blue-600" />
             </div>
             <div>
-              <div className="text-xl font-bold text-gray-900">{kpiTotal}</div>
+              <div className="text-lg font-bold text-gray-900">{kpiTotal}</div>
               <div className="text-xs text-gray-500">Total de leads</div>
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function LeadsPage() {
               <Target size={16} className="text-brand-600" />
             </div>
             <div>
-              <div className="text-xl font-bold text-gray-900">{kpiNew}</div>
+              <div className="text-lg font-bold text-gray-900">{kpiNew}</div>
               <div className="text-xs text-gray-500">Leads novos</div>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function LeadsPage() {
               <TrendingUp size={16} className="text-emerald-600" />
             </div>
             <div>
-              <div className="text-xl font-bold text-gray-900">{kpiQualified}</div>
+              <div className="text-lg font-bold text-gray-900">{kpiQualified}</div>
               <div className="text-xs text-gray-500">Qualificados</div>
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function LeadsPage() {
               <BarChart3 size={16} className="text-amber-600" />
             </div>
             <div>
-              <div className="text-xl font-bold text-gray-900">{kpiScoreAvg}</div>
+              <div className="text-lg font-bold text-gray-900">{kpiScoreAvg}</div>
               <div className="text-xs text-gray-500">Score médio</div>
             </div>
           </div>
