@@ -74,6 +74,21 @@ Com o `discovery-report.json`, preencher em `lib/enerdy-api.ts` (ou via env):
 - `ENDPOINTS.montagem` / `ENERDY_MONTAGEM_PATH` — rota de dados da montagem
 - ajustar nomes dos campos de login e o shape de `EnerdyMontagemItem`.
 
+## Escopo da BU ENRD (filtro)
+
+Só interessa **pós-venda** (serviço, limpeza, manutenção…) atrelado a
+**William** ou **Tamara**. Implementado em `lib/enerdy-api.ts`:
+
+- `filtrarPosVendaWilliamTamara(items)` / `fetchPosVendaWilliamTamara()`
+- Heurística textual (busca nomes + palavras-chave em qualquer campo) enquanto o
+  shape do payload não é conhecido; após a descoberta, trocar para os campos
+  exatos (ex.: `item.responsavel`, `item.tipoServico`).
+- Configurável por env (CSV):
+  ```
+  ENERDY_RESPONSAVEIS=william,tamara
+  ENERDY_POSVENDA_KEYWORDS=pós-venda,serviço,limpeza,manutenção,assistência,o&m
+  ```
+
 ## Passo 5 — Ingestão na BU ENRD
 
 Padrão já usado no repo (ex.: `app/api/enrd/seed-*`, `lib/recon-ingest.ts`):

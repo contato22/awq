@@ -95,6 +95,53 @@ function authHeaders(s: EnerdySession): Record<string, string> {
   return h;
 }
 
+// ─── Escopo da BU ENRD: pós-venda atrelado a William e Tamara ──────────────────
+//
+// O usuário só quer PÓS-VENDA (serviço, limpeza, manutenção…) cujo responsável
+// seja William OU Tamara. Como o shape do payload ainda não foi descoberto, o
+// filtro é heurístico: procura os nomes e as palavras-chave de pós-venda em
+// QUALQUER campo de texto do item. Após a descoberta, troque para os campos
+// exatos (ex.: item.responsavel, item.tipoServico).
+//
+// Configurável por env (CSV), com defaults sensatos:
+const RESPONSAVEIS = (process.env.ENERDY_RESPONSAVEIS ?? "william,tamara")
+  .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+const POS_VENDA_KEYWORDS = (process.env.ENERDY_POSVENDA_KEYWORDS ??
+  "pós-venda,pos-venda,pós venda,serviço,servico,limpeza,manutenção,manutencao,assistência,assistencia,o&m")
+  .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+function norm(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+// Concatena todos os valores string do item (raso) para busca textual
+function itemText(item: EnerdyMontagemItem): string {
+  return norm(Object.values(item)
+    .filter((v) => typeof v === "string" || typeof v === "number")
+    .join(" "));
+}
+
+export function isPosVenda(item: EnerdyMontagemItem): boolean {
+  const t = itemText(item);
+  return POS_VENDA_KEYWORDS.some((k) => t.includes(norm(k)));
+}
+
+export function isDeWilliamOuTamara(item: EnerdyMontagemItem): boolean {
+  const t = itemText(item);
+  return RESPONSAVEIS.some((r) => t.includes(norm(r)));
+}
+
+/** Itens de pós-venda atrelados a William ou Tamara — o escopo da BU ENRD. */
+export function filtrarPosVendaWilliamTamara(items: EnerdyMontagemItem[]): EnerdyMontagemItem[] {
+  return items.filter((it) => isPosVenda(it) && isDeWilliamOuTamara(it));
+}
+
+/** Atalho: busca a montagem e já aplica o filtro de escopo. */
+export async function fetchPosVendaWilliamTamara(): Promise<EnerdyMontagemItem[]> {
+  return filtrarPosVendaWilliamTamara(await fetchMontagem());
+}
+
 // ─── Fetch: tela de montagem ───────────────────────────────────────────────────
 
 export async function fetchMontagem(): Promise<EnerdyMontagemItem[]> {
