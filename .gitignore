@@ -63,3 +63,6 @@ next-env.d.ts
 # Playwright
 test-results/
 playwright-report/
+
+# Enerdy discovery output (contém cookies de sessão — nunca commitar)
+scripts/.enerdy-out/
