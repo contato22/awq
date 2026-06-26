@@ -25,7 +25,10 @@
  *   ENERDY_USER               usuário do app (ex: miguel_enerdy) → @enerdy.local
  *   ENERDY_EMAIL              email de login (sobrescreve a derivação acima)
  *   ENERDY_PASS               senha de login
- *   ENERDY_TABLE              nome da tabela (default: installations; tenta candidatos)
+ *   ENERDY_TABLES             csv de tabelas (default: installations, clientes,
+ *                             cleaning_reports, installation_manuals,
+ *                             service_questions, folgas)
+ *   ENERDY_TABLE              exporta só uma tabela (sobrescreve o default)
  *
  * Uso: node scripts/fetch-enerdy-portal.mjs
  */
@@ -66,14 +69,25 @@ function deriveEmail(raw) {
 const EMAIL = process.env.ENERDY_EMAIL || deriveEmail(process.env.ENERDY_USER);
 const PASSWORD = process.env.ENERDY_PASS || "";
 
-// Tabela de montagem — nome configurável, com candidatos do app como fallback.
-const TABLE_CANDIDATES = [
-  process.env.ENERDY_TABLE,
-  "installations",
-  "montagem",
-  "montagens",
-  "assembly",
-].filter(Boolean);
+// Tabelas a exportar. Por padrão exporta o conjunto do app de montagem.
+// Sobrescreva com ENERDY_TABLES (csv) ou ENERDY_TABLE (uma só).
+const DEFAULT_TABLES = [
+  "installations",        // tabela de montagem (principal)
+  "clientes",
+  "cleaning_reports",
+  "installation_manuals",
+  "service_questions",
+  "folgas",
+];
+const TABLES = (
+  process.env.ENERDY_TABLES
+    ? process.env.ENERDY_TABLES.split(",")
+    : process.env.ENERDY_TABLE
+    ? [process.env.ENERDY_TABLE]
+    : DEFAULT_TABLES
+)
+  .map((t) => t.trim())
+  .filter(Boolean);
 
 const PAGE_SIZE = 1000;
 
@@ -143,50 +157,42 @@ async function main() {
   }
   console.log(`  OK — sessão iniciada (user ${auth.user?.id ?? "?"}).`);
 
-  // ── 2. Buscar tabela de montagem ──────────────────────────────────────────
-  console.log(`[2/3] Buscando tabela de montagem (candidatos: ${TABLE_CANDIDATES.join(", ")})...`);
-  let table = null;
-  let rows = null;
-  let lastError = null;
-  for (const candidate of TABLE_CANDIDATES) {
-    const result = await fetchAll(supabase, candidate);
-    if (result.error) {
-      lastError = result.error;
-      if (isMissingRelation(result.error)) {
-        console.log(`  - "${candidate}" não existe, tentando próximo...`);
-        continue;
+  // ── 2. Buscar tabelas ──────────────────────────────────────────────────────
+  console.log(`[2/3] Buscando ${TABLES.length} tabela(s): ${TABLES.join(", ")}...`);
+  const exported = [];
+  for (const table of TABLES) {
+    const { rows, error } = await fetchAll(supabase, table);
+    if (error) {
+      if (isMissingRelation(error)) {
+        console.warn(`  - "${table}" não existe — pulando.`);
+      } else {
+        console.error(`  ERRO em "${table}": ${error.message} — pulando.`);
       }
-      // Erro real (ex: RLS, permissão) — para de tentar.
-      console.error(`  ERRO ao ler "${candidate}": ${result.error.message}`);
-      break;
+      continue;
     }
-    table = candidate;
-    rows = result.rows;
-    break;
+    write(`${table}.json`, rows);
+    exported.push({ table, count: rows.length });
   }
 
-  if (rows === null) {
-    console.error(
-      `ERRO: não foi possível ler a tabela de montagem. Último erro: ${lastError?.message ?? "desconhecido"}`
-    );
+  if (exported.length === 0) {
+    console.error("ERRO: nenhuma tabela pôde ser exportada (RLS/permissão ou nomes inválidos).");
     await supabase.auth.signOut();
     process.exit(1);
   }
-  console.log(`  OK — "${table}": ${rows.length} linhas.`);
 
-  // ── 3. Gravar ─────────────────────────────────────────────────────────────
-  console.log("[3/3] Gravando em public/data/enerdy-portal/...");
-  write(`${table}.json`, rows);
+  // ── 3. Gravar metadados ────────────────────────────────────────────────────
   write("_meta.json", {
     source: SUPABASE_URL,
     portal: "https://gestao.enerdy.com.br",
-    table,
-    count: rows.length,
+    user: EMAIL,
+    tables: exported,
     fetchedAt: new Date().toISOString(),
   });
 
   await supabase.auth.signOut();
-  console.log("Concluído — export da ENERDY completo.");
+  console.log(
+    `[3/3] Concluído — ${exported.length} tabela(s), ${exported.reduce((s, t) => s + t.count, 0)} linhas no total.`
+  );
 }
 
 main().catch((err) => {
