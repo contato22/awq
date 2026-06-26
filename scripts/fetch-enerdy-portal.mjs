@@ -1,26 +1,31 @@
 /**
  * fetch-enerdy-portal.mjs
  *
- * Faz login no portal de gestão da ENERDY (https://gestao.enerdy.com.br), cujo
- * backend é um projeto Supabase próprio (atkkcjfylbeijwgctbse.supabase.co),
- * busca os dados da tabela de montagem (assembly/montagem) e grava o resultado
- * em public/data/enerdy-portal/.
+ * Faz login no app "Controle de Montagem" da ENERDY e exporta a tabela de
+ * montagem (installations) para public/data/enerdy-portal/.
+ *
+ * Arquitetura do portal ENERDY (verificada):
+ *   - gestao.enerdy.com.br        → hub de auth/acesso (projeto Supabase
+ *                                    atkkcjfylbeijwgctbse; só app_access/profiles/user_roles)
+ *   - montagens.enerdy.com.br     → app "Controle de Montagem", projeto Supabase
+ *                                    PRÓPRIO (gxgvucnkldzcktdzkkdv) — é AQUI que
+ *                                    vivem os dados de montagem (tabela installations)
+ * Cada sub-app Lovable tem seu próprio projeto Supabase e seu próprio pool de
+ * usuários — as credenciais do hub NÃO valem automaticamente no app de montagem.
  *
  * Autenticação: Supabase Auth (email/senha). A anon key é pública (subject to
- * RLS), então o login é obrigatório para que as policies liberem as linhas.
- *
- * O portal autentica via Supabase Auth usando o email derivado do usuário:
- *   email = `${ENERDY_USER.toLowerCase()}@enerdy.local`
- * (mesma regra do frontend gestao.enerdy.com.br). Use ENERDY_EMAIL para
- * sobrescrever explicitamente.
+ * RLS) e o login é obrigatório — leitura anônima retorna 0 linhas (RLS).
+ * O email é derivado do usuário (mesma regra do frontend):
+ *   email = `${ENERDY_USER}@enerdy.local`  (sanitizado: [^a-z0-9_.-] removido)
+ * Use ENERDY_EMAIL para sobrescrever.
  *
  * Variáveis de ambiente:
- *   ENERDY_SUPABASE_URL       URL do backend (default: atkkcjfylbeijwgctbse)
- *   ENERDY_SUPABASE_ANON_KEY  anon key pública (fallback: NEXT_PUBLIC_SUPABASE_ANON_KEY)
- *   ENERDY_USER               usuário do portal (ex: miguel_enerdy) → @enerdy.local
+ *   ENERDY_SUPABASE_URL       URL do backend (default: gxgvucnkldzcktdzkkdv = montagem)
+ *   ENERDY_SUPABASE_ANON_KEY  anon key pública (fallback: embarcada do app de montagem)
+ *   ENERDY_USER               usuário do app (ex: miguel_enerdy) → @enerdy.local
  *   ENERDY_EMAIL              email de login (sobrescreve a derivação acima)
  *   ENERDY_PASS               senha de login
- *   ENERDY_TABLE              nome da tabela (default: montagem; tenta candidatos)
+ *   ENERDY_TABLE              nome da tabela (default: installations; tenta candidatos)
  *
  * Uso: node scripts/fetch-enerdy-portal.mjs
  */
@@ -34,35 +39,40 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "..", "public", "data", "enerdy-portal");
 
 // ── Config ────────────────────────────────────────────────────────────────────
+// Backend do app de montagem (montagens.enerdy.com.br), NÃO o hub de auth.
 const SUPABASE_URL =
-  process.env.ENERDY_SUPABASE_URL || "https://atkkcjfylbeijwgctbse.supabase.co";
+  process.env.ENERDY_SUPABASE_URL || "https://gxgvucnkldzcktdzkkdv.supabase.co";
 
-// Anon key é pública (subject to RLS) — é embarcada no bundle do frontend
-// gestao.enerdy.com.br, então fica hardcoded como fallback (mesmo padrão do
-// ERP_ANON_KEY em lib/supabase.ts). Sobrescreva via env para outro projeto.
+// Anon key é pública (subject to RLS) — embarcada no bundle do app de montagem,
+// fica hardcoded como fallback (mesmo padrão do ERP_ANON_KEY em lib/supabase.ts).
+// Sobrescreva via env para outro projeto.
 const ENERDY_ANON_KEY_FALLBACK =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0a2tjamZ5bGJlaWp3Z2N0YnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDE1MDMsImV4cCI6MjA5NDg3NzUwM30.DvNCpeWjF9mNt3L9GwnzUsbeCKQzCIvnT_-Ep8LpPJg";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Z3Z1Y25rbGR6Y2t0ZHpra2R2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODgzOTIsImV4cCI6MjA4ODA2NDM5Mn0.lT1GPmJOU3v12O5RvscEFFSUrf4JeLd77F0j34SiW4Q";
 const ANON_KEY =
   process.env.ENERDY_SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   ENERDY_ANON_KEY_FALLBACK;
 
-// O portal monta o email como `${usuario}@enerdy.local`. ENERDY_EMAIL tem
-// precedência caso a conta use um email "real".
+// O portal monta o email como `${usuario}@enerdy.local`, sanitizando o usuário
+// (remove tudo fora de [a-z0-9_.-]) — idêntico à função do frontend. ENERDY_EMAIL
+// tem precedência caso a conta use um email "real".
 const ENERDY_EMAIL_DOMAIN = process.env.ENERDY_EMAIL_DOMAIN || "enerdy.local";
-const USER = (process.env.ENERDY_USER || "").trim().toLowerCase();
-const EMAIL =
-  process.env.ENERDY_EMAIL ||
-  (USER ? (USER.includes("@") ? USER : `${USER}@${ENERDY_EMAIL_DOMAIN}`) : "");
+function deriveEmail(raw) {
+  const e = (raw || "").trim().toLowerCase();
+  if (!e) return "";
+  if (e.includes("@")) return e;
+  return `${e.replace(/[^a-z0-9_.-]/g, "")}@${ENERDY_EMAIL_DOMAIN}`;
+}
+const EMAIL = process.env.ENERDY_EMAIL || deriveEmail(process.env.ENERDY_USER);
 const PASSWORD = process.env.ENERDY_PASS || "";
 
-// Tabela de montagem — nome configurável, com candidatos comuns como fallback.
+// Tabela de montagem — nome configurável, com candidatos do app como fallback.
 const TABLE_CANDIDATES = [
   process.env.ENERDY_TABLE,
+  "installations",
   "montagem",
   "montagens",
   "assembly",
-  "assemblies",
 ].filter(Boolean);
 
 const PAGE_SIZE = 1000;
