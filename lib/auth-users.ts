@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd" | "jacqes";
+export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd" | "jacqes" | "live-shop";
 
 export interface AuthUser {
   id: string;
@@ -104,6 +104,8 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   // NOTA: /awq/bpm fora porque BPM ainda não tem coluna bu_code — liberar
   // significa vazar workflows/tasks da Holding para Danilo.
   jacqes:   ["/jacqes", "/crm", "/csops", "/awq/ppm"], // JACQES BU + CRM + CS Ops + PPM compartilhado
+  // Operador Live Shop — escopo SOMENTE /awq/live-shop (RLS isola bu='LIVE', §10).
+  "live-shop": ["/awq/live-shop"],
 };
 
 // Routes denied to specific roles even when within an allowed prefix.
