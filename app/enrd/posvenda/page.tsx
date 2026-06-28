@@ -21,6 +21,7 @@ import {
   getInstallations,
   getProximasLimpezas,
 } from "@/lib/enrd-montagem-db";
+import { getLiveMontagem, proximasLimpezas as liveProximas } from "@/lib/enrd-montagem-live";
 import {
   contribuicaoOS,
   resultadoMes,
@@ -58,14 +59,27 @@ export default async function EnrdPosVendaPage() {
   let installations: Awaited<ReturnType<typeof getInstallations>> = [];
   let proximas: Awaited<ReturnType<typeof getProximasLimpezas>> = [];
   let loadError: string | null = null;
+  // OS (Tamara) vêm do banco AWQ (dado armazenado, não do gestão).
   try {
-    [os, installations, proximas] = await Promise.all([
-      getOS(),
-      getInstallations(),
-      getProximasLimpezas(),
-    ]);
+    os = await getOS();
   } catch (e) {
     loadError = e instanceof Error ? e.message : String(e);
+  }
+  // Enriquecimento (instalações + agenda) AO VIVO do gestão; fallback ao espelho.
+  try {
+    const snap = await getLiveMontagem();
+    if (snap) {
+      installations = snap.installations;
+      proximas = liveProximas(snap);
+    } else {
+      [installations, proximas] = await Promise.all([getInstallations(), getProximasLimpezas()]);
+    }
+  } catch {
+    try {
+      [installations, proximas] = await Promise.all([getInstallations(), getProximasLimpezas()]);
+    } catch {
+      /* mantém vazio */
+    }
   }
 
   // ── Mês corrente (MTD) ──────────────────────────────────────────────────────

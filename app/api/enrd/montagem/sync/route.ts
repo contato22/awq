@@ -15,6 +15,7 @@ import {
   getLastSync,
   buildMontagemKpis,
 } from "@/lib/enrd-montagem-db";
+import { getLiveMontagem } from "@/lib/enrd-montagem-live";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -53,15 +54,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const [installations, clientes, lastSync] = await Promise.all([
-      getInstallations(),
-      getMontagemClientes(),
-      getLastSync(),
-    ]);
+    // Tempo real: tenta o gestão ao vivo; cai para o espelho se não configurado.
+    const live = await getLiveMontagem().catch(() => null);
+    let installations: Awaited<ReturnType<typeof getInstallations>>;
+    let clientes: Awaited<ReturnType<typeof getMontagemClientes>>;
+    let lastSync: Awaited<ReturnType<typeof getLastSync>> = null;
+    if (live) {
+      installations = live.installations;
+      clientes = live.clientes;
+    } else {
+      [installations, clientes, lastSync] = await Promise.all([
+        getInstallations(),
+        getMontagemClientes(),
+        getLastSync(),
+      ]);
+    }
     const kpis = buildMontagemKpis(installations);
     return NextResponse.json({
       ok: true,
       configured: isEnerdyPortalConfigured(),
+      live: Boolean(live),
       counts: { installations: installations.length, clientes: clientes.length },
       kpis: {
         total: kpis.total,

@@ -6,6 +6,7 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { getMontagemClientes, getInstallations } from "@/lib/enrd-montagem-db";
+import { getLiveMontagem } from "@/lib/enrd-montagem-live";
 import { Users, Phone, MapPin, Wrench, ArrowUpRight, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,19 @@ export default async function EnrdCustomersPage() {
   let installations: Awaited<ReturnType<typeof getInstallations>> = [];
   let loadError: string | null = null;
   try {
-    [clientes, installations] = await Promise.all([getMontagemClientes(), getInstallations()]);
+    const snap = await getLiveMontagem(); // tempo real
+    if (snap) {
+      clientes = snap.clientes;
+      installations = snap.installations;
+    } else {
+      [clientes, installations] = await Promise.all([getMontagemClientes(), getInstallations()]);
+    }
   } catch (e) {
-    loadError = e instanceof Error ? e.message : String(e);
+    try {
+      [clientes, installations] = await Promise.all([getMontagemClientes(), getInstallations()]);
+    } catch {
+      loadError = e instanceof Error ? e.message : String(e);
+    }
   }
 
   // # instalações por cliente

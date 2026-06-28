@@ -1,8 +1,7 @@
-// ─── /enrd/montagem — Controle de Montagem (espelho do portal gestão) ────────
-// Lê o espelho LOCAL no banco da AWQ (enrd_montagem_*), nunca o portal externo.
-// Sincronização sob demanda via botão (POST /api/enrd/montagem/sync).
-//
-// Tolerante a falha: se a tabela ainda não foi migrada, monta vazio com banner.
+// ─── /enrd/montagem — Controle de Montagem (TEMPO REAL do portal gestão) ─────
+// Lê AO VIVO o gestão a cada render (login server-side + fetch). Não depende do
+// espelho/migração para visualizar — só das credenciais ENERDY_USER/ENERDY_PASS.
+// Em falha/ausência de credenciais, cai para o espelho local (se existir).
 
 import Header from "@/components/Header";
 import EnrdMontagemSyncButton from "@/components/EnrdMontagemSyncButton";
@@ -12,6 +11,7 @@ import {
   getLastSync,
   type MontagemInstallation,
 } from "@/lib/enrd-montagem-db";
+import { getLiveMontagem, isLiveConfigured } from "@/lib/enrd-montagem-live";
 import {
   Zap,
   CheckCircle2,
@@ -49,11 +49,27 @@ export default async function EnrdMontagemPage() {
   let installations: MontagemInstallation[] = [];
   let lastSync: Awaited<ReturnType<typeof getLastSync>> = null;
   let loadError: string | null = null;
+  let live = false; // dados vieram ao vivo do gestão
+  let liveAt: string | null = null;
+  const configured = isLiveConfigured();
 
   try {
-    [installations, lastSync] = await Promise.all([getInstallations(), getLastSync()]);
+    const snap = await getLiveMontagem(); // tempo real
+    if (snap) {
+      installations = snap.installations;
+      live = true;
+      liveAt = snap.fetchedAt;
+    } else {
+      // sem credenciais → fallback para o espelho local
+      [installations, lastSync] = await Promise.all([getInstallations(), getLastSync()]);
+    }
   } catch (e) {
-    loadError = e instanceof Error ? e.message : String(e);
+    // live falhou → tenta o espelho
+    try {
+      [installations, lastSync] = await Promise.all([getInstallations(), getLastSync()]);
+    } catch {
+      loadError = e instanceof Error ? e.message : String(e);
+    }
   }
 
   const kpis = buildMontagemKpis(installations);
@@ -76,12 +92,26 @@ export default async function EnrdMontagemPage() {
         {/* Barra de ação / origem */}
         <div className="card p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-gray-500 flex items-center gap-2">
-            <Zap size={14} className="text-orange-600" />
-            Espelho do portal <span className="font-medium text-gray-700">gestão.enerdy.com.br</span>
-            {lastSync && (
-              <span className="text-gray-400">
-                · última sync {new Date(lastSync.ran_at).toLocaleString("pt-BR")}
-              </span>
+            {live ? (
+              <>
+                <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> AO VIVO
+                </span>
+                <span className="text-gray-400">
+                  · lido do <span className="font-medium text-gray-700">gestão.enerdy.com.br</span> em{" "}
+                  {liveAt ? new Date(liveAt).toLocaleTimeString("pt-BR") : "—"}
+                </span>
+              </>
+            ) : (
+              <>
+                <Zap size={14} className="text-orange-600" />
+                Espelho do portal <span className="font-medium text-gray-700">gestão.enerdy.com.br</span>
+                {lastSync && (
+                  <span className="text-gray-400">
+                    · última sync {new Date(lastSync.ran_at).toLocaleString("pt-BR")}
+                  </span>
+                )}
+              </>
             )}
           </div>
           <EnrdMontagemSyncButton />
@@ -89,16 +119,23 @@ export default async function EnrdMontagemPage() {
 
         {loadError && (
           <div className="card p-4 border-amber-200 bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
-            <AlertCircle size={16} /> Não foi possível ler o banco: {loadError}
+            <AlertCircle size={16} /> Não foi possível ler os dados: {loadError}
           </div>
         )}
 
-        {empty && !loadError && (
+        {!configured && !loadError && (
           <div className="card p-4 border-amber-200 bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
             <AlertCircle size={16} />
-            Nenhuma instalação no espelho ainda. Rode a migração{" "}
-            <code className="px-1 rounded bg-amber-100">006_enrd_montagem.sql</code> e clique em
-            <strong> Sincronizar do gestão</strong>.
+            Tempo real desligado: defina <code className="px-1 rounded bg-amber-100">ENERDY_USER</code> e{" "}
+            <code className="px-1 rounded bg-amber-100">ENERDY_PASS</code> nas env vars da Vercel e faça
+            Redeploy. (Conta com acesso de leitura no app de montagem.)
+          </div>
+        )}
+
+        {configured && empty && !loadError && (
+          <div className="card p-4 border-amber-200 bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
+            <AlertCircle size={16} /> Conectado ao gestão, mas nenhuma instalação retornou (verifique o
+            acesso/RLS da conta).
           </div>
         )}
 

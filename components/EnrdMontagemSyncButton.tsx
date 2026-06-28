@@ -17,14 +17,19 @@ export default function EnrdMontagemSyncButton() {
     setMsg(null);
     setErr(null);
     try {
+      // Best-effort: atualiza o backup no espelho. A visão da página é AO VIVO,
+      // então mesmo se o espelho falhar (sem migração) o refresh abaixo atualiza.
       const res = await fetch("/api/enrd/montagem/sync", { method: "POST" });
-      const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
-      setMsg(`${json.synced.installations} instalações · ${json.synced.clientes} clientes`);
-      router.refresh();
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.ok) {
+        setMsg(`${json.synced.installations} instalações · ${json.synced.clientes} clientes`);
+      } else if (json.error) {
+        setErr(`espelho não atualizado: ${json.error}`);
+      }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(`espelho não atualizado: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
+      router.refresh(); // sempre re-lê a página (ao vivo)
       setLoading(false);
     }
   }
