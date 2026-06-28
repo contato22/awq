@@ -26,8 +26,10 @@ import {
   contribuicaoOS,
   resultadoMes,
   resultadoPorMes,
+  type OS,
   type OSContribuicao,
 } from "@/lib/enrd-posvenda-costing";
+import { getLiveProjetosPosVenda } from "@/lib/enerdy-projetos";
 import {
   premissasEstimadas,
   configSoReais,
@@ -55,15 +57,34 @@ const PCT = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 export default async function EnrdPosVendaPage() {
   const config = await getConfig();
-  let os: StoredOS[] = [];
+  type DashOS = OS & { status?: string | null };
+  let os: DashOS[] = [];
+  let osSource: "projetos" | "tamara" | "none" = "none";
+  let osLiveAt: string | null = null;
   let installations: Awaited<ReturnType<typeof getInstallations>> = [];
   let proximas: Awaited<ReturnType<typeof getProximasLimpezas>> = [];
   let loadError: string | null = null;
-  // OS (Tamara) vêm do banco AWQ (dado armazenado, não do gestão).
+  // Fonte das OS: CRM de pós-venda do projetos (pos_venda_servicos) AO VIVO;
+  // fallback para as OS importadas da planilha Tamara (banco AWQ).
   try {
-    os = await getOS();
+    const pv = await getLiveProjetosPosVenda();
+    if (pv) {
+      os = pv.servicos;
+      osSource = "projetos";
+      osLiveAt = pv.fetchedAt;
+    } else {
+      const t: StoredOS[] = await getOS();
+      os = t;
+      osSource = t.length ? "tamara" : "none";
+    }
   } catch (e) {
-    loadError = e instanceof Error ? e.message : String(e);
+    try {
+      const t: StoredOS[] = await getOS();
+      os = t;
+      osSource = t.length ? "tamara" : "none";
+    } catch {
+      loadError = e instanceof Error ? e.message : String(e);
+    }
   }
   // Enriquecimento (instalações + agenda) AO VIVO do gestão; fallback ao espelho.
   try {
@@ -85,18 +106,27 @@ export default async function EnrdPosVendaPage() {
   // ── Mês corrente (MTD) ──────────────────────────────────────────────────────
   const mesAtual = new Date().toISOString().slice(0, 7);
   const configReais = configSoReais(config);
-  const contribCom: OSContribuicao[] = os.map((o) => contribuicaoOS(o, config));
-  const contribReais: OSContribuicao[] = os.map((o) => contribuicaoOS(o, configReais));
-  const mtdCom = contribCom.filter((o) => (o.data ?? "").startsWith(mesAtual));
-  const mtdReais = contribReais.filter((o) => (o.data ?? "").startsWith(mesAtual));
+  type ContribStatus = OSContribuicao & { status: string | null };
+  // realizado = fechado/concluído/pago. Pipeline (negociação/contato) NÃO entra no resultado.
+  const realizado = (s: string | null | undefined) => !s || /fechad|conclu|pago|ganho|ativo/i.test(s);
+  const contribCom: ContribStatus[] = os.map((o) => ({ ...contribuicaoOS(o, config), status: o.status ?? null }));
+  const contribReais: ContribStatus[] = os.map((o) => ({ ...contribuicaoOS(o, configReais), status: o.status ?? null }));
+  const realCom = contribCom.filter((o) => realizado(o.status));
+  const realReais = contribReais.filter((o) => realizado(o.status));
+  const mtdCom = realCom.filter((o) => (o.data ?? "").startsWith(mesAtual));
+  const mtdReais = realReais.filter((o) => (o.data ?? "").startsWith(mesAtual));
 
   const resCom = resultadoMes(mtdCom, config);
   const resReais = resultadoMes(mtdReais, configReais);
   const be = resCom.breakEven;
-  const historico = resultadoPorMes(contribCom, config);
+  const historico = resultadoPorMes(realCom, config);
   const pctEstim = pctDependenteDeEstimativas(resCom.resultado, resReais.resultado, resCom.faturamento);
   const premissas = premissasEstimadas(config);
-  const subnot = kpiSubnotificacao(os);
+
+  // Breakdown por status (CRM projetos) + conciliação (só p/ fonte Tamara)
+  const statusCount = new Map<string, number>();
+  for (const o of os) statusCount.set(o.status || "—", (statusCount.get(o.status || "—") ?? 0) + 1);
+  const subnot = osSource === "tamara" ? kpiSubnotificacao(os as StoredOS[]) : null;
 
   const semOS = os.length === 0;
 
@@ -157,7 +187,18 @@ export default async function EnrdPosVendaPage() {
           <div className="mt-3 pt-3 border-t flex flex-wrap items-center justify-between gap-3">
             <EnrdPosVendaImport />
             <span className="text-xs text-gray-400">
-              Fonte receita: planilha Tamara (lote) · enriquecimento: gestão.enerdy · MTD {mesAtual}
+              {osSource === "projetos" ? (
+                <>
+                  <span className="text-emerald-600 font-medium">● AO VIVO</span> · CRM pós-venda{" "}
+                  <span className="font-medium text-gray-600">projetos.enerdy</span>
+                  {osLiveAt ? ` (${new Date(osLiveAt).toLocaleTimeString("pt-BR")})` : ""}
+                </>
+              ) : osSource === "tamara" ? (
+                <>Fonte receita: planilha Tamara (lote)</>
+              ) : (
+                <>Fonte receita: configure o CRM (projetos) ou importe a planilha Tamara</>
+              )}{" "}
+              · enriquecimento gestão.enerdy · MTD {mesAtual}
             </span>
           </div>
         </div>
@@ -290,14 +331,17 @@ export default async function EnrdPosVendaPage() {
               <Wrench size={15} className="text-orange-600" /> 2 · Projeto a projeto (mitigação)
             </h2>
             <span className="text-xs text-gray-400">
-              {subnot.total} OS · conciliação: {subnot.revisar} em REVISAR ({PCT(subnot.pct)})
+              {os.length} OS ·{" "}
+              {osSource === "tamara" && subnot
+                ? `conciliação: ${subnot.revisar} em REVISAR (${PCT(subnot.pct)})`
+                : [...statusCount.entries()].map(([s, c]) => `${s} ${c}`).join(" · ")}
             </span>
           </div>
 
           {semOS ? (
             <div className="py-8 text-center text-sm text-gray-400">
-              Nenhuma OS lançada. Importe a planilha da Tamara para ver a contribuição por OS,
-              as flags vermelhas (contribuição negativa) e o ranking dos piores lançamentos.
+              Nenhuma OS encontrada. Configure as credenciais para ler o CRM de pós-venda
+              (projetos.enerdy), ou importe a planilha da Tamara.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -306,11 +350,11 @@ export default async function EnrdPosVendaPage() {
                   <tr className="text-left text-xs text-gray-400 border-b">
                     <th className="py-2 pr-3 font-medium">Cliente / Cidade</th>
                     <th className="py-2 px-3 font-medium">Tipo</th>
+                    <th className="py-2 px-3 font-medium">Status</th>
                     <th className="py-2 px-3 font-medium text-right">Valor</th>
                     <th className="py-2 px-3 font-medium text-right">Material</th>
                     <th className="py-2 px-3 font-medium text-right">Comb.<FlaskConical size={9} className="inline text-orange-400" /></th>
                     <th className="py-2 px-3 font-medium text-right">Contribuição</th>
-                    <th className="py-2 px-3 font-medium">Téc.</th>
                     <th className="py-2 pl-3 font-medium">Flags</th>
                   </tr>
                 </thead>
@@ -325,13 +369,29 @@ export default async function EnrdPosVendaPage() {
                           <div className="text-xs text-gray-400">{o.cidade || "—"}</div>
                         </td>
                         <td className="py-2 px-3 text-gray-600">{o.tipoServico || "—"}</td>
+                        <td className="py-2 px-3">
+                          {o.status ? (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs border ${
+                                /fechad|conclu|pago|ganho|ativo/i.test(o.status)
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : /negoci/i.test(o.status)
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : "bg-gray-100 text-gray-600 border-gray-200"
+                              }`}
+                            >
+                              {o.status}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                         <td className="py-2 px-3 text-right tabular-nums text-gray-700">{BRL(o.valor)}</td>
                         <td className="py-2 px-3 text-right tabular-nums text-gray-500">{BRL(o.custoMaterial)}</td>
                         <td className="py-2 px-3 text-right tabular-nums text-gray-500">{BRL(o.combustivel)}</td>
                         <td className={`py-2 px-3 text-right tabular-nums font-semibold ${o.contribuicao < 0 ? "text-red-600" : "text-gray-900"}`}>
                           {BRL(o.contribuicao)} <span className="text-xs font-normal text-gray-400">({PCT(o.contribuicaoPct)})</span>
                         </td>
-                        <td className="py-2 px-3 text-gray-600">{o.tecnico || "—"}</td>
                         <td className="py-2 pl-3">
                           <div className="flex gap-1">
                             {o.flagNegativa && <span className="text-xs text-red-600" title="Não cobre nem o variável">⛔</span>}
