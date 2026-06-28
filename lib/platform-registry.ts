@@ -78,6 +78,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/portfolio",   label: "Portfolio",      bu: "awq", layer: "control-tower", status: "active", dataSource: "lib/financial-metric-query.ts → getPortfolioMetrics() (real caixa + snapshot capital)", inSidebar: true,  inTabNav: false },
   { href: "/awq/allocations", label: "Allocations",    bu: "awq", layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts (snapshot planejamento — aviso explícito na página)", inSidebar: true,  inTabNav: false },
   { href: "/awq/live-shop",   label: "Live Shop",      bu: "awq", layer: "bu-overview",   status: "active", dataSource: "lib/live-shop/db.ts → ls_live_session (migration 006) ?? seed Anexo B; KPIs/fee-engine/ledger em lib/live-shop/*", inSidebar: true,  inTabNav: false },
+  { href: "/awq/live-shop/marcas", label: "Live Shop · Marcas", bu: "awq", layer: "bu-overview", status: "active", dataSource: "lib/live-shop/brands.ts → ls_brand (migration 007) ?? seed (Bless Rio)", inSidebar: false, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / FP&A ─────────────────────────────
   { href: "/awq/financial", label: "Financial (DRE)", bu: "awq", layer: "corporate-fpa", status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true, inTabNav: false },
