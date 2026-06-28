@@ -9,6 +9,7 @@
 
 import Header from "@/components/Header";
 import EnrdPosVendaImport from "@/components/EnrdPosVendaImport";
+import EnrdPosVendaConfigEditor from "@/components/EnrdPosVendaConfigEditor";
 import {
   getOS,
   getConfig,
@@ -462,6 +463,9 @@ export default async function EnrdPosVendaPage() {
             </table>
           </div>
         </section>
+
+        {/* ─── CONFIG EDITÁVEL ─── */}
+        <EnrdPosVendaConfigEditor config={config} />
 
       </div>
     </>
