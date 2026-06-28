@@ -195,6 +195,7 @@ const AWQ_MODULES: AwqModule[] = [
                     { label: "Relatório Anual",    href: "/awq/epm/reports/annual",     icon: FileText     },
                     { label: "Board Pack",         href: "/awq/epm/reports/board-pack", icon: Briefcase    },
                     { label: "Controladoria",      href: "/awq/management",             icon: ShieldCheck  },
+                    { label: "Live Shop",          href: "/awq/live-shop",              icon: ShoppingCart, badge: "Novo", badgeVariant: "gold" },
                 ],
             },
             {
