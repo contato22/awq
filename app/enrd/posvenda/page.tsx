@@ -61,6 +61,7 @@ export default async function EnrdPosVendaPage() {
   let os: DashOS[] = [];
   let osSource: "projetos" | "tamara" | "none" = "none";
   let osLiveAt: string | null = null;
+  let osStale = false; // veio do snapshot estático
   let installations: Awaited<ReturnType<typeof getInstallations>> = [];
   let proximas: Awaited<ReturnType<typeof getProximasLimpezas>> = [];
   let loadError: string | null = null;
@@ -72,6 +73,7 @@ export default async function EnrdPosVendaPage() {
       os = pv.servicos;
       osSource = "projetos";
       osLiveAt = pv.fetchedAt;
+      osStale = !!pv.stale;
     } else {
       const t: StoredOS[] = await getOS();
       os = t;
@@ -189,9 +191,15 @@ export default async function EnrdPosVendaPage() {
             <span className="text-xs text-gray-400">
               {osSource === "projetos" ? (
                 <>
-                  <span className="text-emerald-600 font-medium">● AO VIVO</span> · CRM pós-venda{" "}
-                  <span className="font-medium text-gray-600">projetos.enerdy</span>
-                  {osLiveAt ? ` (${new Date(osLiveAt).toLocaleTimeString("pt-BR")})` : ""}
+                  {osStale ? (
+                    <span className="text-amber-600 font-medium">● SNAPSHOT</span>
+                  ) : (
+                    <span className="text-emerald-600 font-medium">● AO VIVO</span>
+                  )}{" "}
+                  · CRM pós-venda <span className="font-medium text-gray-600">projetos.enerdy</span>
+                  {osLiveAt
+                    ? ` (${osStale ? new Date(osLiveAt).toLocaleString("pt-BR") : new Date(osLiveAt).toLocaleTimeString("pt-BR")})`
+                    : ""}
                 </>
               ) : osSource === "tamara" ? (
                 <>Fonte receita: planilha Tamara (lote)</>

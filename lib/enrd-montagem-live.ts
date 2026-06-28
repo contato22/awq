@@ -15,12 +15,14 @@ import {
   type MontagemCliente,
   type MontagemCleaningReport,
 } from "@/lib/enrd-montagem-db";
+import { snapshotMontagem } from "@/lib/enerdy-snapshot";
 
 export type LiveMontagem = {
   installations: MontagemInstallation[];
   clientes: MontagemCliente[];
   cleaningReports: MontagemCleaningReport[];
   fetchedAt: string;
+  stale?: boolean; // true = veio do snapshot estático (sem credenciais live)
 };
 
 const TTL_MS = 10_000; // dedupe de 10s — efetivamente "ao vivo"
@@ -48,7 +50,8 @@ async function fetchLive(): Promise<LiveMontagem> {
 // Lê ao vivo do gestão. Retorna null se não configurado. Em falha de rede,
 // devolve o último cache (se houver) em vez de quebrar.
 export async function getLiveMontagem(opts?: { force?: boolean }): Promise<LiveMontagem | null> {
-  if (!isEnerdyPortalConfigured()) return null;
+  // Sem credenciais live → serve o snapshot estático (dados reais, ponto-no-tempo).
+  if (!isEnerdyPortalConfigured()) return snapshotMontagem();
 
   const force = opts?.force ?? false;
   if (!force && cache && Date.now() - cache.ts < TTL_MS) return cache.data;

@@ -54,10 +54,10 @@ export default async function EnrdMontagemPage() {
   const configured = isLiveConfigured();
 
   try {
-    const snap = await getLiveMontagem(); // tempo real
+    const snap = await getLiveMontagem(); // tempo real (ou snapshot estático)
     if (snap) {
       installations = snap.installations;
-      live = true;
+      live = !snap.stale;
       liveAt = snap.fetchedAt;
     } else {
       // sem credenciais → fallback para o espelho local
@@ -102,6 +102,16 @@ export default async function EnrdMontagemPage() {
                   {liveAt ? new Date(liveAt).toLocaleTimeString("pt-BR") : "—"}
                 </span>
               </>
+            ) : !empty ? (
+              <>
+                <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> SNAPSHOT
+                </span>
+                <span className="text-gray-400">
+                  · dados reais de {liveAt ? new Date(liveAt).toLocaleString("pt-BR") : "—"} · configure
+                  env vars p/ tempo real
+                </span>
+              </>
             ) : (
               <>
                 <Zap size={14} className="text-orange-600" />
@@ -123,7 +133,7 @@ export default async function EnrdMontagemPage() {
           </div>
         )}
 
-        {!configured && !loadError && (
+        {!configured && empty && !loadError && (
           <div className="card p-4 border-amber-200 bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
             <AlertCircle size={16} />
             Tempo real desligado: defina <code className="px-1 rounded bg-amber-100">ENERDY_USER</code> e{" "}

@@ -8,6 +8,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type { OS } from "@/lib/enrd-posvenda-costing";
+import { snapshotProjetos } from "@/lib/enerdy-snapshot";
 
 const PROJ_URL = process.env.ENERDY_PROJETOS_URL || "https://zecancsoeyjnagxkrxnk.supabase.co";
 const PROJ_ANON =
@@ -77,7 +78,7 @@ async function fetchAll(sb: Queryable, table: string): Promise<Record<string, un
   return rows;
 }
 
-export type ProjetosPosVenda = { servicos: ServicoOS[]; fetchedAt: string };
+export type ProjetosPosVenda = { servicos: ServicoOS[]; fetchedAt: string; stale?: boolean };
 
 const TTL_MS = 10_000;
 let cache: { data: ProjetosPosVenda; ts: number } | null = null;
@@ -105,7 +106,7 @@ async function fetchLive(): Promise<ProjetosPosVenda> {
 // Lê ao vivo o pós-venda do projetos. null se não configurado; degrada para o
 // último cache em falha.
 export async function getLiveProjetosPosVenda(opts?: { force?: boolean }): Promise<ProjetosPosVenda | null> {
-  if (!isProjetosConfigured()) return null;
+  if (!isProjetosConfigured()) return snapshotProjetos(); // fallback estático
   const force = opts?.force ?? false;
   if (!force && cache && Date.now() - cache.ts < TTL_MS) return cache.data;
   if (!force && inflight) return inflight;
