@@ -6,9 +6,10 @@
 //
 // Live Shop é receita TRANSACIONAL (GMV/MC), NÃO MRR (§8) — sinalizado abaixo.
 
+import Link from "next/link";
 import Header from "@/components/Header";
 import {
-  Radio, TrendingUp, AlertTriangle, Target, Layers, Activity, Tag,
+  Radio, TrendingUp, AlertTriangle, Target, Layers, Activity, Tag, ShoppingCart, ChevronRight,
 } from "lucide-react";
 import { getLiveSessions } from "@/lib/live-shop/db";
 import {
@@ -94,6 +95,15 @@ export default async function LiveShopPage() {
           <span className="text-blue-400">|</span>
           <span>Modelagem de equity/cap-table travada até <code>validated</code> (§9)</span>
         </div>
+
+        {/* Sub-navegação da BU */}
+        <Link
+          href="/awq/live-shop/marcas"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-pink-300 hover:bg-pink-50"
+        >
+          <ShoppingCart size={14} className="text-pink-600" /> Marcas
+          <ChevronRight size={14} className="text-gray-400" />
+        </Link>
 
         {loadError && (
           <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
