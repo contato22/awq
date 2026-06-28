@@ -61,6 +61,20 @@ export type EnerdyCliente = Record<string, unknown> & {
   created_at?: string | null;
 };
 
+export type EnerdyCleaningReport = Record<string, unknown> & {
+  id: string;
+  installation_id?: string | null;
+  cliente_id?: string | null;
+  cliente_nome?: string | null;
+  local_instalacao?: string | null;
+  data_limpeza?: string | null;
+  proxima_limpeza?: string | null;
+  equipe?: string | null;
+  capacidade_kwp?: number | null;
+  nivel_sujeira?: string | null;
+  tem_anomalias?: boolean | null;
+};
+
 const PAGE_SIZE = 1000;
 
 // Tipo estrutural mínimo (evita atrito com os generics do SupabaseClient).
@@ -92,6 +106,7 @@ async function fetchAll<T>(supabase: Queryable, table: string): Promise<T[]> {
 export type PortalSnapshot = {
   installations: EnerdyInstallation[];
   clientes: EnerdyCliente[];
+  cleaningReports: EnerdyCleaningReport[];
 };
 
 // Loga no portal e lê installations + clientes. Lança em caso de falha de auth
@@ -112,11 +127,12 @@ export async function readEnerdyPortal(): Promise<PortalSnapshot> {
 
   try {
     const q = supabase as unknown as Queryable;
-    const [installations, clientes] = await Promise.all([
+    const [installations, clientes, cleaningReports] = await Promise.all([
       fetchAll<EnerdyInstallation>(q, "installations"),
       fetchAll<EnerdyCliente>(q, "clientes"),
+      fetchAll<EnerdyCleaningReport>(q, "cleaning_reports"),
     ]);
-    return { installations, clientes };
+    return { installations, clientes, cleaningReports };
   } finally {
     await supabase.auth.signOut();
   }

@@ -8,10 +8,16 @@
 // a regra de ouro do projeto (SSR não pode crashar).
 
 import { erpAdmin, erpAnon } from "@/lib/supabase";
-import type { EnerdyInstallation, EnerdyCliente, PortalSnapshot } from "@/lib/enerdy-portal";
+import type {
+  EnerdyInstallation,
+  EnerdyCliente,
+  EnerdyCleaningReport,
+  PortalSnapshot,
+} from "@/lib/enerdy-portal";
 
 const INSTALL_TABLE = "enrd_montagem_installation";
 const CLIENTE_TABLE = "enrd_montagem_cliente";
+const CLEANING_TABLE = "enrd_montagem_cleaning_report";
 const SYNC_LOG_TABLE = "enrd_montagem_sync_log";
 
 function db() {
@@ -90,6 +96,39 @@ export function mapInstallation(s: EnerdyInstallation): MontagemInstallation {
   };
 }
 
+export type MontagemCleaningReport = {
+  id: string;
+  installation_id: string | null;
+  cliente_id: string | null;
+  cliente_nome: string | null;
+  local_instalacao: string | null;
+  data_limpeza: string | null;
+  proxima_limpeza: string | null;
+  equipe: string | null;
+  capacidade_kwp: number | null;
+  nivel_sujeira: string | null;
+  tem_anomalias: boolean | null;
+  raw: Record<string, unknown>;
+  synced_at?: string;
+};
+
+export function mapCleaningReport(s: EnerdyCleaningReport): MontagemCleaningReport {
+  return {
+    id: String(s.id),
+    installation_id: str(s.installation_id),
+    cliente_id: str(s.cliente_id),
+    cliente_nome: str(s.cliente_nome),
+    local_instalacao: str(s.local_instalacao),
+    data_limpeza: dateOnly(s.data_limpeza),
+    proxima_limpeza: dateOnly(s.proxima_limpeza),
+    equipe: str(s.equipe),
+    capacidade_kwp: num(s.capacidade_kwp),
+    nivel_sujeira: str(s.nivel_sujeira),
+    tem_anomalias: s.tem_anomalias == null ? null : Boolean(s.tem_anomalias),
+    raw: s as Record<string, unknown>,
+  };
+}
+
 export function mapCliente(s: EnerdyCliente): MontagemCliente {
   return {
     id: String(s.id),
@@ -120,7 +159,7 @@ async function upsertChunked<T extends { id: string }>(
   return written;
 }
 
-export type SyncResult = { installations: number; clientes: number };
+export type SyncResult = { installations: number; clientes: number; cleaning: number };
 
 // Grava o snapshot do portal no banco da AWQ. Lança em erro de escrita.
 export async function persistSnapshot(snapshot: PortalSnapshot): Promise<SyncResult> {
@@ -129,7 +168,11 @@ export async function persistSnapshot(snapshot: PortalSnapshot): Promise<SyncRes
     snapshot.installations.map(mapInstallation)
   );
   const clientes = await upsertChunked(CLIENTE_TABLE, snapshot.clientes.map(mapCliente));
-  return { installations, clientes };
+  const cleaning = await upsertChunked(
+    CLEANING_TABLE,
+    (snapshot.cleaningReports ?? []).map(mapCleaningReport)
+  );
+  return { installations, clientes, cleaning };
 }
 
 export async function writeSyncLog(entry: {
@@ -168,6 +211,31 @@ export async function getInstallations(): Promise<MontagemInstallation[]> {
     console.warn("getInstallations exception:", (e as Error).message);
     return [];
   }
+}
+
+export async function getCleaningReports(): Promise<MontagemCleaningReport[]> {
+  try {
+    const client = db();
+    if (!client) return [];
+    const { data, error } = await client.from(CLEANING_TABLE).select("*");
+    if (error) {
+      console.warn("getCleaningReports:", error.message);
+      return [];
+    }
+    return (data ?? []) as MontagemCleaningReport[];
+  } catch (e) {
+    console.warn("getCleaningReports exception:", (e as Error).message);
+    return [];
+  }
+}
+
+// Agenda de reativação: próximas limpezas ordenadas por data (pipeline de receita
+// recorrente). Inclui vencidas (proxima_limpeza < hoje) primeiro.
+export async function getProximasLimpezas(): Promise<MontagemCleaningReport[]> {
+  const rows = await getCleaningReports();
+  return rows
+    .filter((r) => r.proxima_limpeza)
+    .sort((a, b) => (a.proxima_limpeza! < b.proxima_limpeza! ? -1 : 1));
 }
 
 export async function getMontagemClientes(): Promise<MontagemCliente[]> {
