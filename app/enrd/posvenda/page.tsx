@@ -172,16 +172,15 @@ export default async function EnrdPosVendaPage() {
               {/* faturamento atual */}
               <div className="absolute top-0 bottom-0 w-0.5 bg-gray-900" style={{ left: pos(resCom.faturamento) }} />
             </div>
-            <div className="relative h-5 text-[10px] text-gray-500">
-              <span className="absolute -translate-x-1/2" style={{ left: pos(be.gatilhoBonus) }}>
-                gatilho {BRL(be.gatilhoBonus)}
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]">
+              <span className="flex items-center gap-1 text-gray-700">
+                <span className="inline-block w-2.5 h-0.5 bg-gray-900" /> Faturamento {BRL(resCom.faturamento)}
               </span>
-              <span className="absolute -translate-x-1/2 text-emerald-700" style={{ left: pos(be.breakEvenSem) }}>
-                BE s/ bônus {BRL(be.breakEvenSem)}
+              <span className="flex items-center gap-1 text-gray-600">
+                <span className="inline-block w-2 h-2 rounded-sm bg-red-200" /> Gatilho do bônus {BRL(be.gatilhoBonus)}
               </span>
-              <span className="absolute -translate-x-1/2 text-red-700" style={{ left: pos(be.breakEvenCom) }}>
-                BE c/ bônus {BRL(be.breakEvenCom)}
-              </span>
+              <span className="text-emerald-700">BE s/ bônus {BRL(be.breakEvenSem)}</span>
+              <span className="text-red-700">BE c/ bônus {BRL(be.breakEvenCom)}</span>
             </div>
             <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
               <AlertTriangle size={11} className="text-red-500" /> Zona morta (faixa vermelha):{" "}
