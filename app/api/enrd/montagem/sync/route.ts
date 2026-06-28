@@ -13,6 +13,7 @@ import {
   getInstallations,
   getMontagemClientes,
   getLastSync,
+  buildMontagemKpis,
 } from "@/lib/enrd-montagem-db";
 
 export const runtime = "nodejs";
@@ -57,10 +58,19 @@ export async function GET(): Promise<NextResponse> {
       getMontagemClientes(),
       getLastSync(),
     ]);
+    const kpis = buildMontagemKpis(installations);
     return NextResponse.json({
       ok: true,
       configured: isEnerdyPortalConfigured(),
       counts: { installations: installations.length, clientes: clientes.length },
+      kpis: {
+        total: kpis.total,
+        concluido: kpis.concluido,
+        emExecucao: kpis.emExecucao,
+        atencao: kpis.atencao,
+        placasTotais: kpis.placasTotais,
+        geracaoEsperadaKwhAno: kpis.geracaoEsperadaKwhAno,
+      },
       lastSync,
     });
   } catch (err) {

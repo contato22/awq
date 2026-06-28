@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
+import EnrdMontagemSummaryCard from "@/components/EnrdMontagemSummaryCard";
 import {
   Zap, Users, DollarSign, TrendingUp, ChevronRight,
   LineChart, Scale, Target, PieChart,
@@ -102,6 +103,9 @@ export default function EnrdPage() {
             </div>
           ))}
         </div>
+
+        {/* Resumo Controle de Montagem (espelho do portal gestão) — owner/admin */}
+        {!isEnrdOnly && <EnrdMontagemSummaryCard />}
 
         {/* EPM Modules grid */}
         <section>
