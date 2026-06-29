@@ -63,3 +63,6 @@ next-env.d.ts
 # Playwright
 test-results/
 playwright-report/
+
+# ENERDY portal export — dados reais de clientes (PII), não versionar
+/public/data/enerdy-portal/

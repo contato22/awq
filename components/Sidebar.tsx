@@ -543,6 +543,10 @@ const VENTURE_MODULES: BUModule[] = [
 ];
 
 const ENRD_MODULES: BUModule[] = [
+    { id: "ops", label: "Operações", description: "Montagem & Campo", icon: Wrench, items: [
+        { label: "Controle de Montagem", href: "/enrd/montagem", icon: Wrench     },
+        { label: "Pós-venda / O&M",      href: "/enrd/posvenda", icon: Activity   },
+    ]},
     { id: "epm", label: "EPM", description: "Financeiro & Performance",  icon: DollarSign, items: [
         { label: "Financial (ENRD)",    href: "/enrd/financial",              icon: DollarSign    },
         { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
@@ -1173,9 +1177,10 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
 function EnrdSidebar({ pathname }: { pathname: string }) {
     const { data: session } = useSession();
     const isEnrdOnly = (session?.user as { role?: string } | undefined)?.role === "enrd";
-    // enrd-role users can't access /enrd or EPM routes — strip EPM module entirely
+    // enrd-role users can't access /enrd routes — strip owner/admin-only modules
+    // (EPM e Operações/Montagem vivem em /enrd/*, restritas a owner/admin).
     const modules = isEnrdOnly
-        ? ENRD_MODULES.filter((m) => m.id !== "epm")
+        ? ENRD_MODULES.filter((m) => m.id !== "epm" && m.id !== "ops")
         : ENRD_MODULES;
     // enrd-role home is PPM (they lack access to /enrd); owners/admins use /enrd
     const homeHref = isEnrdOnly ? "/awq/ppm" : "/enrd";
