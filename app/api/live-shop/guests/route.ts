@@ -37,18 +37,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "JSON inválido" }, { status: 400 }); }
 
-  const email = String(body.email ?? "").trim();
+  // login = usuário OU email (sem exigência de formato). Aceita body.login ou o
+  // legado body.email.
+  const login = String(body.login ?? body.email ?? "").trim();
   const name = String(body.name ?? "").trim();
   const password = String(body.password ?? "");
   const brandIds: string[] = Array.isArray(body.brandIds) ? body.brandIds.map(String) : [];
 
-  if (!email || !email.includes("@")) return NextResponse.json({ error: "Email inválido." }, { status: 400 });
-  if (!name) return NextResponse.json({ error: "Nome obrigatório." }, { status: 400 });
+  if (!login) return NextResponse.json({ error: "Informe um usuário (login)." }, { status: 400 });
   if (password.length < 8) return NextResponse.json({ error: "Senha precisa de ≥ 8 caracteres." }, { status: 400 });
   if (brandIds.length === 0) return NextResponse.json({ error: "Libere ao menos uma marca." }, { status: 400 });
 
   try {
-    const guest = await createGuest({ email, name, password, brandIds });
+    const guest = await createGuest({ login, name, password, brandIds });
     return NextResponse.json({ guest }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Falha ao criar." }, { status: 500 });

@@ -22,8 +22,9 @@ export interface Guest {
 const db = erpAdmin ?? erpAnon;
 export const GUESTS_DB_AVAILABLE = !!db;
 
-function normEmail(email: string): string {
-  return email.trim().toLowerCase();
+// Identificador de login (usuário OU email). Sem exigência de formato de email.
+function normLogin(login: string): string {
+  return login.trim().toLowerCase();
 }
 
 function rowToGuest(r: any): Guest {
@@ -34,12 +35,12 @@ function rowToGuest(r: any): Guest {
 }
 
 /** Valida credenciais de convidado. Retorna o convidado (sem hash) ou null. */
-export async function verifyGuest(email: string, password: string): Promise<Guest | null> {
+export async function verifyGuest(login: string, password: string): Promise<Guest | null> {
   if (!db) return null;
   const { data } = await db
     .from("ls_guest")
     .select("*")
-    .eq("email", normEmail(email))
+    .eq("email", normLogin(login))
     .eq("status", "active")
     .maybeSingle();
   if (!data) return null;
@@ -59,22 +60,22 @@ export async function listGuests(): Promise<Guest[]> {
 }
 
 export interface CreateGuestInput {
-  email: string;
-  name: string;
+  login: string; // usuário OU email (sem exigência de formato)
+  name?: string;
   password: string;
   brandIds: string[];
 }
 
-/** Cria um convidado (login + liberação por marca). Idempotente por email. */
+/** Cria um convidado (login + liberação por marca). Idempotente por login. */
 export async function createGuest(input: CreateGuestInput): Promise<Guest> {
   if (!db) throw new Error("ERP Supabase não configurado — convidados exigem migration 010.");
-  const email = normEmail(input.email);
+  const login = normLogin(input.login);
   const password_hash = await bcrypt.hash(input.password, 10);
   const id = `guest_${randomUUID().slice(0, 12)}`;
   const { data, error } = await db
     .from("ls_guest")
     .upsert({
-      id, bu_id: LIVE_SHOP_BU, email, name: input.name,
+      id, bu_id: LIVE_SHOP_BU, email: login, name: (input.name?.trim() || login),
       password_hash, brand_ids: input.brandIds, status: "active",
     }, { onConflict: "email" })
     .select("*")
