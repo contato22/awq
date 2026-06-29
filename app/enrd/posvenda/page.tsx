@@ -26,10 +26,15 @@ import {
   contribuicaoOS,
   resultadoMes,
   resultadoPorMes,
+  custoFixoSemBonus,
+  custoFixoComBonus,
   type OS,
   type OSContribuicao,
 } from "@/lib/enrd-posvenda-costing";
 import { getLiveProjetosPosVenda } from "@/lib/enerdy-projetos";
+import { getTransactionsByEntity } from "@/lib/financial-db";
+import EnrdPosVendaChart, { type Series, type SeriePonto } from "@/components/EnrdPosVendaChart";
+import type { PosVendaConfig } from "@/lib/enrd-posvenda-config";
 import {
   premissasEstimadas,
   configSoReais,
@@ -54,6 +59,73 @@ export const dynamic = "force-dynamic";
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const PCT = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+// Monta as séries (diária/mensal/anual) do gráfico comparativo a partir das OS
+// realizadas, das transações Cora (conciliação ENRD) e do custo fixo (degrau).
+type SerieOS = { data: string | null; valor: number; contribuicao: number };
+type SerieCora = { transactionDate: string; amount: number; excludedFromConsolidated: boolean };
+function buildSeries(os: SerieOS[], cora: SerieCora[], config: PosVendaConfig): Series {
+  const semBonus = custoFixoSemBonus(config);
+  const comBonus = custoFixoComBonus(config);
+  const fatMes = new Map<string, number>();
+  for (const o of os) {
+    if (!o.data) continue;
+    const ym = o.data.slice(0, 7);
+    fatMes.set(ym, (fatMes.get(ym) ?? 0) + o.valor);
+  }
+  const fixoMes = (ym: string) => ((fatMes.get(ym) ?? 0) > config.gatilhoBonus ? comBonus : semBonus);
+  const diasNoMes = (ym: string) => {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(y, m, 0).getDate();
+  };
+  // meses com atividade (OS ou Cora) → para somar o fixo no agregado anual
+  const meses = new Set<string>();
+  for (const o of os) if (o.data) meses.add(o.data.slice(0, 7));
+  for (const t of cora) if (t.transactionDate) meses.add(t.transactionDate.slice(0, 7));
+  const mesesPorAno = new Map<string, string[]>();
+  for (const ym of meses) {
+    const y = ym.slice(0, 4);
+    (mesesPorAno.get(y) ?? mesesPorAno.set(y, []).get(y)!).push(ym);
+  }
+
+  function build(keyOf: (d: string) => string, esperadoOf: (k: string) => number): SeriePonto[] {
+    const m = new Map<string, SeriePonto>();
+    const get = (k: string) => {
+      let p = m.get(k);
+      if (!p) {
+        p = { periodo: k, faturamento: 0, contribuicao: 0, esperado: 0, resultado: 0, cora: 0 };
+        m.set(k, p);
+      }
+      return p;
+    };
+    for (const o of os) {
+      if (!o.data) continue;
+      const p = get(keyOf(o.data));
+      p.faturamento += o.valor;
+      p.contribuicao += o.contribuicao;
+    }
+    for (const t of cora) {
+      if (t.excludedFromConsolidated || !t.transactionDate) continue;
+      get(keyOf(t.transactionDate)).cora += t.amount;
+    }
+    for (const [k, p] of m) {
+      p.esperado = esperadoOf(k);
+      p.resultado = p.contribuicao - p.esperado;
+    }
+    return [...m.values()].sort((a, b) => a.periodo.localeCompare(b.periodo));
+  }
+
+  const dia = build(
+    (d) => d.slice(0, 10),
+    (k) => fixoMes(k.slice(0, 7)) / diasNoMes(k.slice(0, 7))
+  );
+  const mes = build((d) => d.slice(0, 7), (k) => fixoMes(k));
+  const ano = build(
+    (d) => d.slice(0, 4),
+    (y) => (mesesPorAno.get(y) ?? []).reduce((s, ym) => s + fixoMes(ym), 0)
+  );
+  return { dia, mes, ano };
+}
 
 export default async function EnrdPosVendaPage() {
   const config = await getConfig();
@@ -131,6 +203,15 @@ export default async function EnrdPosVendaPage() {
   const subnot = osSource === "tamara" ? kpiSubnotificacao(os as StoredOS[]) : null;
 
   const semOS = os.length === 0;
+
+  // ── Cora (conciliação ENRD) + séries do gráfico comparativo ─────────────────
+  let coraTx: Awaited<ReturnType<typeof getTransactionsByEntity>> = [];
+  try {
+    coraTx = await getTransactionsByEntity("ENERDY");
+  } catch {
+    /* sem dados Cora — gráfico mostra só resultado/esperado */
+  }
+  const series: Series = buildSeries(realCom, coraTx, config);
 
   // ── Completude (fato transacional) ──────────────────────────────────────────
   const comData = os.filter((o) => o.data).length;
@@ -331,6 +412,9 @@ export default async function EnrdPosVendaPage() {
             )}
           </div>
         </section>
+
+        {/* ─── GRÁFICO COMPARATIVO (filtros diário/mensal/anual) ─── */}
+        <EnrdPosVendaChart series={series} />
 
         {/* ─── SEÇÃO 2 — PROJETO A PROJETO ─── */}
         <section className="card p-5">
