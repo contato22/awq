@@ -102,13 +102,24 @@ export default async function LiveShopPage() {
         </div>
 
         {/* Sub-navegação da BU */}
-        <Link
-          href="/awq/live-shop/marcas"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-pink-300 hover:bg-pink-50"
-        >
-          <ShoppingCart size={14} className="text-pink-600" /> Marcas
-          <ChevronRight size={14} className="text-gray-400" />
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/awq/live-shop/marcas"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-pink-300 hover:bg-pink-50"
+          >
+            <ShoppingCart size={14} className="text-pink-600" /> Marcas
+            <ChevronRight size={14} className="text-gray-400" />
+          </Link>
+          <a
+            href="/awq/live-shop/publico"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-pink-300 hover:bg-pink-50"
+          >
+            <Radio size={14} className="text-pink-600" /> Página pública
+            <ChevronRight size={14} className="text-gray-400" />
+          </a>
+        </div>
 
         {loadError && (
           <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
