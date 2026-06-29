@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS ls_brand (
     CHECK (kind IN ('fabricante','revenda','marca_propria')),
   status        TEXT NOT NULL DEFAULT 'prospect'
     CHECK (status IN ('piloto','ativo','prospect','pausado','arquivado')),
+  revenue_share_bps INT NOT NULL DEFAULT 0,   -- revenue share da AWQ sobre o GMV (bps)
   deal_model    TEXT,
   is_pilot      BOOLEAN NOT NULL DEFAULT false,
   first_live_at DATE,
@@ -25,18 +26,23 @@ CREATE TABLE IF NOT EXISTS ls_brand (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Idempotente para bases que já criaram ls_brand sem a coluna.
+ALTER TABLE ls_brand ADD COLUMN IF NOT EXISTS revenue_share_bps INT NOT NULL DEFAULT 0;
+
 -- Vincula pedidos/sessões à marca (opcional, não-destrutivo).
 ALTER TABLE ls_order        ADD COLUMN IF NOT EXISTS brand_id TEXT REFERENCES ls_brand(id) ON DELETE RESTRICT;
 ALTER TABLE ls_live_session ADD COLUMN IF NOT EXISTS brand_id TEXT REFERENCES ls_brand(id) ON DELETE RESTRICT;
 
 -- Seed do cliente-piloto (§2) — atributos FIXOS de negócio.
-INSERT INTO ls_brand (id, name, segment, kind, status, deal_model, is_pilot, first_live_at, notes)
+INSERT INTO ls_brand (id, name, segment, kind, status, revenue_share_bps, deal_model, is_pilot, first_live_at, notes)
 VALUES (
   'bless-rio', 'Bless Rio', 'Moda feminina', 'fabricante', 'piloto',
-  'Revenue share 10% GMV (estrutura A)', true, '2026-06-16',
+  500, 'Revenue share 5% GMV (estrutura A)', true, '2026-06-16',
   'Fabricante — quer vender produto fábrica-direto e dead stock.'
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+  SET revenue_share_bps = EXCLUDED.revenue_share_bps,
+      deal_model        = EXCLUDED.deal_model;
 
 -- RLS (mesmo padrão da 006).
 ALTER TABLE ls_brand ENABLE ROW LEVEL SECURITY;

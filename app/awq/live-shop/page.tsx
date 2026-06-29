@@ -12,6 +12,7 @@ import {
   Radio, TrendingUp, AlertTriangle, Target, Layers, Activity, Tag, ShoppingCart, ChevronRight,
 } from "lucide-react";
 import { getLiveSessions } from "@/lib/live-shop/db";
+import { getBrands } from "@/lib/live-shop/brands";
 import {
   aggregateFunnel, unitEconKpis, gmvConcentrationBps, roicKpis,
   AOV_MODELED_LOW,
@@ -53,8 +54,12 @@ export default async function LiveShopPage() {
   const concBps = gmvConcentrationBps(sessions, 2);
   const roic = roicKpis(1090); // baseline do business case (§2)
 
-  // Economia da estrutura A (única que paga, §2): AWQ 10% do GMV.
-  const revenueShare: Money = applyBps(ue.gmv, 1000);
+  // Revenue share da estrutura A — taxa REAL por marca (parâmetro, não constante).
+  // Piloto = Bless Rio (5%). Fallback 10% se a marca não trouxer a taxa.
+  const brands = await getBrands();
+  const pilot = brands.find((b) => b.isPilot) ?? null;
+  const revShareBps = pilot?.revenueShareBps || 1000;
+  const revenueShare: Money = applyBps(ue.gmv, revShareBps);
 
   // Cascata representativa (estrutura A) — receita = revenue share; sem CMV
   // (Bless é o seller no piloto); rateio Caza ~28% da depreciação mensal.
@@ -138,11 +143,11 @@ export default async function LiveShopPage() {
             {/* Mini-P&L (estrutura A) */}
             <section className="rounded-xl border border-gray-200/80 bg-white p-5">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
-                <Layers size={15} className="text-gray-400" /> Mini-P&amp;L — estrutura A (AWQ 10% GMV; Bless banca host)
+                <Layers size={15} className="text-gray-400" /> Mini-P&amp;L — estrutura A (AWQ {fmtPct(revShareBps, 0)} GMV; Bless banca host)
               </div>
               <dl className="space-y-1.5 text-sm">
                 <Row label="GMV bruto (referência)" value={fmtBRL(cascade.gmv)} muted />
-                <Row label="(+) Revenue share 10% GMV" value={fmtBRL(revenueShare)} />
+                <Row label={`(+) Revenue share ${fmtPct(revShareBps, 0)} GMV`} value={fmtBRL(revenueShare)} />
                 <Row label="(−) Rateio depreciação Caza (28%/mês)" value={`(${fmtBRL(cazaAllocMonthly)})`} />
                 <Row label="Margem de Contribuição" value={fmtBRL(cascade.contributionMargin)} bold />
                 <Row label="(−) DAS/Simples" value="(fora do repasse — seller)" muted />
