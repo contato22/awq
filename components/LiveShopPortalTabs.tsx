@@ -25,8 +25,8 @@ export default function LiveShopPortalTabs({ tabs }: { tabs: PortalTab[] }) {
             onClick={() => setActive(t.id)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               t.id === current?.id
-                ? "bg-pink-600 text-white"
-                : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                ? "bg-brand-600 text-white"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
             }`}
           >
             {t.label}

@@ -80,6 +80,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/live-shop",   label: "Live Shop",      bu: "awq", layer: "bu-overview",   status: "active", dataSource: "lib/live-shop/db.ts → ls_live_session (migration 006) ?? seed Anexo B; KPIs/fee-engine/ledger em lib/live-shop/*", inSidebar: true,  inTabNav: false },
   { href: "/awq/live-shop/marcas", label: "Live Shop · Marcas", bu: "awq", layer: "bu-overview", status: "active", dataSource: "lib/live-shop/brands.ts → ls_brand (migration 007) ?? seed (Bless Rio)", inSidebar: false, inTabNav: false },
   { href: "/awq/live-shop/historico", label: "Live Shop · Histórico", bu: "awq", layer: "bu-overview", status: "active", dataSource: "lib/live-shop/session-results.ts (cohort §7.4) — derivado de ls_live_session/Anexo B + fee engine", inSidebar: false, inTabNav: false },
+  { href: "/awq/live-shop/gamificacao", label: "Live Shop · Gamificação", bu: "awq", layer: "bu-overview", status: "active", dataSource: "lib/live-shop/gamification.ts — XP/níveis/badges derivados de ls_live_session (ls_host, migration 011)", inSidebar: false, inTabNav: false },
   { href: "/awq/live-shop/publico", label: "Live Shop · Público", bu: "awq", layer: "bu-overview", status: "active", dataSource: "lib/live-shop/public.ts (whitelist NÃO-financeira) — rota PÚBLICA sem login, fora do middleware NextAuth e sem chrome da plataforma", inSidebar: false, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / FP&A ─────────────────────────────

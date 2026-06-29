@@ -6,18 +6,33 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import Header from "@/components/Header";
-import { ArrowLeft, ExternalLink, Tag, Calendar, ListChecks, Star, Percent, Users } from "lucide-react";
+import { ArrowLeft, ExternalLink, Tag, Calendar, ListChecks, Star, Percent, Users, BarChart3, DollarSign, ShoppingBag } from "lucide-react";
 import { authOptions } from "@/lib/auth-options";
 import {
   getBrand, BRAND_KIND_LABEL, BRAND_STATUS_LABEL, type Brand,
 } from "@/lib/live-shop/brands";
 import { getContentGrid, type ContentBlock } from "@/lib/live-shop/content";
 import { listGuests } from "@/lib/live-shop/guests";
-import { fmtPct } from "@/lib/live-shop/money";
+import { getLiveSessions } from "@/lib/live-shop/db";
+import { computeSessionResults } from "@/lib/live-shop/session-results";
+import { fmtPct, fmtBRL, toReais, type Money } from "@/lib/live-shop/money";
 import LiveShopContentGrid from "@/components/LiveShopContentGrid";
 import LiveShopGuestManager, { type GuestRow } from "@/components/LiveShopGuestManager";
+import LiveShopSetupButton from "@/components/LiveShopSetupButton";
+import LiveShopResultsTrend, { type TrendPoint } from "@/components/LiveShopResultsTrend";
 
 const CAN_MANAGE = new Set(["owner", "admin", "live-shop"]);
+const CAN_SETUP = new Set(["owner", "admin"]);
+
+function KpiCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
+  return (
+    <div className="card p-4">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">{icon} {label}</p>
+      <p className="mt-1 text-xl font-bold text-gray-900">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+    </div>
+  );
+}
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -30,10 +45,37 @@ export default async function BrandSectionPage({ params }: { params: { brand: st
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canManage = CAN_MANAGE.has(role);
+  const canSetup = CAN_SETUP.has(role);
+
+  // BI da marca (interno — pode mostrar financeiro).
+  let bi: {
+    gmv: Money; netAwq: Money; orders: number; aov: Money; takeRateBps: number;
+    itemsPerOrderMilli: number; lives: number; trend: TrendPoint[];
+  } | null = null;
 
   try {
     brand = await getBrand(params.brand);
     if (brand) blocks = await getContentGrid(params.brand);
+    if (brand) {
+      const sessions = await getLiveSessions();
+      const results = computeSessionResults(sessions, brand.revenueShareBps);
+      const gmv = results.reduce((a, r) => a + r.gmv, 0);
+      const netAwq = results.reduce((a, r) => a + r.netAwq, 0);
+      const orders = results.reduce((a, r) => a + r.paidOrders, 0);
+      const items = sessions.reduce((a, s) => a + s.items, 0);
+      const feesWeighted = results.reduce((a, r) => a + (r.takeRateBps * r.gmv), 0);
+      bi = {
+        gmv, netAwq, orders,
+        aov: orders ? Math.round(gmv / orders) : 0,
+        takeRateBps: gmv ? Math.round(feesWeighted / gmv) : 0,
+        itemsPerOrderMilli: orders ? Math.round((items / orders) * 1000) : 0,
+        lives: results.length,
+        trend: [...results].reverse().map((r) => ({
+          name: new Date(r.startedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          aov: toReais(r.aov), takeRate: r.takeRateBps / 100,
+        })),
+      };
+    }
     if (brand && canManage) {
       guests = (await listGuests()).map((g) => ({
         id: g.id, email: g.email, name: g.name, brandIds: g.brandIds, status: g.status,
@@ -45,6 +87,7 @@ export default async function BrandSectionPage({ params }: { params: { brand: st
   if (!brand && !loadError) notFound();
 
   const publicHref = `/awq/live-shop/publico/${params.brand}`;
+  const itemsPerOrder = bi ? (Math.round(bi.itemsPerOrderMilli / 10) / 100).toFixed(2) : "—";
 
   return (
     <>
@@ -83,14 +126,39 @@ export default async function BrandSectionPage({ params }: { params: { brand: st
                 href={publicHref}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-pink-600 px-3 py-2 text-sm font-medium text-white hover:bg-pink-700"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
               >
-                <ExternalLink size={14} /> Abrir página pública
+                <ExternalLink size={14} /> Abrir portal da marca
               </a>
               <p className="mt-1.5 text-[11px] text-gray-400">
-                Acesso sem login, isolado da plataforma · <span className="font-mono">{publicHref}</span>
+                Acesso por login individual, isolado da plataforma · <span className="font-mono">{publicHref}</span>
               </p>
             </section>
+
+            {/* BI da marca (interno) — puxa do que já foi entregue */}
+            {bi && (
+              <section className="rounded-xl border border-gray-200/80 bg-white p-5">
+                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <BarChart3 size={15} className="text-gray-400" /> BI da marca — resultados acumulados ({bi.lives} lives)
+                </div>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+                  <KpiCard icon={<DollarSign size={12} />} label="GMV total" value={fmtBRL(bi.gmv)} />
+                  <KpiCard icon={<Percent size={12} />} label={`Receita AWQ (${fmtPct(brand.revenueShareBps, 0)})`} value={fmtBRL(bi.netAwq)} sub="revenue share" />
+                  <KpiCard icon={<ShoppingBag size={12} />} label="Pedidos" value={String(bi.orders)} />
+                  <KpiCard icon={<DollarSign size={12} />} label="AOV" value={fmtBRL(bi.aov)} />
+                  <KpiCard icon={<Percent size={12} />} label="Take-rate méd." value={fmtPct(bi.takeRateBps, 1)} sub="plataforma s/ GMV" />
+                  <KpiCard icon={<ShoppingBag size={12} />} label="Itens/pedido" value={itemsPerOrder} />
+                </div>
+                <div className="mt-5">
+                  <p className="mb-2 text-xs font-medium text-gray-500">Tendência por live — AOV &amp; take-rate</p>
+                  <LiveShopResultsTrend points={bi.trend} />
+                </div>
+                <p className="mt-3 text-[11px] text-gray-400">
+                  Puxado das lives entregues (Anexo B / ls_live_session). Receita AWQ = revenue share ({fmtPct(brand.revenueShareBps, 0)}) sobre o GMV.
+                  <Link href="/awq/live-shop/historico" className="ml-1 text-brand-600 hover:text-brand-700">Ver histórico por live →</Link>
+                </p>
+              </section>
+            )}
 
             {/* Grade de conteúdo */}
             <section className="rounded-xl border border-gray-200/80 bg-white p-5">
@@ -113,6 +181,7 @@ export default async function BrandSectionPage({ params }: { params: { brand: st
                   Crie um login individual e libere o acesso ao portal desta marca. O portal exige login
                   (não é mais aberto). Convidados só enxergam {brand.name} — nada da Plataforma.
                 </p>
+                {canSetup && <div className="mb-4"><LiveShopSetupButton /></div>}
                 <LiveShopGuestManager brandId={brand.id} brandName={brand.name} initialGuests={guests} />
               </section>
             )}

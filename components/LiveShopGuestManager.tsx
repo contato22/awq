@@ -89,7 +89,7 @@ export default function LiveShopGuestManager({
         </div>
         <div className="sm:col-span-2">
           <button type="submit" disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-pink-600 px-3 py-2 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-60">
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
             Criar login + liberar acesso a {brandName}
           </button>
