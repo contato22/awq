@@ -21,7 +21,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 function BrandCard({ b }: { b: Brand }) {
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white p-4">
+    <Link href={`/awq/live-shop/marcas/${b.id}`} className="block rounded-xl border border-gray-200/80 bg-white p-4 transition-colors hover:border-pink-300 hover:bg-pink-50/40">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pink-600 text-white">
@@ -46,7 +46,7 @@ function BrandCard({ b }: { b: Brand }) {
         )}
       </dl>
       {b.notes && <p className="mt-2 text-[11px] text-gray-400">{b.notes}</p>}
-    </div>
+    </Link>
   );
 }
 

@@ -62,6 +62,18 @@ export async function getBrands(): Promise<Brand[]> {
   }
 }
 
+/** Uma marca por id (ou null). */
+export async function getBrand(id: string): Promise<Brand | null> {
+  const brands = await getBrands();
+  return brands.find((b) => b.id === id) ?? null;
+}
+
+/** Id da marca-piloto (default da página pública). */
+export async function getPilotBrandId(): Promise<string | null> {
+  const brands = await getBrands();
+  return (brands.find((b) => b.isPilot) ?? brands[0])?.id ?? null;
+}
+
 function rowToBrand(r: any): Brand {
   return {
     id: r.id, name: r.name, segment: r.segment, kind: r.kind, status: r.status,
