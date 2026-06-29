@@ -9,7 +9,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import {
-  Radio, TrendingUp, AlertTriangle, Target, Layers, Activity, Tag, ShoppingCart, ChevronRight, History,
+  Radio, TrendingUp, AlertTriangle, Target, Layers, Activity, Tag, ShoppingCart, ChevronRight, History, Trophy,
 } from "lucide-react";
 import { getLiveSessions } from "@/lib/live-shop/db";
 import { getBrands } from "@/lib/live-shop/brands";
@@ -115,6 +115,13 @@ export default async function LiveShopPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-300 hover:bg-brand-50"
           >
             <History size={14} className="text-brand-600" /> Histórico de resultados
+            <ChevronRight size={14} className="text-gray-400" />
+          </Link>
+          <Link
+            href="/awq/live-shop/gamificacao"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-300 hover:bg-brand-50"
+          >
+            <Trophy size={14} className="text-brand-600" /> Gamificação
             <ChevronRight size={14} className="text-gray-400" />
           </Link>
           <a
