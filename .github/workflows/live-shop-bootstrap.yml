@@ -1,0 +1,72 @@
+name: Live Shop — bootstrap & verify (manual)
+
+# Aplica as migrations da BU Live Shop (ls_*, 006–011) no Postgres do ERP e/ou
+# verifica o estado. Roda no runner do GitHub (egress aberto) — diferente do
+# sandbox do agente, que tem o host do Supabase bloqueado.
+#
+# Pré-requisito: secret do repositório
+#   SUPABASE_DB_URL = connection string do Postgres do Supabase ERP
+#   (Settings → Database → Connection string → "Session"/URI)
+#
+# Dispare em Actions → "Live Shop — bootstrap & verify" → Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "bootstrap (aplica 006–011 e verifica) | verify (só conta)"
+        type: choice
+        default: bootstrap
+        options: [bootstrap, verify]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala psql
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Checa secret
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$PGURL" ]; then
+            echo "::error::Defina o secret SUPABASE_DB_URL (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          echo "secret presente."
+
+      - name: Bootstrap (migrations 006–011, idempotentes, em ordem)
+        if: ${{ inputs.mode == 'bootstrap' }}
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          for f in \
+            supabase/migrations/006_live_shop.sql \
+            supabase/migrations/007_live_shop_brands.sql \
+            supabase/migrations/008_live_shop_content.sql \
+            supabase/migrations/009_live_shop_agenda.sql \
+            supabase/migrations/010_live_shop_guests.sql \
+            supabase/migrations/011_live_shop_hosts.sql; do
+            echo "── aplicando $f ──"
+            psql "$PGURL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+          echo "Recarregando schema cache do PostgREST…"
+          psql "$PGURL" -c "notify pgrst, 'reload schema';"
+
+      - name: Verify (somente contagens — sem dados financeiros)
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          echo "== tabelas ls_* =="
+          psql "$PGURL" -c "select count(*) as ls_tables from information_schema.tables where table_schema='public' and table_name like 'ls\_%';"
+          echo "== BU Live Shop =="
+          psql "$PGURL" -c "select bu_code, slug, stage, consolidates_fully from business_units where bu_code='LIVE';"
+          echo "== seeds =="
+          psql "$PGURL" -c "select (select count(*) from ls_fee_schedule) fee_schedules, (select count(*) from ls_fee_tier) fee_tiers, (select count(*) from ls_account) contas, (select count(*) from ls_brand) marcas, (select count(*) from ls_content_block) blocos, (select count(*) from ls_live_plan) agenda, (select count(*) from ls_host) hosts;"
