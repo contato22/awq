@@ -10,6 +10,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import {
   Radio, TrendingUp, AlertTriangle, Target, Layers, Activity, Tag, ShoppingCart, ChevronRight, History, Trophy,
+  DollarSign, Wallet, CheckCircle2, XCircle, Eye, ShoppingBag, MousePointerClick, Boxes,
 } from "lucide-react";
 import { getLiveSessions } from "@/lib/live-shop/db";
 import { getBrands } from "@/lib/live-shop/brands";
@@ -29,12 +30,55 @@ export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynam
 
 const TODAY = "2026-06-25"; // currentDate do contexto
 
-function Card({ label, value, sub, danger }: { label: string; value: string; sub?: string; danger?: boolean }) {
+function Card({ label, value, sub, danger, good, icon }: { label: string; value: string; sub?: string; danger?: boolean; good?: boolean; icon?: React.ReactNode }) {
+  const color = danger ? "text-red-600" : good ? "text-emerald-600" : "text-gray-900";
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white p-4">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</p>
-      <p className={`mt-1 text-xl font-bold ${danger ? "text-red-600" : "text-gray-900"}`}>{value}</p>
+    <div className="card card-hover p-4">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+        {icon && <span className="text-gray-400">{icon}</span>}{label}
+      </p>
+      <p className={`mt-1 text-xl font-bold ${color}`}>{value}</p>
       {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+    </div>
+  );
+}
+
+// Card de destaque (hero) — maior, com tom de cor.
+function Highlight({ icon, label, value, foot, tone = "brand" }: { icon: React.ReactNode; label: string; value: string; foot?: string; tone?: "brand" | "good" | "bad" }) {
+  const ring = tone === "bad" ? "ring-red-100" : tone === "good" ? "ring-emerald-100" : "ring-brand-100";
+  const chip = tone === "bad" ? "bg-red-50 text-red-600" : tone === "good" ? "bg-emerald-50 text-emerald-600" : "bg-brand-50 text-brand-600";
+  const val = tone === "bad" ? "text-red-600" : tone === "good" ? "text-emerald-600" : "text-gray-900";
+  return (
+    <div className={`card p-4 ring-1 ${ring}`}>
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${chip}`}>{icon}</span>
+        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</p>
+      </div>
+      <p className={`mt-2 text-2xl font-bold ${val}`}>{value}</p>
+      {foot && <p className="mt-0.5 text-xs text-gray-400">{foot}</p>}
+    </div>
+  );
+}
+
+// Barra ROIC × hurdle (marcadores na mesma trilha).
+function HurdleBar({ roicBps, hurdleBps, selicBps }: { roicBps: number; hurdleBps: number; selicBps: number }) {
+  const max = Math.max(hurdleBps, roicBps, selicBps) * 1.15;
+  const pos = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  const below = roicBps < hurdleBps;
+  return (
+    <div className="mt-1">
+      <div className="relative h-2.5 w-full rounded-full bg-gray-100">
+        <div className={`absolute left-0 top-0 h-full rounded-full ${below ? "bg-red-400" : "bg-emerald-500"}`} style={{ width: pos(roicBps) }} />
+        {/* hurdle marker */}
+        <div className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 bg-gray-700" style={{ left: pos(hurdleBps) }} title="Hurdle" />
+        {/* selic marker */}
+        <div className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-amber-500" style={{ left: pos(selicBps) }} title="Selic" />
+      </div>
+      <div className="mt-1.5 flex justify-between text-[10px] text-gray-400">
+        <span className="flex items-center gap-1"><span className={`inline-block h-1.5 w-1.5 rounded-full ${below ? "bg-red-400" : "bg-emerald-500"}`} /> ROIC {(roicBps / 100).toFixed(1)}%</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" /> Selic {(selicBps / 100).toFixed(2)}%</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-gray-700" /> Hurdle {(hurdleBps / 100).toFixed(0)}%</span>
+      </div>
     </div>
   );
 }
@@ -86,6 +130,8 @@ export default async function LiveShopPage() {
 
   const milli = ue.itemsPerOrderMilli;
   const itemsPerOrder = (Math.round(milli / 10) / 100).toFixed(2);
+  const gatePassed = gate.criteria.filter((c) => c.pass).length;
+  const gateTotal = gate.criteria.length;
 
   return (
     <>
@@ -148,25 +194,33 @@ export default async function LiveShopPage() {
           </div>
         ) : (
           <>
+            {/* Hero — destaques da BU */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Highlight icon={<DollarSign size={15} />} label="GMV atribuído" value={fmtBRL(ue.gmv)} foot={`${sessions.length} lives · piloto`} />
+              <Highlight icon={<Wallet size={15} />} label="Net to AWQ / semana" value={fmtBRL(cascade.netToAwq)} foot="estrutura A" tone={cascade.netToAwq > 0 ? "good" : "bad"} />
+              <Highlight icon={<Target size={15} />} label="ROIC vs hurdle" value={fmtPct(roic.roicBps, 1)} foot={`hurdle ${fmtPct(roic.hurdleBps, 0)} · gap ${fmtPct(roic.hurdleGapBps, 1)}`} tone={roic.belowHurdle ? "bad" : "good"} />
+              <Highlight icon={<Trophy size={15} />} label="Gate validated" value={`${gatePassed}/${gateTotal}`} foot={gate.passed ? "atingido" : "em pilot"} tone={gate.passed ? "good" : "brand"} />
+            </div>
+
             {/* KPIs unit econ + funil */}
             <section>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
                 <Activity size={15} className="text-gray-400" /> Unit economics &amp; funil ({sessions.length} sessões)
               </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                <Card label="GMV atribuído" value={fmtBRL(ue.gmv)} sub="provisório ~7 dias" />
-                <Card label="AOV" value={fmtBRL(ue.aov)} sub={`gap ${fmtPct(ue.aovGapBps, 0)} do modelado`} danger={ue.aovGapBps < 5000} />
-                <Card label="Itens / pedido" value={itemsPerOrder} sub="cross-sell ≈ zero" />
-                <Card label="Concentração L1+L2" value={fmtPct(concBps, 1)} sub="risco de cauda curta" danger={concBps > 8000} />
-                <Card label="CTR" value={fmtPct(funnel.ctrBps, 1)} sub="cliques / views" />
-                <Card label="CTOR" value={fmtPct(funnel.ctorBps, 2)} sub="pedidos / cliques — vazamento checkout" danger={funnel.ctorBps < 300} />
-                <Card label="Pedidos pagos" value={String(ue.paidOrders)} />
-                <Card label="Views" value={funnel.views.toLocaleString("pt-BR")} />
+                <Card icon={<DollarSign size={12} />} label="GMV atribuído" value={fmtBRL(ue.gmv)} sub="provisório ~7 dias" />
+                <Card icon={<ShoppingBag size={12} />} label="AOV" value={fmtBRL(ue.aov)} sub={`gap ${fmtPct(ue.aovGapBps, 0)} do modelado`} danger={ue.aovGapBps < 5000} />
+                <Card icon={<Boxes size={12} />} label="Itens / pedido" value={itemsPerOrder} sub="cross-sell ≈ zero" />
+                <Card icon={<Layers size={12} />} label="Concentração L1+L2" value={fmtPct(concBps, 1)} sub="risco de cauda curta" danger={concBps > 8000} />
+                <Card icon={<MousePointerClick size={12} />} label="CTR" value={fmtPct(funnel.ctrBps, 1)} sub="cliques / views" />
+                <Card icon={<Target size={12} />} label="CTOR" value={fmtPct(funnel.ctorBps, 2)} sub="pedidos / cliques — vazamento checkout" danger={funnel.ctorBps < 300} />
+                <Card icon={<ShoppingBag size={12} />} label="Pedidos pagos" value={String(ue.paidOrders)} />
+                <Card icon={<Eye size={12} />} label="Views" value={funnel.views.toLocaleString("pt-BR")} />
               </div>
             </section>
 
             {/* Mini-P&L (estrutura A) */}
-            <section className="rounded-xl border border-gray-200/80 bg-white p-5">
+            <section className="card p-5">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
                 <Layers size={15} className="text-gray-400" /> Mini-P&amp;L — estrutura A (AWQ {fmtPct(revShareBps, 0)} GMV; Bless banca host)
               </div>
@@ -185,11 +239,12 @@ export default async function LiveShopPage() {
             </section>
 
             {/* ROIC vs hurdle */}
-            <section className="rounded-xl border border-gray-200/80 bg-white p-5">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <section className="card p-5">
+              <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
                 <Target size={15} className="text-gray-400" /> Capital allocation — ROIC vs hurdle
               </div>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <HurdleBar roicBps={roic.roicBps} hurdleBps={roic.hurdleBps} selicBps={roic.selicBps} />
+              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Card label="ROIC (anualizado)" value={fmtPct(roic.roicBps, 1)} danger={roic.belowHurdle} />
                 <Card label="Hurdle (build-up)" value={fmtPct(roic.hurdleBps, 1)} />
                 <Card label="Prêmio de risco (ROIC − Selic)" value={fmtPct(roic.riskPremiumBps, 2)} danger={roic.riskPremiumBps < 0} />
@@ -201,7 +256,7 @@ export default async function LiveShopPage() {
             </section>
 
             {/* Fee version + flip 15/07 + GMV Max */}
-            <section className="rounded-xl border border-gray-200/80 bg-white p-5">
+            <section className="card p-5">
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
                 <Tag size={15} className="text-gray-400" /> Tabela de fees vigente
               </div>
@@ -222,20 +277,30 @@ export default async function LiveShopPage() {
             </section>
 
             {/* Gate pilot → validated */}
-            <section className="rounded-xl border border-gray-200/80 bg-white p-5">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
-                <TrendingUp size={15} className="text-gray-400" /> Gate pilot → validated (falsificável, §9)
+            <section className="card p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <TrendingUp size={15} className="text-gray-400" /> Gate pilot → validated (falsificável, §9)
+                </div>
+                <span className="text-xs font-medium text-gray-500">{gatePassed}/{gateTotal} critérios</span>
               </div>
-              <ul className="space-y-1.5 text-sm">
+              <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className={`h-full rounded-full ${gate.passed ? "bg-emerald-500" : "bg-brand-500"}`} style={{ width: `${(gatePassed / gateTotal) * 100}%` }} />
+              </div>
+              <ul className="space-y-2 text-sm">
                 {gate.criteria.map((c) => (
-                  <li key={c.key} className="flex items-center gap-2">
-                    <span className={c.pass ? "text-emerald-600" : "text-red-500"}>{c.pass ? "✓" : "✗"}</span>
-                    <span className="text-gray-700">{c.label}</span>
-                    <span className="text-xs text-gray-400">— {c.detail}</span>
+                  <li key={c.key} className="flex items-start gap-2.5">
+                    {c.pass
+                      ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+                      : <XCircle size={16} className="mt-0.5 shrink-0 text-gray-300" />}
+                    <span className="flex-1">
+                      <span className={c.pass ? "text-gray-900" : "text-gray-700"}>{c.label}</span>
+                      <span className="ml-1.5 text-xs text-gray-400">— {c.detail}</span>
+                    </span>
                   </li>
                 ))}
               </ul>
-              <p className={`mt-3 text-xs font-medium ${gate.passed ? "text-emerald-600" : "text-gray-500"}`}>
+              <p className={`mt-4 rounded-lg px-3 py-2 text-xs font-medium ${gate.passed ? "bg-emerald-50 text-emerald-700" : "bg-gray-50 text-gray-500"}`}>
                 {gate.passed ? "Gate ATINGIDO — habilitar verticalização/formalização." : "Gate não atingido — BU segue em pilot."}
               </p>
             </section>
