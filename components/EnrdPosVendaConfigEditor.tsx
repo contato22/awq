@@ -123,6 +123,50 @@ export default function EnrdPosVendaConfigEditor({ config }: { config: PosVendaC
             )}
           </div>
 
+          {/* Perímetro & dedicação (vesting do Miguel) */}
+          <div>
+            <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+              Perímetro & dedicação (pós-venda)
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">% ded. William</span>
+                <input
+                  type="number"
+                  step={5}
+                  value={Number((c.dedWilliam * 100).toFixed(0))}
+                  onChange={(e) => set("dedWilliam", Number(e.target.value) / 100)}
+                  className="w-full text-sm border rounded-lg px-2 py-1.5"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">% ded. Tamara</span>
+                <input
+                  type="number"
+                  step={5}
+                  value={Number((c.dedTamara * 100).toFixed(0))}
+                  onChange={(e) => set("dedTamara", Number(e.target.value) / 100)}
+                  className="w-full text-sm border rounded-lg px-2 py-1.5"
+                />
+              </label>
+              <Num label="Horas produtivas/mês" k="horasProdutivasMes" step={8} />
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">% originação</span>
+                <input
+                  type="number"
+                  step={1}
+                  value={Number((c.pctOriginacao * 100).toFixed(0))}
+                  onChange={(e) => set("pctOriginacao", Number(e.target.value) / 100)}
+                  className="w-full text-sm border rounded-lg px-2 py-1.5"
+                />
+              </label>
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Bônus da Tamara é 100% pós-venda (não rateado). Originação = % sobre venda de integração que o
+              pós-venda gerou (default 0 até o Miguel definir).
+            </div>
+          </div>
+
           {/* Combustível por cidade */}
           <div>
             <div className="flex items-center justify-between mb-2">

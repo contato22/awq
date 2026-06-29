@@ -59,6 +59,27 @@ export const HORAS_UTEIS_MES = 176; // 22 dias × 8h — premissa de capacidade 
 export function premissasEstimadas(config: PosVendaConfig): PremissaEstimada[] {
   const fuel = config.combustivelPorCidade;
   const lista: PremissaEstimada[] = [
+    {
+      key: "dedWilliam",
+      parametro: "% dedicação pós-venda — William",
+      valorEstimado: `${(config.dedWilliam * 100).toFixed(0)}%`,
+      base: "William é majoritariamente montagem (Felipe). Estimativa até o Miguel confirmar a fração real de homem-hora dele no pós-venda.",
+      confianca: "baixa",
+    },
+    {
+      key: "dedTamara",
+      parametro: "% dedicação pós-venda — Tamara",
+      valorEstimado: `${(config.dedTamara * 100).toFixed(0)}%`,
+      base: "Tamara faz outras funções além do pós-venda. Estimativa até confirmação do Miguel.",
+      confianca: "baixa",
+    },
+    {
+      key: "horasProdutivasMes",
+      parametro: "Horas produtivas/mês por pessoa",
+      valorEstimado: `${config.horasProdutivasMes} h`,
+      base: "22 dias úteis × 8h. Usada para capacidade e para expressar a dedicação em horas.",
+      confianca: "média",
+    },
     ...fuel.map((f) => ({
       key: `combustivel:${f.cidade}`,
       parametro: `Combustível — ${f.cidade}`,
