@@ -100,24 +100,30 @@ function buildRfmCustomers(raw: CustomerRaw[]): RfmCustomer[] {
 
 async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | null> {
   if (!db) return null;
-  let q = db.from("crm_opportunities")
-    .select("opportunity_id,account_id,bu,deal_value,actual_close_date")
+
+  // Universo de clientes = as CONTAS (não só quem tem negócio fechado). Assim
+  // todo cliente da BU aparece no RFM, mesmo sem oportunidade lançada ainda
+  // (frequência/monetário = 0, recência a partir da criação da conta).
+  let accQ = db
+    .from("crm_accounts")
+    .select("account_id,account_name,industry,owner,bu,account_type,created_at")
+    .in("account_type", ["customer", "former_customer"]);
+  if (forcedBu) accQ = accQ.eq("bu", forcedBu);
+  const { data: accs, error: accErr } = await accQ;
+  if (accErr || !accs?.length) return null;
+
+  // Estatísticas de compra vêm das oportunidades fechadas (closed_won).
+  let oppQ = db
+    .from("crm_opportunities")
+    .select("account_id,bu,deal_value,actual_close_date")
     .eq("stage", "closed_won")
     .not("actual_close_date", "is", null);
-  if (forcedBu) q = q.eq("bu", forcedBu);
-  const { data: opps, error } = await q;
-  if (error || !opps?.length) return null;
-
-  const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))];
-  const { data: accs } = await db
-    .from("crm_accounts")
-    .select("account_id,account_name,industry,owner")
-    .in("account_id", accountIds);
-  const accMap = new Map((accs ?? []).map(a => [a.account_id, a]));
+  if (forcedBu) oppQ = oppQ.eq("bu", forcedBu);
+  const { data: opps } = await oppQ;
 
   const today = Date.now();
-  const byAccount = new Map<string, { opp_count: number; total: number; latest_close: number; bu: string }>();
-  for (const o of opps) {
+  const byAccount = new Map<string, { opp_count: number; total: number; latest_close: number }>();
+  for (const o of opps ?? []) {
     if (!o.account_id) continue;
     const closeMs = new Date(o.actual_close_date as string).getTime();
     const cur = byAccount.get(o.account_id);
@@ -126,26 +132,27 @@ async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | nul
       cur.total += o.deal_value ?? 0;
       if (closeMs > cur.latest_close) cur.latest_close = closeMs;
     } else {
-      byAccount.set(o.account_id, { opp_count: 1, total: o.deal_value ?? 0, latest_close: closeMs, bu: o.bu ?? "" });
+      byAccount.set(o.account_id, { opp_count: 1, total: o.deal_value ?? 0, latest_close: closeMs });
     }
   }
 
-  const rows: CustomerRaw[] = [];
-  for (const [account_id, stats] of byAccount) {
-    const acc = accMap.get(account_id);
-    if (!acc) continue;
-    rows.push({
-      account_id,
+  const rows: CustomerRaw[] = accs.map(acc => {
+    const stats = byAccount.get(acc.account_id);
+    const createdMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
+    // Recência: última compra se houver; senão, dias desde a criação da conta.
+    const recencyBase = stats ? stats.latest_close : createdMs;
+    return {
+      account_id:   acc.account_id,
       account_name: acc.account_name,
       industry:     acc.industry ?? null,
-      owner:        acc.owner,
-      bu:           stats.bu,
-      recency_days: Math.round((today - stats.latest_close) / 86400000),
-      frequency:    stats.opp_count,
-      monetary:     stats.total,
-    });
-  }
-  rows.sort((a, b) => b.monetary - a.monetary);
+      owner:        acc.owner ?? "—",
+      bu:           acc.bu ?? "",
+      recency_days: recencyBase > 0 ? Math.round((today - recencyBase) / 86400000) : 999,
+      frequency:    stats?.opp_count ?? 0,
+      monetary:     stats?.total ?? 0,
+    };
+  });
+  rows.sort((a, b) => b.monetary - a.monetary || a.account_name.localeCompare(b.account_name));
   return rows.length > 0 ? rows : null;
 }
 
