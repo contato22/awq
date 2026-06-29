@@ -25,8 +25,8 @@ export default function LiveShopGuestManager({
   initialGuests: GuestRow[];
 }) {
   const [guests, setGuests] = useState<GuestRow[]>(initialGuests);
+  const [login, setLogin] = useState("");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -50,12 +50,12 @@ export default function LiveShopGuestManager({
       const r = await fetch("/api/live-shop/guests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, brandIds: [brandId] }),
+        body: JSON.stringify({ login, name, password, brandIds: [brandId] }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Falha");
-      setMsg({ kind: "ok", text: `Login criado para ${email}. Anote a senha — ela não é exibida de novo.` });
-      setName(""); setEmail(""); setPassword("");
+      setMsg({ kind: "ok", text: `Login criado para "${login}". Anote a senha — ela não é exibida de novo.` });
+      setLogin(""); setName(""); setPassword("");
       await refresh();
     } catch (err) {
       setMsg({ kind: "err", text: err instanceof Error ? err.message : "Falha" });
@@ -75,10 +75,10 @@ export default function LiveShopGuestManager({
   return (
     <div className="space-y-4">
       <form onSubmit={create} className="grid gap-2 sm:grid-cols-2">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome"
+        <input value={login} onChange={(e) => setLogin(e.target.value)} type="text" placeholder="Usuário (login)"
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm" required />
-        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email (login)"
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm" required />
+        <input value={name} onChange={(e) => setName(e.target.value)} type="text" placeholder="Nome (opcional)"
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
         <div className="flex gap-2 sm:col-span-2">
           <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha (≥ 8)"
             className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm" minLength={8} required />
