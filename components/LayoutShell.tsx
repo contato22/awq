@@ -23,7 +23,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     return () => window.removeEventListener("awq:open-mobile-drawer", handler);
   }, []);
 
-  if (pathname === "/login") {
+  // Páginas standalone (sem chrome da plataforma): login e a página pública da
+  // Live Shop (acesso sem login — não deve expor nav/sidebar da plataforma).
+  if (pathname === "/login" || pathname?.startsWith("/awq/live-shop/publico")) {
     return <>{children}</>;
   }
 

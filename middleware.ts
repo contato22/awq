@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
 
-const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA", jacqes: "JACQES" };
+const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA", jacqes: "JACQES", "live-shop": "LIVE" };
 
 // API allow-list por role BU-scoped. Qualquer outra rota /api/* retorna 403.
 // Mantém Holding-only surfaces (bpm, epm, admin, ingest, supervisor, agents,
@@ -19,6 +19,9 @@ const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
   caza: [
     /^\/api\/crm(\/|$)/,
     /^\/api\/caza(\/|$)/,
+  ],
+  "live-shop": [
+    /^\/api\/live-shop(\/|$)/,
   ],
   enrd: [
     /^\/api\/crm(\/|$)/,
@@ -88,6 +91,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!login|awq/live-shop/publico|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

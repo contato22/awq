@@ -10,7 +10,8 @@
     "seed:epm": "tsx scripts/seed-epm-planning.ts",
     "test:epm": "tsx scripts/test-epm-db.ts",
     "test:recon": "tsx scripts/test-recon-scoring.ts && tsx scripts/test-recon-engine.ts",
-    "test:recon:int": "tsx scripts/test-recon-integration.ts"
+    "test:recon:int": "tsx scripts/test-recon-integration.ts",
+    "test:live-shop": "tsx scripts/test-live-shop.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

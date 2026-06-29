@@ -457,6 +457,7 @@ const businessUnits = [
     { id: "venture", label: "AWQ Venture", sub: "Investimentos · AWQ Group",href: "/awq-venture",  icon: TrendingUp, color: "bg-amber-600"   },
     { id: "advisor", label: "Advisor",     sub: "Consultoria · AWQ Group",  href: "/advisor",      icon: Briefcase,  color: "bg-brand-600"  },
     { id: "enrd",    label: "ENRD",        sub: "Agência Solar · AWQ Group",href: "/enrd",         icon: Zap,        color: "bg-orange-600"  },
+    { id: "live-shop", label: "Live Shop", sub: "Live Commerce · AWQ Group",href: "/awq/live-shop",icon: ShoppingCart, color: "bg-pink-600"    },
 ];
 
 // ── BU module configs ─────────────────────────────────────────────────────────
