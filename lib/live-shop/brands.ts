@@ -8,6 +8,7 @@
 
 import { erpAdmin, erpAnon } from "@/lib/supabase";
 import { LIVE_SHOP_BU } from "./types";
+import type { Bps } from "./money";
 
 export type BrandKind = "fabricante" | "revenda" | "marca_propria";
 export type BrandStatus = "piloto" | "ativo" | "prospect" | "pausado" | "arquivado";
@@ -18,7 +19,9 @@ export interface Brand {
   segment: string; // ex.: "Moda feminina"
   kind: BrandKind;
   status: BrandStatus;
-  dealModel: string; // ex.: "Revenue share 10% GMV (estrutura A)"
+  // Revenue share da AWQ sobre o GMV da marca, em bps (parâmetro, não constante §13).
+  revenueShareBps: Bps;
+  dealModel: string; // rótulo derivado para exibição
   isPilot: boolean;
   firstLiveAt: string | null; // YYYY-MM-DD
   notes?: string;
@@ -32,7 +35,8 @@ export const BRANDS_SEED: Brand[] = [
     segment: "Moda feminina",
     kind: "fabricante",
     status: "piloto",
-    dealModel: "Revenue share 10% GMV (estrutura A)",
+    revenueShareBps: 500, // 5% do GMV (estrutura A)
+    dealModel: "Revenue share 5% GMV (estrutura A)",
     isPilot: true,
     firstLiveAt: "2026-06-16",
     notes: "Fabricante — quer vender produto fábrica-direto e dead stock.",
@@ -61,6 +65,7 @@ export async function getBrands(): Promise<Brand[]> {
 function rowToBrand(r: any): Brand {
   return {
     id: r.id, name: r.name, segment: r.segment, kind: r.kind, status: r.status,
+    revenueShareBps: r.revenue_share_bps ?? 0,
     dealModel: r.deal_model, isPilot: !!r.is_pilot, firstLiveAt: r.first_live_at, notes: r.notes ?? undefined,
   };
 }
