@@ -4,24 +4,41 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
 import Header from "@/components/Header";
-import { ArrowLeft, ExternalLink, Tag, Calendar, ListChecks, Star, Percent } from "lucide-react";
+import { ArrowLeft, ExternalLink, Tag, Calendar, ListChecks, Star, Percent, Users } from "lucide-react";
+import { authOptions } from "@/lib/auth-options";
 import {
   getBrand, BRAND_KIND_LABEL, BRAND_STATUS_LABEL, type Brand,
 } from "@/lib/live-shop/brands";
 import { getContentGrid, type ContentBlock } from "@/lib/live-shop/content";
+import { listGuests } from "@/lib/live-shop/guests";
 import { fmtPct } from "@/lib/live-shop/money";
 import LiveShopContentGrid from "@/components/LiveShopContentGrid";
+import LiveShopGuestManager, { type GuestRow } from "@/components/LiveShopGuestManager";
+
+const CAN_MANAGE = new Set(["owner", "admin", "live-shop"]);
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 export default async function BrandSectionPage({ params }: { params: { brand: string } }) {
   let brand: Brand | null = null;
   let blocks: ContentBlock[] = [];
+  let guests: GuestRow[] = [];
   let loadError: string | null = null;
+
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "";
+  const canManage = CAN_MANAGE.has(role);
+
   try {
     brand = await getBrand(params.brand);
     if (brand) blocks = await getContentGrid(params.brand);
+    if (brand && canManage) {
+      guests = (await listGuests()).map((g) => ({
+        id: g.id, email: g.email, name: g.name, brandIds: g.brandIds, status: g.status,
+      }));
+    }
   } catch (err) {
     loadError = err instanceof Error ? err.message : String(err);
   }
@@ -85,6 +102,20 @@ export default async function BrandSectionPage({ params }: { params: { brand: st
                 Horários, roteiros e resultados esperados por bloco. Editável via dados (seed/ls_content_block).
               </p>
             </section>
+
+            {/* Gerir usuários e permissões (acesso ao portal da marca) */}
+            {canManage && (
+              <section className="rounded-xl border border-gray-200/80 bg-white p-5">
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <Users size={15} className="text-gray-400" /> Usuários &amp; permissões
+                </div>
+                <p className="mb-4 text-xs text-gray-400">
+                  Crie um login individual e libere o acesso ao portal desta marca. O portal exige login
+                  (não é mais aberto). Convidados só enxergam {brand.name} — nada da Plataforma.
+                </p>
+                <LiveShopGuestManager brandId={brand.id} brandName={brand.name} initialGuests={guests} />
+              </section>
+            )}
           </>
         )}
       </main>

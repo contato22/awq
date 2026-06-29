@@ -123,7 +123,7 @@ export default async function LiveShopPage() {
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-pink-300 hover:bg-pink-50"
           >
-            <Radio size={14} className="text-pink-600" /> Página pública
+            <Radio size={14} className="text-pink-600" /> Portal da marca
             <ChevronRight size={14} className="text-gray-400" />
           </a>
         </div>
