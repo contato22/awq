@@ -29,6 +29,8 @@ import {
   custoFixoSemBonus,
   custoFixoComBonus,
   classificarDono,
+  kpiNaoCobrados,
+  isRealizado,
   type OS,
   type OSContribuicao,
   type DonoOS,
@@ -183,7 +185,7 @@ export default async function EnrdPosVendaPage() {
   const configReais = configSoReais(config);
   type ContribStatus = OSContribuicao & { status: string | null; dono: DonoOS };
   // realizado = fechado/concluído/pago. Pipeline (negociação/contato) NÃO entra no resultado.
-  const realizado = (s: string | null | undefined) => !s || /fechad|conclu|pago|ganho|ativo/i.test(s);
+  const realizado = isRealizado;
   const mapC = (cfg: typeof config): ContribStatus[] =>
     os.map((o) => ({ ...contribuicaoOS(o, cfg), status: o.status ?? null, dono: classificarDono(o.tipoServico) }));
   const contribCom = mapC(config);
@@ -214,6 +216,21 @@ export default async function EnrdPosVendaPage() {
   const pctReceitaPos = totalReceitaTodos > 0 ? receitaPorDono.pos_venda / totalReceitaTodos : 0;
   const pctReceitaFronteira =
     totalReceitaTodos > 0 ? (receitaPorDono.montagem + receitaPorDono.hibrido) / totalReceitaTodos : 0;
+
+  // ── Pós-venda NÃO COBRADO (perda por não cobrar) ────────────────────────────
+  // Só o perímetro do pós-venda (Miguel). "Não cobrado" = OS com R$0 lançado.
+  const naoCob = kpiNaoCobrados(
+    contribCom
+      .filter((o) => o.dono === "pos_venda")
+      .map((o) => ({
+        id: o.id,
+        cliente: o.cliente,
+        cidade: o.cidade,
+        tipoServico: o.tipoServico,
+        status: o.status,
+        valor: o.valor,
+      }))
+  );
 
   // Comissão de originação (default 0): % sobre venda de integração (montagem) do mês.
   // Base = montagem MTD (assume originação sobre toda integração; Miguel refina).
@@ -308,6 +325,96 @@ export default async function EnrdPosVendaPage() {
           <p className="text-xs text-gray-400 mt-2">
             Só <strong>{PCT(pctReceitaPos)}</strong> da receita entra no P&amp;L do pós-venda. Híbridas só
             contam a parte pós quando o split for informado (senão: RATEAR/VERIFICAR, não contadas).
+          </p>
+        </div>
+
+        {/* KPI — Pós-venda NÃO COBRADO (perda por não cobrar) */}
+        <div className="card p-4 border-l-4 border-l-red-400">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <AlertTriangle size={15} className="text-red-500" /> Pós-venda não cobrado
+            </h2>
+            <span className="text-xs text-gray-400">
+              perímetro Miguel · {naoCob.naoCobrados.length} OS sem valor lançado
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Perda certa: realizados de graça */}
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <div className="text-2xl font-bold text-red-700">{BRL(naoCob.perdaCerta)}</div>
+              <div className="text-xs text-red-900 mt-0.5">
+                Perda certa — {naoCob.nRealizadosGratis} serviço(s) <strong>realizado(s) de graça</strong> (status
+                fechado, R$0)
+              </div>
+            </div>
+            {/* Não cobrados em aberto (pipeline a R$0) */}
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <div className="text-2xl font-bold text-amber-700">
+                {naoCob.naoCobrados.length - naoCob.nRealizadosGratis}
+              </div>
+              <div className="text-xs text-amber-900 mt-0.5">
+                Não cobrados em aberto — pós-venda sem valor, ainda não fechado
+              </div>
+            </div>
+            {/* Cotado, ainda a cobrar */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="text-2xl font-bold text-gray-900">{BRL(naoCob.cotadoACobrar)}</div>
+              <div className="text-xs text-gray-600 mt-0.5">
+                Cotado a cobrar — {naoCob.nCotadoACobrar} OS em negociação, receita ainda não capturada
+              </div>
+            </div>
+          </div>
+
+          {/* Perda total estimada se nenhum dos não-cobrados for cobrado */}
+          <div className="mt-3 flex flex-wrap items-baseline gap-2">
+            <span className="text-xs text-gray-500">
+              Perda estimada se nada disso for cobrado:
+            </span>
+            <span className="text-base font-bold text-red-700">{BRL(naoCob.perdaEstimada)}</span>
+            <span className="text-[11px] text-gray-400">
+              (ESTIMATIVA · {naoCob.naoCobrados.length} × ticket mediano {BRL(naoCob.ticketMediano)})
+            </span>
+          </div>
+
+          {naoCob.naoCobrados.length > 0 && (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-400 border-b">
+                    <th className="text-left py-1 pr-3 font-medium">Cliente</th>
+                    <th className="text-left py-1 pr-3 font-medium">Serviço</th>
+                    <th className="text-left py-1 pr-3 font-medium">Cidade</th>
+                    <th className="text-left py-1 pr-3 font-medium">Situação</th>
+                    <th className="text-right py-1 font-medium">Perda estim.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {naoCob.naoCobrados.map((o) => (
+                    <tr key={o.id} className="border-b border-gray-50">
+                      <td className="py-1.5 pr-3 text-gray-900">{o.cliente ?? "—"}</td>
+                      <td className="py-1.5 pr-3 text-gray-600">{o.tipoServico ?? "—"}</td>
+                      <td className="py-1.5 pr-3 text-gray-600">{o.cidade ?? "—"}</td>
+                      <td className="py-1.5 pr-3">
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            o.realizado ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {o.realizado ? "REALIZADO · R$0" : (o.status ?? "pipeline")}
+                        </span>
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums text-red-600">{BRL(naoCob.ticketMediano)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 mt-2">
+            <strong>&ldquo;Não cobrado&rdquo;</strong> = OS de pós-venda com <strong>R$0 lançado</strong>. O fato
+            (cobrou ou não) nunca é estimado; só o <strong>valor potencial</strong> é — pelo ticket mediano dos
+            serviços cobrados (conservador, ignora outlier). Lançar o valor no CRM remove o serviço daqui.
           </p>
         </div>
 

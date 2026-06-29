@@ -84,11 +84,80 @@ export function classificarDono(tipo: string | null | undefined): DonoOS {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
+  // "Limpeza" é SEMPRE pós-venda/O&M, mesmo citando placa/módulo
+  // (ex.: "Limpeza de Placas") — senão "placa" cairia no RX_MONT e viraria híbrido.
+  if (/limpeza/.test(t)) return "pos_venda";
   const pos = RX_POS.test(t);
   const mont = RX_MONT.test(t);
   if (pos && mont) return "hibrido";
   if (mont) return "montagem";
   return "pos_venda"; // padrão: fonte é o CRM de pós-venda
+}
+
+// ── "Realizado" (serviço executado, entra no resultado) ──────────────────────
+// fechado/concluído/pago/ganho/ativo. Pipeline (negociação/contato) NÃO realiza.
+export function isRealizado(status: string | null | undefined): boolean {
+  return !status || /fechad|conclu|pago|ganho|ativo/i.test(status);
+}
+
+// ── Pós-venda NÃO COBRADO (perda por não cobrar) ─────────────────────────────
+// "Não cobrado" = OS de pós-venda com valor_fechado <= 0 (nenhum valor lançado).
+// Subdividido em PERDA CERTA (realizado a R$0 — trabalho dado de graça) e em
+// aberto (pipeline a R$0). A perda em R$ é uma ESTIMATIVA (tipo A): nº × ticket
+// MEDIANO dos serviços cobrados (mediana é conservadora — ignora outlier alto).
+// "Cotado a cobrar" = OS com valor>0 ainda NÃO realizada (receita não capturada).
+export type OSNaoCobrada = {
+  id: string;
+  cliente: string | null;
+  cidade: string | null;
+  tipoServico: string | null;
+  status: string | null;
+  valor: number;
+  realizado: boolean;
+};
+
+export type NaoCobradoKpi = {
+  naoCobrados: OSNaoCobrada[]; // valor <= 0 (realizados grátis + pipeline)
+  nRealizadosGratis: number; // realizado && valor<=0 (perda CERTA)
+  ticketMediano: number; // mediana dos valores cobrados (>0)
+  perdaCerta: number; // nRealizadosGratis × ticketMediano
+  perdaEstimada: number; // naoCobrados.length × ticketMediano (perda CERTA + em aberto)
+  cotadoACobrar: number; // Σ valor de OS valor>0 && !realizado
+  nCotadoACobrar: number;
+};
+
+function mediana(xs: number[]): number {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+type OSLike = {
+  id: string;
+  cliente: string | null;
+  cidade: string | null;
+  tipoServico: string | null;
+  status: string | null;
+  valor: number;
+};
+
+export function kpiNaoCobrados(osList: OSLike[]): NaoCobradoKpi {
+  const ticketMediano = mediana(osList.filter((o) => o.valor > 0).map((o) => o.valor));
+  const naoCobrados: OSNaoCobrada[] = osList
+    .filter((o) => o.valor <= 0)
+    .map((o) => ({ ...o, realizado: isRealizado(o.status) }));
+  const nRealizadosGratis = naoCobrados.filter((o) => o.realizado).length;
+  const aCobrar = osList.filter((o) => o.valor > 0 && !isRealizado(o.status));
+  return {
+    naoCobrados,
+    nRealizadosGratis,
+    ticketMediano,
+    perdaCerta: nRealizadosGratis * ticketMediano,
+    perdaEstimada: naoCobrados.length * ticketMediano,
+    cotadoACobrar: aCobrar.reduce((s, o) => s + o.valor, 0),
+    nCotadoACobrar: aCobrar.length,
+  };
 }
 
 // ── Break-even em DEGRAU ─────────────────────────────────────────────────────
