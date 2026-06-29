@@ -17,9 +17,18 @@ export type PosVendaConfig = {
   // Folha (R$/mês)
   salarioWilliam: number;
   salarioTamaraFixo: number;
-  bonus: number;
+  bonus: number; // bônus da Tamara — 100% pós-venda (NÃO ratear)
   gatilhoBonus: number; // faturamento/mês que ATIVA o bônus
   encargos: number; // multiplicador (1,40)
+  // ── Custo de pessoal por DEDICAÇÃO (perímetro pós-venda do Miguel) ──────────
+  // William é majoritariamente montagem (Felipe); Tamara faz outras funções.
+  // O pós-venda absorve só a fração de homem-hora que consome.
+  dedWilliam: number; // % dedicação pós-venda do William (0..1)
+  dedTamara: number; // % dedicação pós-venda da Tamara (0..1)
+  horasProdutivasMes: number; // horas produtivas/mês por pessoa
+  // % de originação que o pós-venda recebe sobre venda de integração que gerou.
+  // A DEFINIR pelo Miguel — default 0 (sem comissão).
+  pctOriginacao: number;
   // Veículo fixo/mês (manutenção/seguro/depreciação). Pendente → 0 (subestima).
   veiculoFixoMes: number;
   veiculoPendente: boolean;
@@ -39,6 +48,11 @@ export const DEFAULT_POSVENDA_CONFIG: PosVendaConfig = {
   bonus: 2500,
   gatilhoBonus: 10000,
   encargos: 1.4,
+  // ESTIMADO (confiança baixa) até o Miguel confirmar a dedicação real.
+  dedWilliam: 0.35,
+  dedTamara: 0.45,
+  horasProdutivasMes: 176,
+  pctOriginacao: 0,
   veiculoFixoMes: 0,
   veiculoPendente: true,
   // Valores derivados por método em lib/enrd-posvenda-premissas.ts

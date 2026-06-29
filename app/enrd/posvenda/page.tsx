@@ -28,8 +28,10 @@ import {
   resultadoPorMes,
   custoFixoSemBonus,
   custoFixoComBonus,
+  classificarDono,
   type OS,
   type OSContribuicao,
+  type DonoOS,
 } from "@/lib/enrd-posvenda-costing";
 import { getLiveProjetosPosVenda } from "@/lib/enerdy-projetos";
 import { getTransactionsByEntity } from "@/lib/financial-db";
@@ -40,7 +42,6 @@ import {
   configSoReais,
   pctDependenteDeEstimativas,
   TEMPO_MEDIO_POR_TIPO,
-  HORAS_UTEIS_MES,
 } from "@/lib/enrd-posvenda-premissas";
 import {
   AlertTriangle,
@@ -180,13 +181,18 @@ export default async function EnrdPosVendaPage() {
   // ── Mês corrente (MTD) ──────────────────────────────────────────────────────
   const mesAtual = new Date().toISOString().slice(0, 7);
   const configReais = configSoReais(config);
-  type ContribStatus = OSContribuicao & { status: string | null };
+  type ContribStatus = OSContribuicao & { status: string | null; dono: DonoOS };
   // realizado = fechado/concluído/pago. Pipeline (negociação/contato) NÃO entra no resultado.
   const realizado = (s: string | null | undefined) => !s || /fechad|conclu|pago|ganho|ativo/i.test(s);
-  const contribCom: ContribStatus[] = os.map((o) => ({ ...contribuicaoOS(o, config), status: o.status ?? null }));
-  const contribReais: ContribStatus[] = os.map((o) => ({ ...contribuicaoOS(o, configReais), status: o.status ?? null }));
-  const realCom = contribCom.filter((o) => realizado(o.status));
-  const realReais = contribReais.filter((o) => realizado(o.status));
+  const mapC = (cfg: typeof config): ContribStatus[] =>
+    os.map((o) => ({ ...contribuicaoOS(o, cfg), status: o.status ?? null, dono: classificarDono(o.tipoServico) }));
+  const contribCom = mapC(config);
+  const contribReais = mapC(configReais);
+  // PERÍMETRO do vesting do Miguel: SÓ OS pos_venda realizada. Montagem (Felipe) e
+  // híbridas (split a definir) ficam FORA do P&L do pós-venda.
+  const noPerimetro = (o: ContribStatus) => o.dono === "pos_venda" && realizado(o.status);
+  const realCom = contribCom.filter(noPerimetro);
+  const realReais = contribReais.filter(noPerimetro);
   const mtdCom = realCom.filter((o) => (o.data ?? "").startsWith(mesAtual));
   const mtdReais = realReais.filter((o) => (o.data ?? "").startsWith(mesAtual));
 
@@ -196,6 +202,26 @@ export default async function EnrdPosVendaPage() {
   const historico = resultadoPorMes(realCom, config);
   const pctEstim = pctDependenteDeEstimativas(resCom.resultado, resReais.resultado, resCom.faturamento);
   const premissas = premissasEstimadas(config);
+
+  // ── Receita por DONO (contaminação de fronteira) ────────────────────────────
+  const receitaPorDono: Record<DonoOS, number> = { pos_venda: 0, montagem: 0, hibrido: 0 };
+  const countPorDono: Record<DonoOS, number> = { pos_venda: 0, montagem: 0, hibrido: 0 };
+  for (const o of contribCom) {
+    receitaPorDono[o.dono] += o.valor;
+    countPorDono[o.dono] += 1;
+  }
+  const totalReceitaTodos = receitaPorDono.pos_venda + receitaPorDono.montagem + receitaPorDono.hibrido;
+  const pctReceitaPos = totalReceitaTodos > 0 ? receitaPorDono.pos_venda / totalReceitaTodos : 0;
+  const pctReceitaFronteira =
+    totalReceitaTodos > 0 ? (receitaPorDono.montagem + receitaPorDono.hibrido) / totalReceitaTodos : 0;
+
+  // Comissão de originação (default 0): % sobre venda de integração (montagem) do mês.
+  // Base = montagem MTD (assume originação sobre toda integração; Miguel refina).
+  const montagemMTD = contribCom
+    .filter((o) => o.dono === "montagem" && (o.data ?? "").startsWith(mesAtual))
+    .reduce((s, o) => s + o.valor, 0);
+  const receitaOriginacao = config.pctOriginacao * montagemMTD;
+  const resultadoComOriginacao = resCom.resultado + receitaOriginacao;
 
   // Breakdown por status (CRM projetos) + conciliação (só p/ fonte Tamara)
   const statusCount = new Map<string, number>();
@@ -234,7 +260,7 @@ export default async function EnrdPosVendaPage() {
     (s, i) => s + (TEMPO_MEDIO_POR_TIPO[(i.tipo as string) ?? ""] ?? 3),
     0
   );
-  const utilizacao = HORAS_UTEIS_MES > 0 ? horasEstimadas / HORAS_UTEIS_MES : 0;
+  const utilizacao = config.horasProdutivasMes > 0 ? horasEstimadas / config.horasProdutivasMes : 0;
   const capProxy = instMes.length === 0;
 
   // posição do faturamento na régua de break-even
@@ -246,16 +272,68 @@ export default async function EnrdPosVendaPage() {
       <Header title="Pós-venda / O&M — ENRD" subtitle="Agência Solar · AWQ Group" />
       <div className="page-container">
 
+        {/* Perímetro do vesting (regra-mãe) */}
+        <div className="card p-3 bg-orange-50 border-orange-200 text-xs text-orange-900 flex items-start gap-2">
+          <Info size={14} className="mt-0.5 shrink-0 text-orange-600" />
+          <span>
+            <strong>Perímetro:</strong> este painel mede <strong>só o pós-venda/O&amp;M</strong> = vesting do
+            Miguel. Montagem, instalação e venda de integração são do <strong>Felipe</strong> e ficam FORA.
+            Receita e custo caem no <strong>mesmo perímetro</strong>.
+          </span>
+        </div>
+
+        {/* KPI — receita por dono (contaminação de fronteira) */}
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900">Receita por dono (perímetro)</h2>
+            <span className="text-xs text-gray-400">
+              {PCT(pctReceitaFronteira)} da receita é fronteira (fora do pós-venda)
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              { dono: "pos_venda" as DonoOS, label: "Pós-venda (Miguel)", cls: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+              { dono: "montagem" as DonoOS, label: "Montagem (Felipe · fora)", cls: "text-gray-600 bg-gray-50 border-gray-200" },
+              { dono: "hibrido" as DonoOS, label: "Híbrido (a verificar)", cls: "text-amber-700 bg-amber-50 border-amber-200" },
+            ]).map((d) => (
+              <div key={d.dono} className={`rounded-lg border p-3 ${d.cls}`}>
+                <div className="text-lg font-bold">{BRL(receitaPorDono[d.dono])}</div>
+                <div className="text-xs mt-0.5">
+                  {d.label} · {countPorDono[d.dono]} OS ·{" "}
+                  {PCT(totalReceitaTodos > 0 ? receitaPorDono[d.dono] / totalReceitaTodos : 0)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Só <strong>{PCT(pctReceitaPos)}</strong> da receita entra no P&amp;L do pós-venda. Híbridas só
+            contam a parte pós quando o split for informado (senão: RATEAR/VERIFICAR, não contadas).
+          </p>
+        </div>
+
         {/* Cabeçalho: tese + % estimado + import */}
         <div className="card p-4 border-l-4 border-l-orange-500">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2 max-w-2xl">
               <TrendingDown size={18} className="text-orange-600 mt-0.5 shrink-0" />
               <p className="text-sm text-gray-700">
-                <strong>Tese:</strong> a operação de pós-venda opera com margem ≈ <strong>0% a −2%</strong>:
-                mão de obra é <strong>fixa</strong> (William + Tamara + bônus) e o faturamento (~R$16k/mês)
-                fica em cima do break-even. O <strong>gatilho do bônus (R$10k) está abaixo do break-even
-                com bônus</strong> — faturar mais ativa o bônus e empurra o mês para o prejuízo.
+                <strong>Perímetro corrigido:</strong> o custo de pessoal agora é só a fração de{" "}
+                <strong>dedicação</strong> ao pós-venda (William {PCT(config.dedWilliam)} · Tamara{" "}
+                {PCT(config.dedTamara)} · bônus 100%), não 100% da folha. Com isso o break-even cai para{" "}
+                <strong>{BRL(be.breakEvenCom)}</strong> (com bônus){" "}
+                {be.gatilhoAbaixoDoBreakEven ? (
+                  <>e a zona morta do bônus persiste.</>
+                ) : (
+                  <>
+                    e a <strong>zona morta do bônus desaparece</strong> (gatilho {BRL(be.gatilhoBonus)} já
+                    acima do break-even).
+                  </>
+                )}{" "}
+                Margem do pós-venda no perímetro:{" "}
+                <strong className={resCom.resultado < 0 ? "text-red-600" : "text-emerald-700"}>
+                  {PCT(resCom.resultadoPct)}
+                </strong>
+                .
               </p>
             </div>
             <div className="text-right">
@@ -391,6 +469,26 @@ export default async function EnrdPosVendaPage() {
             )}
           </div>
 
+          {/* Comissão de originação (separada da receita de serviço) */}
+          {config.pctOriginacao > 0 ? (
+            <div className="mt-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3">
+              <span className="text-gray-600">
+                + Originação ({PCT(config.pctOriginacao)} s/ integração): {BRL(receitaOriginacao)}
+              </span>
+              <span className="font-semibold text-gray-900">
+                Resultado total (serviço + originação): {BRL(resultadoComOriginacao)}
+              </span>
+              <span className="text-xs text-amber-600">
+                base assume originação sobre toda integração — Miguel deve refinar
+              </span>
+            </div>
+          ) : (
+            <div className="mt-3 text-xs text-gray-400 border-t pt-3">
+              Comissão de originação: <strong>0%</strong> (a definir pelo Miguel). Quando &gt; 0, entra como
+              receita separada do serviço.
+            </div>
+          )}
+
           {/* Tendência histórica */}
           <div className="mt-4">
             <div className="text-xs font-medium text-gray-400 mb-2">Tendência (meses lançados)</div>
@@ -442,6 +540,7 @@ export default async function EnrdPosVendaPage() {
                   <tr className="text-left text-xs text-gray-400 border-b">
                     <th className="py-2 pr-3 font-medium">Cliente / Cidade</th>
                     <th className="py-2 px-3 font-medium">Tipo</th>
+                    <th className="py-2 px-3 font-medium">Dono</th>
                     <th className="py-2 px-3 font-medium">Status</th>
                     <th className="py-2 px-3 font-medium text-right">Valor</th>
                     <th className="py-2 px-3 font-medium text-right">Material</th>
@@ -455,12 +554,30 @@ export default async function EnrdPosVendaPage() {
                     .sort((a, b) => a.contribuicao - b.contribuicao)
                     .slice(0, 80)
                     .map((o) => (
-                      <tr key={o.id} className={`border-b last:border-0 ${o.flagNegativa ? "bg-red-50" : ""}`}>
-                        <td className="py-2 pr-3">
+                      <tr
+                        key={o.id}
+                        className={`border-b last:border-0 ${
+                          o.flagNegativa ? "bg-red-50" : o.dono !== "pos_venda" ? "bg-gray-50/60" : ""
+                        }`}
+                      >
+                        <td className={`py-2 pr-3 ${o.dono !== "pos_venda" ? "opacity-60" : ""}`}>
                           <div className="font-medium text-gray-900">{o.cliente || "—"}</div>
                           <div className="text-xs text-gray-400">{o.cidade || "—"}</div>
                         </td>
                         <td className="py-2 px-3 text-gray-600">{o.tipoServico || "—"}</td>
+                        <td className="py-2 px-3">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] border ${
+                              o.dono === "pos_venda"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : o.dono === "montagem"
+                                ? "bg-gray-100 text-gray-500 border-gray-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {o.dono === "pos_venda" ? "PÓS" : o.dono === "montagem" ? "MONTAGEM" : "VERIFICAR"}
+                          </span>
+                        </td>
                         <td className="py-2 px-3">
                           {o.status ? (
                             <span
@@ -534,7 +651,7 @@ export default async function EnrdPosVendaPage() {
                 </div>
                 <div className="text-lg font-bold text-gray-900">{PCT(utilizacao)} utilização</div>
                 <div className="text-xs text-gray-500">
-                  ~{horasEstimadas.toFixed(0)}h estimadas / {HORAS_UTEIS_MES}h-mês ·{" "}
+                  ~{horasEstimadas.toFixed(0)}h estimadas / {config.horasProdutivasMes}h-mês ·{" "}
                   ociosidade {PCT(Math.max(0, 1 - utilizacao))} = custo fixo não coberto.
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">

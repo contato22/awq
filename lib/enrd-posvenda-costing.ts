@@ -47,19 +47,48 @@ export function contribuicaoOS(os: OS, config: PosVendaConfig): OSContribuicao {
   };
 }
 
-// ── Custos fixos (nível operação) ────────────────────────────────────────────
-export function folhaBase(config: PosVendaConfig): number {
-  return config.salarioWilliam + config.salarioTamaraFixo;
+// ── Custo de pessoal por DEDICAÇÃO (perímetro pós-venda) ─────────────────────
+// O pós-venda absorve só a fração de homem-hora consumida. William é
+// majoritariamente montagem (Felipe); Tamara faz outras funções. O bônus da
+// Tamara é 100% pós-venda (NÃO ratear).
+export function custoPessoalSemBonus(config: PosVendaConfig): number {
+  return (
+    config.salarioWilliam * config.encargos * config.dedWilliam +
+    config.salarioTamaraFixo * config.encargos * config.dedTamara
+  );
+}
+export function custoPessoalComBonus(config: PosVendaConfig): number {
+  return custoPessoalSemBonus(config) + config.bonus * config.encargos;
 }
 
-// Fixo SEM bônus (faturamento ≤ gatilho).
+// Fixo SEM bônus (faturamento ≤ gatilho) = pessoal rateado + veículo.
 export function custoFixoSemBonus(config: PosVendaConfig): number {
-  return folhaBase(config) * config.encargos + config.veiculoFixoMes;
+  return custoPessoalSemBonus(config) + config.veiculoFixoMes;
 }
 
 // Fixo COM bônus (faturamento > gatilho).
 export function custoFixoComBonus(config: PosVendaConfig): number {
-  return (folhaBase(config) + config.bonus) * config.encargos + config.veiculoFixoMes;
+  return custoPessoalComBonus(config) + config.veiculoFixoMes;
+}
+
+// ── Classificação por DONO (perímetro do vesting) ────────────────────────────
+// POS_VENDA (Miguel): limpeza, manutenção, visita técnica, reconfiguração, troca
+// disjuntor/DPS, monitoramento. MONTAGEM/INTEGRAÇÃO (Felipe, fora): instalação/
+// inclusão de módulo, placas, trafos, reinstalação, montagem, venda de integração.
+// HÍBRIDO: as duas naturezas na mesma OS.
+export type DonoOS = "pos_venda" | "montagem" | "hibrido";
+const RX_POS = /limpeza|manuten|visita|reconfig|disjuntor|\bdps\b|monitor/;
+const RX_MONT = /instala|modulo|placa|trafo|reinstal|montag|integra/;
+export function classificarDono(tipo: string | null | undefined): DonoOS {
+  const t = (tipo ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+  const pos = RX_POS.test(t);
+  const mont = RX_MONT.test(t);
+  if (pos && mont) return "hibrido";
+  if (mont) return "montagem";
+  return "pos_venda"; // padrão: fonte é o CRM de pós-venda
 }
 
 // ── Break-even em DEGRAU ─────────────────────────────────────────────────────
