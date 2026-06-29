@@ -7,10 +7,14 @@
 // NENHUM dado financeiro (GMV/MC/ROIC/fees/Net).
 
 import { notFound } from "next/navigation";
-import { Radio, Eye, Users, Sparkles, Calendar, Clock, BarChart3, ListChecks } from "lucide-react";
+import {
+  Radio, Eye, Users, Sparkles, Calendar, Clock, BarChart3,
+  Package, UserCircle, Target, Percent, ClipboardList,
+} from "lucide-react";
 import { getPublicBrandPage } from "@/lib/live-shop/public";
+import { LIVE_PLAN_STATUS_LABEL } from "@/lib/live-shop/agenda";
 import LiveShopPublicBI from "@/components/LiveShopPublicBI";
-import LiveShopContentGrid from "@/components/LiveShopContentGrid";
+import LiveShopCalendar from "@/components/LiveShopCalendar";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -37,6 +41,15 @@ function SectionTitle({ icon, children }: { icon: React.ReactNode; children: Rea
     <h2 className="mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/40">
       {icon} {children}
     </h2>
+  );
+}
+
+function Detail({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="text-xs text-white/60">
+      <p className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-white/40">{icon} {label}</p>
+      {children}
+    </div>
   );
 }
 
@@ -71,17 +84,57 @@ export default async function LiveShopPublicBrandPage({ params }: { params: { br
           <Stat icon={<Users size={18} />} value={fmtInt(data.peakCcv)} label="Pico ao vivo" />
         </div>
 
-        {/* Grade de conteúdo — horários, roteiros, resultados esperados */}
+        {/* Calendário de lives */}
         <section className="mt-12">
-          <SectionTitle icon={<ListChecks size={13} />}>Grade de conteúdo</SectionTitle>
-          <LiveShopContentGrid blocks={data.contentGrid} dark />
+          <SectionTitle icon={<Calendar size={13} />}>Calendário</SectionTitle>
+          <LiveShopCalendar entries={data.calendar} dark />
         </section>
 
-        {/* Grade de eventos (lives) */}
+        {/* Agenda detalhada — peças, responsáveis, roteiro, metas, comissões */}
+        {data.agenda.length > 0 && (
+          <section className="mt-12">
+            <SectionTitle icon={<ClipboardList size={13} />}>Agenda das próximas lives</SectionTitle>
+            <div className="space-y-4">
+              {data.agenda.map((p) => (
+                <div key={p.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-white/40">{fmtDateTime(p.startsAt)}</p>
+                      <p className="text-base font-semibold text-white">{p.title}</p>
+                    </div>
+                    <span className="rounded-full bg-pink-600/20 px-2.5 py-0.5 text-[11px] font-medium text-pink-200">
+                      {LIVE_PLAN_STATUS_LABEL[p.status]}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <Detail icon={<Package size={12} />} label="Peças">
+                      <ul className="space-y-0.5">{p.pecas.map((x, i) => <li key={i}>· {x}</li>)}</ul>
+                    </Detail>
+                    <Detail icon={<UserCircle size={12} />} label="Responsáveis">
+                      <ul className="space-y-0.5">{p.responsaveis.map((r, i) => <li key={i}>{r.role}: <span className="text-white/80">{r.name}</span></li>)}</ul>
+                    </Detail>
+                    <Detail icon={<ClipboardList size={12} />} label="Roteiro">
+                      <p>{p.roteiro}</p>
+                    </Detail>
+                    <Detail icon={<Target size={12} />} label="Metas">
+                      <ul className="space-y-0.5">{p.metas.map((x, i) => <li key={i}>· {x}</li>)}</ul>
+                    </Detail>
+                    <Detail icon={<Percent size={12} />} label="Comissões">
+                      <ul className="space-y-0.5">{p.comissoes.map((c, i) => <li key={i}>{c.label}: <span className="text-white/80">{c.value}</span></li>)}</ul>
+                    </Detail>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Histórico de eventos (lives realizadas) */}
         <section className="mt-12">
-          <SectionTitle icon={<Calendar size={13} />}>Grade de eventos</SectionTitle>
+          <SectionTitle icon={<Clock size={13} />}>Histórico de lives</SectionTitle>
           {data.events.length === 0 ? (
-            <p className="text-center text-sm text-white/40">Nenhuma live agendada no momento.</p>
+            <p className="text-center text-sm text-white/40">Nenhuma live realizada ainda.</p>
           ) : (
             <div className="space-y-2">
               {data.events.map((e) => (
