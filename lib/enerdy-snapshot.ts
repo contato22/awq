@@ -12,7 +12,12 @@ import type {
   MontagemCliente,
   MontagemCleaningReport,
 } from "@/lib/enrd-montagem-db";
-import type { ServicoOS } from "@/lib/enerdy-projetos";
+import type {
+  ServicoOS,
+  ProjetoFechado,
+  Proposta,
+  PosVendaFunil,
+} from "@/lib/enerdy-projetos";
 
 type SnapshotShape = {
   capturedAt: string;
@@ -21,7 +26,13 @@ type SnapshotShape = {
     clientes: MontagemCliente[];
     cleaningReports: MontagemCleaningReport[];
   };
-  projetos: { servicos: ServicoOS[] };
+  projetos: {
+    servicos: ServicoOS[];
+    // Adicionados quando o snapshot é regerado; ausentes em snapshots antigos.
+    projetos?: ProjetoFechado[];
+    propostas?: Proposta[];
+    posVendaFunil?: PosVendaFunil[];
+  };
 };
 
 const snap = data as unknown as SnapshotShape;
@@ -40,4 +51,15 @@ export function snapshotMontagem() {
 
 export function snapshotProjetos() {
   return { servicos: snap.projetos.servicos, fetchedAt: SNAPSHOT_AT, stale: true as const };
+}
+
+export function snapshotProjetosFull() {
+  return {
+    servicos: snap.projetos.servicos,
+    projetos: snap.projetos.projetos ?? [],
+    propostas: snap.projetos.propostas ?? [],
+    posVendaFunil: snap.projetos.posVendaFunil ?? [],
+    fetchedAt: SNAPSHOT_AT,
+    stale: true as const,
+  };
 }

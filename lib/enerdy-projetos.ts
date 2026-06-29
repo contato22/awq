@@ -1,14 +1,17 @@
-// ─── Leitor AO VIVO do Pós-venda/O&M (app projetos.enerdy / gestão "Pós Venda") ─
-// O CRM de O&M vive no app "projetos" (backend zecancsoeyjnagxkrxnk), tabela
-// pos_venda_servicos — é a OS REAL do pós-venda (cliente, cidade, tipo,
-// valor_fechado, custo_servico, data, próxima atividade).
+// ─── Leitor AO VIVO do app "projetos" da ENERDY (vendas + pós-venda) ─────────
+// Backend zecancsoeyjnagxkrxnk. Lemos (somente leitura) as tabelas:
+//   pos_venda_servicos — OS REAL de O&M (cliente, cidade, tipo, valor, custo)
+//   negocios           — CRM comercial (importado p/ crm_* via script, não aqui)
+//   projetos           — vendas fechadas/em execução (ponte venda→pós-venda)
+//   proposals          — propostas/orçamentos (forecast comercial)
+//   pos_venda          — funil/kanban de quem entrou em pós-venda
 //
-// IMPORTANTE: este app usa email `${user}@enerdy.com.br` (diferente do montagem,
-// que é @enerdy.local). Reusa ENERDY_USER/ENERDY_PASS (mesma conta felipe).
+// Email `${user}@enerdy.com.br` (≠ montagem, que é @enerdy.local). Reusa
+// ENERDY_USER/ENERDY_PASS (conta felipe). Sem credenciais → snapshot estático.
 
 import { createClient } from "@supabase/supabase-js";
 import type { OS } from "@/lib/enrd-posvenda-costing";
-import { snapshotProjetos } from "@/lib/enerdy-snapshot";
+import { snapshotProjetosFull } from "@/lib/enerdy-snapshot";
 
 const PROJ_URL = process.env.ENERDY_PROJETOS_URL || "https://zecancsoeyjnagxkrxnk.supabase.co";
 const PROJ_ANON =
@@ -35,15 +38,66 @@ export type ServicoOS = OS & {
   origem: string | null;
 };
 
+// Venda fechada / em execução (tabela projetos) — ponte venda→pós-venda.
+export type ProjetoFechado = {
+  id: string;
+  cliente: string | null;
+  potenciaKwp: number | null;
+  dataFechamento: string | null;
+  dataVenda: string | null;
+  statusGeral: string | null; // em_andamento | concluido | stand_by …
+  tipoServico: string | null;
+  propostaId: string | null;
+};
+
+// Proposta / orçamento comercial (tabela proposals) — forecast.
+export type Proposta = {
+  id: string;
+  numero: number | null;
+  cliente: string | null;
+  status: string | null; // enviada | aceita | rejeitada …
+  classificacao: string | null; // residencial | comercial …
+  kwp: number | null;
+  geracaoKwh: number | null;
+  valorTotal: number;
+  valorKit: number;
+  valorServico: number;
+  data: string | null;
+  negocioId: string | null;
+};
+
+// Item do funil de pós-venda (tabela pos_venda).
+export type PosVendaFunil = {
+  id: string;
+  projetoId: string | null;
+  cliente: string | null;
+  potenciaKwp: number | null;
+  status: string | null; // clientes_novos | em_contato | ativo …
+  clienteAtivo: boolean;
+};
+
+export type ProjetosFull = {
+  servicos: ServicoOS[];
+  projetos: ProjetoFechado[];
+  propostas: Proposta[];
+  posVendaFunil: PosVendaFunil[];
+  fetchedAt: string;
+  stale?: boolean;
+};
+
 function dateOnly(v: unknown): string | null {
   if (!v) return null;
-  const s = String(v);
-  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})/);
   return m ? m[1] : null;
 }
 function num(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
+}
+function numOrNull(v: unknown): number | null {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 function servicoToOS(s: Record<string, unknown>): ServicoOS {
@@ -55,11 +109,49 @@ function servicoToOS(s: Record<string, unknown>): ServicoOS {
     tipoServico: (s.tipo_servico as string)?.trim() || null,
     valor: num(s.valor_fechado),
     custoMaterial: num(s.custo_servico),
-    tecnico: null, // CRM não traz técnico nominal nesta tabela
+    tecnico: null,
     status: (s.status as string)?.trim() || null,
-    potenciaKwp: s.potencia_kwp == null ? null : num(s.potencia_kwp),
+    potenciaKwp: numOrNull(s.potencia_kwp),
     proximaAtividade: dateOnly(s.proxima_atividade_data),
     origem: (s.origem as string)?.trim() || null,
+  };
+}
+function rowToProjeto(p: Record<string, unknown>): ProjetoFechado {
+  return {
+    id: String(p.id),
+    cliente: (p.cliente_nome as string)?.trim() || null,
+    potenciaKwp: numOrNull(p.potencia_kwp),
+    dataFechamento: dateOnly(p.data_fechamento),
+    dataVenda: dateOnly(p.data_venda),
+    statusGeral: (p.status_geral as string)?.trim() || null,
+    tipoServico: (p.tipo_servico as string)?.trim() || null,
+    propostaId: (p.proposta_id as string) || null,
+  };
+}
+function rowToProposta(p: Record<string, unknown>): Proposta {
+  return {
+    id: String(p.id),
+    numero: numOrNull(p.proposal_number),
+    cliente: (p.client_name as string)?.trim() || null,
+    status: (p.status as string)?.trim() || null,
+    classificacao: (p.classification as string)?.trim() || null,
+    kwp: numOrNull(p.kwp),
+    geracaoKwh: numOrNull(p.generation_kwh),
+    valorTotal: num(p.total_value),
+    valorKit: num(p.kit_value),
+    valorServico: num(p.service_value),
+    data: dateOnly(p.proposal_date) ?? dateOnly(p.created_at),
+    negocioId: (p.negocio_id as string) || null,
+  };
+}
+function rowToPosVenda(p: Record<string, unknown>): PosVendaFunil {
+  return {
+    id: String(p.id),
+    projetoId: (p.projeto_id as string) || null,
+    cliente: (p.cliente_nome as string)?.trim() || null,
+    potenciaKwp: numOrNull(p.potencia_kwp),
+    status: (p.status as string)?.trim() || null,
+    clienteAtivo: Boolean(p.cliente_ativo),
   };
 }
 
@@ -78,17 +170,15 @@ async function fetchAll(sb: Queryable, table: string): Promise<Record<string, un
   return rows;
 }
 
-export type ProjetosPosVenda = { servicos: ServicoOS[]; fetchedAt: string; stale?: boolean };
-
 const TTL_MS = 10_000;
-let cache: { data: ProjetosPosVenda; ts: number } | null = null;
-let inflight: Promise<ProjetosPosVenda> | null = null;
+let cache: { data: ProjetosFull; ts: number } | null = null;
+let inflight: Promise<ProjetosFull> | null = null;
 
 export function projetosAgeSeconds(): number | null {
   return cache ? Math.round((Date.now() - cache.ts) / 1000) : null;
 }
 
-async function fetchLive(): Promise<ProjetosPosVenda> {
+async function fetchLive(): Promise<ProjetosFull> {
   const email = deriveEmail();
   const password = process.env.ENERDY_PASS || "";
   if (!email || !password) throw new Error("Credenciais do projetos ausentes.");
@@ -96,17 +186,29 @@ async function fetchLive(): Promise<ProjetosPosVenda> {
   const { error: authError } = await sb.auth.signInWithPassword({ email, password });
   if (authError) throw new Error(`Login projetos falhou: ${authError.message}`);
   try {
-    const rows = await fetchAll(sb as unknown as Queryable, "pos_venda_servicos");
-    return { servicos: rows.map(servicoToOS), fetchedAt: new Date().toISOString() };
+    const q = sb as unknown as Queryable;
+    const [servicos, projetos, proposals, posVenda] = await Promise.all([
+      fetchAll(q, "pos_venda_servicos"),
+      fetchAll(q, "projetos"),
+      fetchAll(q, "proposals"),
+      fetchAll(q, "pos_venda"),
+    ]);
+    return {
+      servicos: servicos.map(servicoToOS),
+      projetos: projetos.map(rowToProjeto),
+      propostas: proposals.map(rowToProposta),
+      posVendaFunil: posVenda.map(rowToPosVenda),
+      fetchedAt: new Date().toISOString(),
+    };
   } finally {
     await sb.auth.signOut();
   }
 }
 
-// Lê ao vivo o pós-venda do projetos. null se não configurado; degrada para o
-// último cache em falha.
-export async function getLiveProjetosPosVenda(opts?: { force?: boolean }): Promise<ProjetosPosVenda | null> {
-  if (!isProjetosConfigured()) return snapshotProjetos(); // fallback estático
+// Lê ao vivo TODO o app projetos (4 tabelas, um login). Snapshot se não
+// configurado; degrada para o último cache em falha.
+export async function getLiveProjetosFull(opts?: { force?: boolean }): Promise<ProjetosFull | null> {
+  if (!isProjetosConfigured()) return snapshotProjetosFull();
   const force = opts?.force ?? false;
   if (!force && cache && Date.now() - cache.ts < TTL_MS) return cache.data;
   if (!force && inflight) return inflight;
@@ -124,4 +226,12 @@ export async function getLiveProjetosPosVenda(opts?: { force?: boolean }): Promi
     if (cache) return cache.data;
     throw e;
   }
+}
+
+// Compatibilidade: só as OS de pós-venda (usado pelo painel de custeio).
+export type ProjetosPosVenda = { servicos: ServicoOS[]; fetchedAt: string; stale?: boolean };
+export async function getLiveProjetosPosVenda(opts?: { force?: boolean }): Promise<ProjetosPosVenda | null> {
+  const full = await getLiveProjetosFull(opts);
+  if (!full) return null;
+  return { servicos: full.servicos, fetchedAt: full.fetchedAt, stale: full.stale };
 }

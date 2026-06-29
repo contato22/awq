@@ -35,7 +35,12 @@ import {
   type OSContribuicao,
   type DonoOS,
 } from "@/lib/enrd-posvenda-costing";
-import { getLiveProjetosPosVenda } from "@/lib/enerdy-projetos";
+import {
+  getLiveProjetosFull,
+  type ProjetoFechado,
+  type Proposta,
+  type PosVendaFunil,
+} from "@/lib/enerdy-projetos";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 import EnrdPosVendaChart, { type Series, type SeriePonto } from "@/components/EnrdPosVendaChart";
 import type { PosVendaConfig } from "@/lib/enrd-posvenda-config";
@@ -139,13 +144,19 @@ export default async function EnrdPosVendaPage() {
   let osStale = false; // veio do snapshot estático
   let installations: Awaited<ReturnType<typeof getInstallations>> = [];
   let proximas: Awaited<ReturnType<typeof getProximasLimpezas>> = [];
+  let projetosFechados: ProjetoFechado[] = [];
+  let propostas: Proposta[] = [];
+  let posVendaFunil: PosVendaFunil[] = [];
   let loadError: string | null = null;
   // Fonte das OS: CRM de pós-venda do projetos (pos_venda_servicos) AO VIVO;
   // fallback para as OS importadas da planilha Tamara (banco AWQ).
   try {
-    const pv = await getLiveProjetosPosVenda();
+    const pv = await getLiveProjetosFull();
     if (pv) {
       os = pv.servicos;
+      projetosFechados = pv.projetos;
+      propostas = pv.propostas;
+      posVendaFunil = pv.posVendaFunil;
       osSource = "projetos";
       osLiveAt = pv.fetchedAt;
       osStale = !!pv.stale;
@@ -231,6 +242,26 @@ export default async function EnrdPosVendaPage() {
         valor: o.valor,
       }))
   );
+
+  // ── Forecast comercial (proposals) ──────────────────────────────────────────
+  const propAbertas = propostas.filter((p) => /enviad|aberta|pendente|nova|rascunho/i.test(p.status ?? ""));
+  const propAceitas = propostas.filter((p) => /aceit|aprovad|ganho|fechad/i.test(p.status ?? ""));
+  const valorPropAberto = propAbertas.reduce((s, p) => s + p.valorTotal, 0);
+  const valorPropAceito = propAceitas.reduce((s, p) => s + p.valorTotal, 0);
+  const taxaConversaoProp =
+    propAceitas.length + propAbertas.length > 0
+      ? propAceitas.length / (propAceitas.length + propAbertas.length)
+      : 0;
+
+  // ── Originação (venda fechada → entrou no pós-venda) ────────────────────────
+  const projetoIdsEmPosVenda = new Set(posVendaFunil.map((f) => f.projetoId).filter(Boolean));
+  const pctOriginacaoReal =
+    projetosFechados.length > 0 ? projetoIdsEmPosVenda.size / projetosFechados.length : 0;
+
+  // ── Funil de pós-venda (pos_venda) ──────────────────────────────────────────
+  const funilPorStatus = new Map<string, number>();
+  for (const f of posVendaFunil) funilPorStatus.set(f.status || "—", (funilPorStatus.get(f.status || "—") ?? 0) + 1);
+  const funilAtivos = posVendaFunil.filter((f) => f.clienteAtivo).length;
 
   // Comissão de originação (default 0): % sobre venda de integração (montagem) do mês.
   // Base = montagem MTD (assume originação sobre toda integração; Miguel refina).
@@ -416,6 +447,60 @@ export default async function EnrdPosVendaPage() {
             (cobrou ou não) nunca é estimado; só o <strong>valor potencial</strong> é — pelo ticket mediano dos
             serviços cobrados (conservador, ignora outlier). Lançar o valor no CRM remove o serviço daqui.
           </p>
+        </div>
+
+        {/* Comercial ENERDY: forecast + originação + funil pós-venda */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {/* Forecast (proposals) */}
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-3">
+              <CircleDollarSign size={14} className="text-blue-600" /> Forecast (propostas)
+            </h3>
+            <div className="text-2xl font-bold text-gray-900">{BRL(valorPropAberto)}</div>
+            <div className="text-xs text-gray-500">
+              {propAbertas.length} proposta(s) em aberto · {propostas.length} no total
+            </div>
+            <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
+              <span className="text-gray-500">Aceitas: <strong className="text-emerald-700">{BRL(valorPropAceito)}</strong></span>
+              <span className="text-gray-500">Conversão: <strong>{PCT(taxaConversaoProp)}</strong></span>
+            </div>
+          </div>
+
+          {/* Originação venda → pós-venda */}
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-3">
+              <Users2 size={14} className="text-orange-600" /> Originação (venda → O&amp;M)
+            </h3>
+            <div className="text-2xl font-bold text-gray-900">
+              {projetoIdsEmPosVenda.size}<span className="text-base font-normal text-gray-400">/{projetosFechados.length}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              vendas fechadas que entraram no pós-venda ({PCT(pctOriginacaoReal)})
+            </div>
+            <div className="text-[11px] text-gray-400 mt-2 pt-2 border-t">
+              Ponte Felipe → Miguel. % de comissão de originação ainda{" "}
+              <strong>a definir</strong> (config = {PCT(config.pctOriginacao)}).
+            </div>
+          </div>
+
+          {/* Funil de pós-venda (pos_venda) */}
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-3">
+              <Gauge size={14} className="text-emerald-600" /> Funil pós-venda
+            </h3>
+            <div className="text-2xl font-bold text-gray-900">
+              {funilAtivos}<span className="text-base font-normal text-gray-400">/{posVendaFunil.length}</span>
+            </div>
+            <div className="text-xs text-gray-500">clientes ativos no pós-venda</div>
+            <div className="mt-2 pt-2 border-t flex flex-wrap gap-1">
+              {[...funilPorStatus.entries()].map(([s, n]) => (
+                <span key={s} className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-medium">
+                  {s}: {n}
+                </span>
+              ))}
+              {posVendaFunil.length === 0 && <span className="text-[11px] text-gray-400">sem dados de funil</span>}
+            </div>
+          </div>
         </div>
 
         {/* Cabeçalho: tese + % estimado + import */}
