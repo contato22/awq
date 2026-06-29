@@ -25,7 +25,7 @@ function groupByMonth(entries: CalendarEntry[]): Map<string, CalendarEntry[]> {
 
 function dotClass(status: string, dark: boolean): string {
   if (status === "realizada") return dark ? "bg-white/40" : "bg-gray-400";
-  if (status === "confirmada") return "bg-pink-500";
+  if (status === "confirmada") return "bg-brand-500";
   return "bg-blue-400"; // planejada
 }
 
@@ -47,8 +47,8 @@ function MonthGrid({ ym, entries, dark }: { ym: string; entries: CalendarEntry[]
   const border = dark ? "border-white/10" : "border-gray-200/80";
   const head = dark ? "text-white/40" : "text-gray-400";
   const liveCell = dark
-    ? "bg-pink-600/20 text-pink-100 ring-1 ring-pink-500/30 font-semibold"
-    : "bg-pink-50 text-pink-700 ring-1 ring-pink-200 font-semibold";
+    ? "bg-brand-600/20 text-brand-100 ring-1 ring-brand-500/30 font-semibold"
+    : "bg-brand-50 text-brand-700 ring-1 ring-brand-200 font-semibold";
   const normal = dark ? "text-white/60" : "text-gray-600";
 
   return (
@@ -93,7 +93,7 @@ export default function LiveShopCalendar({ entries, dark = true }: { entries: Ca
         {months.map(([ym, evs]) => <MonthGrid key={ym} ym={ym} entries={evs} dark={dark} />)}
       </div>
       <div className={`mt-3 flex flex-wrap justify-center gap-4 text-[11px] ${dark ? "text-white/40" : "text-gray-400"}`}>
-        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-pink-500" /> Confirmada</span>
+        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-brand-500" /> Confirmada</span>
         <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Planejada</span>
         <span className="flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${dark ? "bg-white/40" : "bg-gray-400"}`} /> Realizada</span>
       </div>
