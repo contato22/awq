@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
 import EnrdMontagemSummaryCard from "@/components/EnrdMontagemSummaryCard";
+import EnrdBiDaily from "@/components/EnrdBiDaily";
 import {
   Zap, Users, DollarSign, TrendingUp, ChevronRight,
   LineChart, Scale, Target, PieChart,
@@ -88,6 +89,9 @@ export default function EnrdPage() {
             );
           })}
         </section>
+
+        {/* BI diário — faturado / gasto / margem do dia */}
+        <EnrdBiDaily />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
