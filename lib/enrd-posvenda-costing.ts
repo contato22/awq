@@ -94,6 +94,54 @@ export function classificarDono(tipo: string | null | undefined): DonoOS {
   return "pos_venda"; // padrão: fonte é o CRM de pós-venda
 }
 
+// ── Mitigação por OS (ação recomendada) ──────────────────────────────────────
+// Transforma os flags em UMA ação concreta + severidade. Ordem importa: o
+// problema mais grave domina a recomendação.
+export type Severidade = "alta" | "media" | "ok";
+export type Mitigacao = { acao: string; severidade: Severidade };
+
+export function mitigacaoOS(o: OSContribuicao): Mitigacao {
+  if (o.valor <= 0) return { acao: "Sem cobrança — lançar o valor da OS no CRM", severidade: "alta" };
+  if (o.flagNegativa) return { acao: "Repactuar preço ou recusar — não cobre material+combustível", severidade: "alta" };
+  if (o.flagDistante) return { acao: "Agrupar visitas na região ou repassar o deslocamento", severidade: "media" };
+  if (o.valor > 0 && o.custoMaterial / o.valor >= 0.5)
+    return { acao: "Material ≥50% do ticket — revisar fornecedor/repasse", severidade: "media" };
+  if (o.contribuicaoPct < 0.3) return { acao: "Margem baixa (<30%) — revisar escopo/preço", severidade: "media" };
+  return { acao: "OK — dentro da meta", severidade: "ok" };
+}
+
+// Resumo de mitigação: quantos problemas, contribuição negativa total e o
+// GANHO POTENCIAL se cada OS problemática atingisse a taxa-alvo de contribuição.
+export type MitigacaoResumo = {
+  nProblemas: number; // severidade alta + media
+  nAlta: number;
+  contribNegativa: number; // Σ |contribuição| das OS com contribuição < 0
+  taxaAlvo: number; // mediana da taxa de contribuição das OS saudáveis
+  ganhoPotencial: number; // Σ recuperável levando as problemáticas à taxa-alvo
+};
+
+export function resumoMitigacao(osList: OSContribuicao[]): MitigacaoResumo {
+  const saudaveis = osList.filter((o) => o.valor > 0 && o.contribuicao > 0);
+  const taxas = saudaveis.map((o) => o.contribuicaoPct).sort((a, b) => a - b);
+  const taxaAlvo = taxas.length ? taxas[Math.floor(taxas.length / 2)] : 0;
+
+  let nProblemas = 0;
+  let nAlta = 0;
+  let contribNegativa = 0;
+  let ganhoPotencial = 0;
+  for (const o of osList) {
+    const m = mitigacaoOS(o);
+    if (m.severidade === "ok") continue;
+    nProblemas++;
+    if (m.severidade === "alta") nAlta++;
+    if (o.contribuicao < 0) contribNegativa += -o.contribuicao;
+    // recuperável: levar a OS à taxa-alvo (só conta o que falta, nunca negativo)
+    const alvo = o.valor * taxaAlvo;
+    if (alvo > o.contribuicao) ganhoPotencial += alvo - o.contribuicao;
+  }
+  return { nProblemas, nAlta, contribNegativa, taxaAlvo, ganhoPotencial };
+}
+
 // ── "Realizado" (serviço executado, entra no resultado) ──────────────────────
 // fechado/concluído/pago/ganho/ativo. Pipeline (negociação/contato) NÃO realiza.
 export function isRealizado(status: string | null | undefined): boolean {

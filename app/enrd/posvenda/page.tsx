@@ -31,6 +31,8 @@ import {
   classificarDono,
   kpiNaoCobrados,
   kpiExecucaoNaoCobrada,
+  mitigacaoOS,
+  resumoMitigacao,
   isRealizado,
   type OS,
   type OSContribuicao,
@@ -280,6 +282,9 @@ export default async function EnrdPosVendaPage() {
     .filter((o) => o.dono === "pos_venda" && o.valor > 0)
     .map((o) => o.cliente);
   const execNaoCob = kpiExecucaoNaoCobrada(execOM, clientesCobrados, naoCob.ticketMediano);
+
+  // ── Mitigação (Seção 2): resumo + ação por OS no perímetro pós-venda ────────
+  const mitResumo = resumoMitigacao(contribCom.filter((o) => o.dono === "pos_venda"));
 
   // Comissão de originação (default 0): % sobre venda de integração (montagem) do mês.
   // Base = montagem MTD (assume originação sobre toda integração; Miguel refina).
@@ -819,6 +824,26 @@ export default async function EnrdPosVendaPage() {
               (projetos.enerdy), ou importe a planilha da Tamara.
             </div>
           ) : (
+            <>
+            {/* Banda de mitigação: o que mitigar e quanto dá pra recuperar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <div className="text-xl font-bold text-red-700">{mitResumo.nProblemas}</div>
+                <div className="text-[11px] text-red-900">OS a mitigar ({mitResumo.nAlta} críticas)</div>
+              </div>
+              <div className="rounded-lg border border-red-300 bg-red-100 p-3">
+                <div className="text-xl font-bold text-red-800">{BRL(mitResumo.contribNegativa)}</div>
+                <div className="text-[11px] text-red-900">contribuição negativa (queima caixa)</div>
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <div className="text-xl font-bold text-emerald-700">{BRL(mitResumo.ganhoPotencial)}</div>
+                <div className="text-[11px] text-emerald-900">ganho potencial se mitigar</div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xl font-bold text-gray-900">{PCT(mitResumo.taxaAlvo)}</div>
+                <div className="text-[11px] text-gray-600">taxa-alvo (mediana saudável)</div>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -831,7 +856,7 @@ export default async function EnrdPosVendaPage() {
                     <th className="py-2 px-3 font-medium text-right">Material</th>
                     <th className="py-2 px-3 font-medium text-right">Comb.<FlaskConical size={9} className="inline text-orange-400" /></th>
                     <th className="py-2 px-3 font-medium text-right">Contribuição</th>
-                    <th className="py-2 pl-3 font-medium">Flags</th>
+                    <th className="py-2 pl-3 font-medium">Mitigação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -887,16 +912,32 @@ export default async function EnrdPosVendaPage() {
                           {BRL(o.contribuicao)} <span className="text-xs font-normal text-gray-400">({PCT(o.contribuicaoPct)})</span>
                         </td>
                         <td className="py-2 pl-3">
-                          <div className="flex gap-1">
-                            {o.flagNegativa && <span className="text-xs text-red-600" title="Não cobre nem o variável">⛔</span>}
-                            {o.flagDistante && <span className="text-xs text-amber-600" title="Combustível alto vs ticket">⚑</span>}
-                          </div>
+                          {(() => {
+                            const m = mitigacaoOS(o);
+                            const cls =
+                              m.severidade === "alta"
+                                ? "bg-red-100 text-red-700 border-red-200"
+                                : m.severidade === "media"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200";
+                            return (
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] border leading-tight ${cls}`}>
+                                {m.acao}
+                              </span>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
+            <p className="text-[11px] text-gray-400 mt-2">
+              Ordenado da pior contribuição para a melhor. <strong>Mitigação</strong> = ação concreta por OS
+              (lançar valor · repactuar/recusar · agrupar deslocamento · revisar material/escopo). Ganho potencial =
+              quanto a contribuição sobe se as OS problemáticas atingirem a taxa-alvo (mediana das saudáveis).
+            </p>
+            </>
           )}
         </section>
 
