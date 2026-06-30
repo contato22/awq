@@ -30,6 +30,7 @@ import {
   custoFixoComBonus,
   classificarDono,
   kpiNaoCobrados,
+  kpiExecucaoNaoCobrada,
   isRealizado,
   type OS,
   type OSContribuicao,
@@ -263,6 +264,23 @@ export default async function EnrdPosVendaPage() {
   for (const f of posVendaFunil) funilPorStatus.set(f.status || "—", (funilPorStatus.get(f.status || "—") ?? 0) + 1);
   const funilAtivos = posVendaFunil.filter((f) => f.clienteAtivo).length;
 
+  // ── Execução (montagem) × cobrança (projetos) ───────────────────────────────
+  // O&M executado no gestão (Serviço/Limpeza concluído) sem cobrança no CRM.
+  const execOM = installations
+    .filter((i) => /servi|limpez/i.test(i.tipo ?? "") && isRealizado(i.status))
+    .map((i) => ({
+      id: i.id,
+      cliente: i.nome,
+      tipo: i.tipo,
+      montador: i.montador,
+      data: normalizeDate(i.raw?.data_int) ?? i.data_int,
+      status: i.status,
+    }));
+  const clientesCobrados = contribCom
+    .filter((o) => o.dono === "pos_venda" && o.valor > 0)
+    .map((o) => o.cliente);
+  const execNaoCob = kpiExecucaoNaoCobrada(execOM, clientesCobrados, naoCob.ticketMediano);
+
   // Comissão de originação (default 0): % sobre venda de integração (montagem) do mês.
   // Base = montagem MTD (assume originação sobre toda integração; Miguel refina).
   const montagemMTD = contribCom
@@ -446,6 +464,81 @@ export default async function EnrdPosVendaPage() {
             <strong>&ldquo;Não cobrado&rdquo;</strong> = OS de pós-venda com <strong>R$0 lançado</strong>. O fato
             (cobrou ou não) nunca é estimado; só o <strong>valor potencial</strong> é — pelo ticket mediano dos
             serviços cobrados (conservador, ignora outlier). Lançar o valor no CRM remove o serviço daqui.
+          </p>
+        </div>
+
+        {/* Execução (montagem) × cobrança (projetos) — O&M feito e não faturado */}
+        <div className="card p-4 border-l-4 border-l-red-500">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Wrench size={15} className="text-red-600" /> Serviços executados não faturados (gestão × cobrança)
+            </h2>
+            <span className="text-xs text-gray-400">
+              {execNaoCob.totalExecutadas} O&amp;M concluídos no gestão
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <div className="text-2xl font-bold text-red-700">{execNaoCob.nNaoCobradas}</div>
+              <div className="text-xs text-red-900 mt-0.5">
+                Serviços/limpezas <strong>executados</strong> sem cobrança correspondente no CRM
+              </div>
+            </div>
+            <div className="rounded-lg border border-red-300 bg-red-100 p-3">
+              <div className="text-2xl font-bold text-red-800">{BRL(execNaoCob.perdaEstimada)}</div>
+              <div className="text-xs text-red-900 mt-0.5">
+                Perda estimada (ESTIMATIVA · {execNaoCob.nNaoCobradas} × ticket mediano {BRL(naoCob.ticketMediano)})
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="text-2xl font-bold text-gray-900">
+                {execNaoCob.totalExecutadas > 0
+                  ? PCT(execNaoCob.nNaoCobradas / execNaoCob.totalExecutadas)
+                  : "—"}
+              </div>
+              <div className="text-xs text-gray-600 mt-0.5">
+                dos O&amp;M executados não têm cobrança casada
+              </div>
+            </div>
+          </div>
+
+          {execNaoCob.naoCobradas.length > 0 && (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-400 border-b">
+                    <th className="text-left py-1 pr-3 font-medium">Cliente</th>
+                    <th className="text-left py-1 pr-3 font-medium">Tipo</th>
+                    <th className="text-left py-1 pr-3 font-medium">Montador</th>
+                    <th className="text-left py-1 pr-3 font-medium">Data</th>
+                    <th className="text-right py-1 font-medium">Perda estim.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {execNaoCob.naoCobradas.slice(0, 30).map((e) => (
+                    <tr key={e.id} className="border-b border-gray-50">
+                      <td className="py-1.5 pr-3 text-gray-900">{e.cliente ?? "—"}</td>
+                      <td className="py-1.5 pr-3 text-gray-600">{e.tipo ?? "—"}</td>
+                      <td className="py-1.5 pr-3 text-gray-600">{e.montador ?? "—"}</td>
+                      <td className="py-1.5 pr-3 text-gray-600 tabular-nums">{e.data ?? "—"}</td>
+                      <td className="py-1.5 text-right tabular-nums text-red-600">{BRL(naoCob.ticketMediano)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {execNaoCob.naoCobradas.length > 30 && (
+                <div className="text-[11px] text-gray-400 mt-1">
+                  +{execNaoCob.naoCobradas.length - 30} outros (mostrando 30).
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 mt-2">
+            Cruza <strong>execução</strong> (gestão: Serviço/Limpeza concluídos) com <strong>cobrança</strong>
+            (CRM projetos: OS com valor). Casamento por <strong>nome do cliente</strong> — execução cujo cliente
+            não tem nenhuma cobrança = serviço feito e não faturado. Conservador (subconta quando há cobrança
+            avulsa do mesmo cliente). Lançar a OS no CRM remove a linha daqui.
           </p>
         </div>
 

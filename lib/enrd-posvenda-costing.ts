@@ -160,6 +160,54 @@ export function kpiNaoCobrados(osList: OSLike[]): NaoCobradoKpi {
   };
 }
 
+// ── Execução (montagem) × cobrança (projetos) ────────────────────────────────
+// O app de montagem registra os O&M EXECUTADOS (tipo Serviço/Limpeza, com
+// montador/data/status) mas SEM valor. A cobrança vive no CRM projetos
+// (pos_venda_servicos, com valor). Cruzando por cliente: execução concluída
+// cujo cliente NÃO aparece entre os cobrados = serviço feito e não faturado.
+// Perda estimada = nº × ticket mediano (ESTIMATIVA conservadora).
+export type ExecucaoOM = {
+  id: string;
+  cliente: string | null;
+  tipo: string | null; // Serviço | Limpeza
+  montador: string | null;
+  data: string | null;
+  status: string | null;
+};
+export type ExecNaoCobradoKpi = {
+  totalExecutadas: number;
+  naoCobradas: ExecucaoOM[];
+  nNaoCobradas: number;
+  perdaEstimada: number;
+};
+
+function normNome(s: string | null | undefined): string {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function kpiExecucaoNaoCobrada(
+  execucoes: ExecucaoOM[],
+  clientesCobradosRaw: (string | null)[],
+  ticketMediano: number
+): ExecNaoCobradoKpi {
+  const cobrados = new Set(clientesCobradosRaw.map(normNome).filter(Boolean));
+  const naoCobradas = execucoes.filter((e) => {
+    const c = normNome(e.cliente);
+    return !c || !cobrados.has(c);
+  });
+  return {
+    totalExecutadas: execucoes.length,
+    naoCobradas,
+    nNaoCobradas: naoCobradas.length,
+    perdaEstimada: naoCobradas.length * ticketMediano,
+  };
+}
+
 // ── Break-even em DEGRAU ─────────────────────────────────────────────────────
 // taxaContribuicao = Σcontribuição / Σvalor (real quando há OS; default senão).
 export type BreakEven = {
