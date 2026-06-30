@@ -69,7 +69,21 @@ function str(v: unknown): string | null {
 }
 function dateOnly(v: unknown): string | null {
   if (!v) return null;
-  const s = String(v);
+  const s = String(v).trim();
+  // ISO (AAAA-MM-DD…) → corta a data.
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  // dd/mm/aaaa (o gestão mistura este formato com ISO no mesmo campo) → ISO.
+  const br = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})/);
+  if (br) {
+    const d = br[1].padStart(2, "0");
+    const m = br[2].padStart(2, "0");
+    let y = br[3];
+    if (y.length === 2) y = `20${y}`;
+    if (Number(m) >= 1 && Number(m) <= 12 && Number(d) >= 1 && Number(d) <= 31) {
+      return `${y}-${m}-${d}`;
+    }
+  }
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
 
