@@ -71,6 +71,46 @@ const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const PCT = (v: number) => `${(v * 100).toFixed(1)}%`;
 
+// ── UI helpers (apresentação) ────────────────────────────────────────────────
+// Rótulo de grupo: dá ritmo e hierarquia ao scroll longo.
+function GroupLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="flex items-baseline justify-between pt-2 first:pt-0">
+      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{children}</h3>
+      {hint && <span className="text-[11px] text-gray-300">{hint}</span>}
+    </div>
+  );
+}
+
+// Tile do hero: número grande + rótulo + sub, com tom semântico.
+function HeroStat({
+  label,
+  value,
+  sub,
+  tone = "neutral",
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  tone?: "pos" | "neg" | "neutral" | "warn";
+}) {
+  const toneCls =
+    tone === "pos"
+      ? "text-emerald-700"
+      : tone === "neg"
+      ? "text-red-700"
+      : tone === "warn"
+      ? "text-amber-700"
+      : "text-gray-900";
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white/70 p-3.5">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</div>
+      <div className={`text-2xl font-bold leading-tight mt-1 ${toneCls}`}>{value}</div>
+      {sub && <div className="text-xs text-gray-500 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
 // Monta as séries (diária/mensal/anual) do gráfico comparativo a partir das OS
 // realizadas, das transações Cora (conciliação ENRD) e do custo fixo (degrau).
 type SerieOS = { data: string | null; valor: number; contribuicao: number };
@@ -343,15 +383,66 @@ export default async function EnrdPosVendaPage() {
       <Header title="Pós-venda / O&M — ENRD" subtitle="Agência Solar · AWQ Group" />
       <div className="page-container">
 
-        {/* Perímetro do vesting (regra-mãe) */}
-        <div className="card p-3 bg-orange-50 border-orange-200 text-xs text-orange-900 flex items-start gap-2">
-          <Info size={14} className="mt-0.5 shrink-0 text-orange-600" />
-          <span>
-            <strong>Perímetro:</strong> este painel mede <strong>só o pós-venda/O&amp;M</strong> = vesting do
-            Miguel. Montagem, instalação e venda de integração são do <strong>Felipe</strong> e ficam FORA.
-            Receita e custo caem no <strong>mesmo perímetro</strong>.
-          </span>
-        </div>
+        {/* ───────── HERO — resultado do mês (o número primeiro) ───────── */}
+        <section className="card p-5 bg-gradient-to-br from-orange-50/70 via-white to-white border-orange-100">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Resultado do pós-venda · MTD {mesAtual}</h2>
+              <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                <Info size={11} className="text-orange-500 shrink-0" /> Perímetro: só O&amp;M (vesting do Miguel) —
+                montagem e integração (Felipe) ficam fora.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium bg-white">
+              {osSource === "projetos" ? (
+                osStale ? (
+                  <><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Snapshot</>
+                ) : (
+                  <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Ao vivo</>
+                )
+              ) : osSource === "tamara" ? (
+                <><span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> Planilha Tamara</>
+              ) : (
+                <><span className="w-1.5 h-1.5 rounded-full bg-gray-300" /> Sem fonte</>
+              )}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <HeroStat
+              label="Resultado do mês"
+              value={BRL(resCom.resultado)}
+              tone={resCom.resultado >= 0 ? "pos" : "neg"}
+              sub={`margem ${PCT(resCom.resultadoPct)}`}
+            />
+            <HeroStat
+              label="Faturado (MTD)"
+              value={BRL(resCom.faturamento)}
+              sub={`${resCom.nOS} OS · contrib. ${PCT(resCom.taxaContribuicao)}`}
+            />
+            <HeroStat
+              label="Custo fixo aplicado"
+              value={BRL(resCom.custoFixoAplicado)}
+              tone="neg"
+              sub={resCom.comBonus ? "com bônus" : "sem bônus"}
+            />
+            <HeroStat
+              label="Break-even (c/ bônus)"
+              value={BRL(be.breakEvenCom)}
+              tone={resCom.faturamento >= be.breakEvenCom ? "pos" : "warn"}
+              sub={resCom.faturamento >= be.breakEvenCom ? "faturamento acima ✓" : "abaixo do break-even"}
+            />
+          </div>
+
+          {pctEstim > 0.3 && (
+            <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-red-600">
+              <AlertTriangle size={12} /> {PCT(pctEstim)} do resultado depende de premissas estimadas — número ainda
+              direcional.
+            </div>
+          )}
+        </section>
+
+        <GroupLabel hint="receita no perímetro vs fronteira (Felipe)">Receita &amp; perímetro</GroupLabel>
 
         {/* KPI — receita por dono (contaminação de fronteira) */}
         <div className="card p-4">
@@ -381,6 +472,8 @@ export default async function EnrdPosVendaPage() {
             contam a parte pós quando o split for informado (senão: RATEAR/VERIFICAR, não contadas).
           </p>
         </div>
+
+        <GroupLabel hint="o que está deixando de virar caixa">Perdas &amp; dinheiro na mesa</GroupLabel>
 
         {/* KPI — Pós-venda NÃO COBRADO (perda por não cobrar) */}
         <div className="card p-4 border-l-4 border-l-red-400">
@@ -547,6 +640,8 @@ export default async function EnrdPosVendaPage() {
           </p>
         </div>
 
+        <GroupLabel hint="pipeline que alimenta o O&amp;M">Comercial — vendas → O&amp;M</GroupLabel>
+
         {/* Comercial ENERDY: forecast + originação + funil pós-venda */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Forecast (proposals) */}
@@ -600,6 +695,8 @@ export default async function EnrdPosVendaPage() {
             </div>
           </div>
         </div>
+
+        <GroupLabel hint="break-even em degrau, modo real vs estimado">Resultado detalhado</GroupLabel>
 
         {/* Cabeçalho: tese + % estimado + import */}
         <div className="card p-4 border-l-4 border-l-orange-500">
@@ -803,6 +900,8 @@ export default async function EnrdPosVendaPage() {
 
         {/* ─── GRÁFICO COMPARATIVO (filtros diário/mensal/anual) ─── */}
         <EnrdPosVendaChart series={series} />
+
+        <GroupLabel hint="onde agir: OS a mitigar e capacidade">Operação &amp; ações</GroupLabel>
 
         {/* ─── SEÇÃO 2 — PROJETO A PROJETO ─── */}
         <section className="card p-5">
@@ -1023,6 +1122,8 @@ export default async function EnrdPosVendaPage() {
             </div>
           </div>
         </section>
+
+        <GroupLabel hint="estimativas, tendência e parâmetros editáveis">Premissas &amp; ajustes</GroupLabel>
 
         {/* ─── PREMISSAS ESTIMADAS ─── */}
         <section className="card p-5">
