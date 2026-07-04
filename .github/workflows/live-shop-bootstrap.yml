@@ -58,7 +58,8 @@ jobs:
             supabase/migrations/008_live_shop_content.sql \
             supabase/migrations/009_live_shop_agenda.sql \
             supabase/migrations/010_live_shop_guests.sql \
-            supabase/migrations/011_live_shop_hosts.sql; do
+            supabase/migrations/011_live_shop_hosts.sql \
+            supabase/migrations/012_jacqes_guests.sql; do
             echo "── aplicando $f ──"
             psql "$PGURL" -v ON_ERROR_STOP=1 -f "$f"
           done

@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/lib/auth-users";
 import { verifyGuest } from "@/lib/live-shop/guests";
+import { verifyJacqesGuest } from "@/lib/jacqes/guests";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -35,6 +36,16 @@ export const authOptions: NextAuthOptions = {
           }
         } catch {
           // DB indisponível → credencial inválida (fail-closed).
+        }
+
+        // 3) Convidado JACQES (DB) — role 'jacqes-guest', escopo só /jacqes.
+        try {
+          const jg = await verifyJacqesGuest(credentials.email, credentials.password);
+          if (jg) {
+            return { id: jg.id, name: jg.name, email: jg.email, role: "jacqes-guest" } as any;
+          }
+        } catch {
+          // DB indisponível → fail-closed.
         }
         return null;
       },

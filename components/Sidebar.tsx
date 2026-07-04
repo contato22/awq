@@ -1151,7 +1151,9 @@ function BUSidebar({
 // ── BU sidebar wrappers ───────────────────────────────────────────────────────
 function JacqesSidebar({ pathname }: { pathname: string }) {
     const { data: session } = useSession();
-    const isJacqesOnly = (session?.user as { role?: string } | undefined)?.role === "jacqes";
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    // jacqes (BU) e jacqes-guest (convidado) ficam confinados: sem "voltar ao macro".
+    const isJacqesOnly = role === "jacqes" || role === "jacqes-guest";
     return <BUSidebar buId="jacqes" label="JACQES" homeHref="/jacqes" headerIcon={BarChart3} modules={JACQES_MODULES} pathname={pathname} showBack={!isJacqesOnly} />;
 }
 
