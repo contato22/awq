@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd" | "jacqes" | "live-shop" | "live-guest";
+export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd" | "jacqes" | "live-shop" | "live-guest" | "jacqes-guest";
 
 export interface AuthUser {
   id: string;
@@ -109,6 +109,8 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   // Convidado da área da marca — SOMENTE o portal público da marca. A liberação
   // por marca específica é checada no middleware via brandGrants do token.
   "live-guest": ["/awq/live-shop/publico"],
+  // Convidado JACQES — SOMENTE a área /jacqes (dashboard da BU).
+  "jacqes-guest": ["/jacqes"],
 };
 
 // Routes denied to specific roles even when within an allowed prefix.

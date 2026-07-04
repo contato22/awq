@@ -23,8 +23,9 @@ const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
   "live-shop": [
     /^\/api\/live-shop(\/|$)/,
   ],
-  // Convidado da marca: NENHUMA API (lista vazia → bloqueia todo /api/*).
+  // Convidados: NENHUMA API (lista vazia → bloqueia todo /api/*).
   "live-guest": [],
+  "jacqes-guest": [],
   enrd: [
     /^\/api\/crm(\/|$)/,
     /^\/api\/ppm(\/|$)/,
@@ -94,7 +95,9 @@ export default withAuth(
 
     if (!canAccess(role, pathname)) {
       const user = findUserByEmail(token.email as string);
-      const home = user?.homeRoute ?? "/login";
+      // Convidado JACQES fora do escopo → volta pra /jacqes (nunca vaza outras áreas).
+      const guestHome = role === "jacqes-guest" ? "/jacqes" : "/login";
+      const home = user?.homeRoute ?? guestHome;
       return NextResponse.redirect(new URL(home, req.url));
     }
 
