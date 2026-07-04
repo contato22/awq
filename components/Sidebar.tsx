@@ -495,6 +495,7 @@ const JACQES_MODULES: BUModule[] = [
     ]},
     { id: "ops",  label: "Gestão", description: "Carreira & Operações",     icon: Briefcase,  items: [
         { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
+        { label: "Configurações", href: "/jacqes/settings", icon: Settings  },
     ]},
 ];
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Header from "@/components/Header";
 import KPICard from "@/components/KPICard";
 import SectionHeader from "@/components/SectionHeader";
@@ -9,9 +10,7 @@ import AlertBanner from "@/components/AlertBanner";
 import { getBUData, getJACQESMRR } from "@/lib/epm-planning-db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { listJacqesGuests } from "@/lib/jacqes/guests";
-import JacqesGuestManager, { type JacqesGuestRow } from "@/components/JacqesGuestManager";
-import { Bell, Users } from "lucide-react";
+import { Bell, Settings, ChevronRight } from "lucide-react";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -21,13 +20,6 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canManageAccess = CAN_MANAGE_ACCESS.has(role);
-
-  let guests: JacqesGuestRow[] = [];
-  if (canManageAccess) {
-    try {
-      guests = (await listJacqesGuests()).map((g) => ({ id: g.id, email: g.email, name: g.name, status: g.status }));
-    } catch { /* DB indisponível — mostra vazio */ }
-  }
 
   const [buData, jacqesMRRData] = await Promise.all([
     getBUData(),
@@ -102,21 +94,21 @@ export default async function DashboardPage() {
           <RegionTable />
         </section>
 
-        {/* Gerenciador de acessos — cria logins confinados a /jacqes (managers) */}
+        {/* Link para Configurações da BU (gerenciador de acessos, integrações) */}
         {canManageAccess && (
-          <section>
-            <div className="card p-5">
-              <SectionHeader
-                icon={<Users size={14} className="text-brand-600" />}
-                title="Gerenciador de acessos"
-              />
-              <p className="mb-4 text-xs text-gray-400">
-                Crie logins individuais que enxergam <strong>apenas</strong> a área JACQES — sem acesso
-                aos demais dados da Plataforma AWQ. Liste e revogue acessos aqui.
-              </p>
-              <JacqesGuestManager initialGuests={guests} />
+          <Link
+            href="/jacqes/settings"
+            className="card flex items-center gap-3 p-4 transition-colors hover:border-brand-300 hover:bg-brand-50/40"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+              <Settings size={16} />
             </div>
-          </section>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900">Configurações da JACQES</p>
+              <p className="text-xs text-gray-400">Gerenciador de acessos, integrações e preferências — escopado só à BU JACQES</p>
+            </div>
+            <ChevronRight size={16} className="shrink-0 text-gray-400" />
+          </Link>
         )}
       </div>
     </>
