@@ -56,7 +56,8 @@ export default async function BiReportsPage() {
             ))}
           </div>
 
-          {/* per-BU table */}
+          {/* per-BU table — Advisor e AWQ Venture excluídos: pré-receita e veículo de
+              investimento próprio, não BUs de wealth management de clientes */}
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-xs border-collapse min-w-[640px]">
               <thead>
@@ -68,7 +69,7 @@ export default async function BiReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {buData.map((bu) => (
+                {buData.filter((bu) => bu.id !== "advisor" && bu.id !== "venture").map((bu) => (
                   <tr key={bu.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="py-2.5 px-1">
                       <div className="flex items-center gap-2">
