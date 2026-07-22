@@ -11,6 +11,20 @@ export type Stage =
 
 export type Priority = "Alta" | "Média" | "Baixa";
 
+export type Channel = "Anúncio" | "Indicação" | "Orgânico" | "Boca a boca";
+
+export const CHANNELS: { id: Channel; tipo: "Pago" | "Orgânico"; observacao: string }[] = [
+  { id: "Anúncio", tipo: "Pago", observacao: "Meta Ads / Google Ads — custo direto em R$/dia" },
+  { id: "Indicação", tipo: "Orgânico", observacao: "Cliente indica cliente — geralmente maior taxa de fechamento" },
+  { id: "Orgânico", tipo: "Orgânico", observacao: "Instagram, site, Google Meu Negócio — custo de produção de conteúdo" },
+  { id: "Boca a boca", tipo: "Orgânico", observacao: "WhatsApp direto, sem canal identificado — custo zero" },
+];
+
+export interface StageEvent {
+  stage: Stage;
+  enteredAt: string;
+}
+
 export interface Lead {
   id: string;
   tipoProcesso: string;
@@ -25,8 +39,12 @@ export interface Lead {
   status: string | null;
   motivoPerda: string | null;
   prioridade: Priority | null;
-  origem: string | null;
+  origem: Channel | null;
+  indicadoPor: string | null;
   descricao: string | null;
+  dataEntrada: string;
+  dataPrimeiroContato: string | null;
+  stageHistory: StageEvent[];
 }
 
 export const STAGES: { id: Stage; label: string; hint: string }[] = [
@@ -38,7 +56,44 @@ export const STAGES: { id: Stage; label: string; hint: string }[] = [
   { id: "perdido", label: "Perdido", hint: "Cliente desistiu ou caso inviável" },
 ];
 
-export const RAW_LEADS: Array<Omit<Lead, "id" | "stage"> & { stage?: Stage }> = [
+// Tempo máximo recomendado (dias corridos) sem movimentação antes de alertar.
+export const STAGE_SLA_DAYS: Partial<Record<Stage, number>> = {
+  novo: 1,
+  qualificado: 3,
+  proposta: 5,
+  negociacao: 7,
+};
+
+// Campos exigidos para considerar a entrada no estágio um "gate" válido (não
+// bloqueia a movimentação, mas avisa quando faltam antes de mover o card).
+export const STAGE_GATE_FIELDS: Partial<Record<Stage, { key: keyof Lead; label: string }[]>> = {
+  qualificado: [
+    { key: "percChances", label: "% chances" },
+    { key: "prioridade", label: "Prioridade" },
+  ],
+  proposta: [{ key: "honorarios", label: "Honorários (valor da proposta)" }],
+  negociacao: [{ key: "descricao", label: "Descrição (resumo da objeção)" }],
+  ganho: [{ key: "dataFechamento", label: "Data de fechamento" }],
+  perdido: [{ key: "motivoPerda", label: "Motivo da perda" }],
+};
+
+export function daysInCurrentStage(lead: Lead): number {
+  const last = lead.stageHistory[lead.stageHistory.length - 1];
+  const since = last ? new Date(last.enteredAt).getTime() : new Date(lead.dataEntrada).getTime();
+  return Math.floor((Date.now() - since) / 86_400_000);
+}
+
+export function missingGateFields(lead: Lead, stage: Stage): string[] {
+  const required = STAGE_GATE_FIELDS[stage];
+  if (!required) return [];
+  return required.filter(({ key }) => lead[key] == null || lead[key] === "").map((f) => f.label);
+}
+
+export const RAW_LEADS: Array<
+  Omit<Lead, "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory" | "indicadoPor"> & {
+    stage?: Stage;
+  }
+> = [
   {
     tipoProcesso: "BPC LOAS FILHO",
     nomeCliente: "BRUNA DA SILVA RODRIGUES",
@@ -89,9 +144,20 @@ export const RAW_LEADS: Array<Omit<Lead, "id" | "stage"> & { stage?: Stage }> = 
 ];
 
 export function buildInitialLeads(): Lead[] {
-  return RAW_LEADS.map((raw, i) => ({
-    id: `pc-${i + 1}`,
-    stage: raw.stage ?? "novo",
-    ...raw,
-  }));
+  // Datas históricas reais de entrada não existem na planilha original — usamos
+  // o momento do primeiro carregamento como marco (fica visível no "dias no
+  // estágio" a partir de agora; não há como reconstruir o histórico real).
+  const now = new Date().toISOString();
+  return RAW_LEADS.map((raw, i) => {
+    const stage = raw.stage ?? "novo";
+    return {
+      id: `pc-${i + 1}`,
+      stage,
+      dataEntrada: now,
+      dataPrimeiroContato: null,
+      indicadoPor: null,
+      stageHistory: [{ stage, enteredAt: now }],
+      ...raw,
+    };
+  });
 }
