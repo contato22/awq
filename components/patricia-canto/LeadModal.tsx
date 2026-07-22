@@ -1,10 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Lead, Priority, Stage } from "@/lib/patricia-canto/leads";
-import { STAGES } from "@/lib/patricia-canto/leads";
+import type { Channel, Lead, Priority, Stage } from "@/lib/patricia-canto/leads";
+import { CHANNELS, STAGES, missingGateFields } from "@/lib/patricia-canto/leads";
 
 const PRIORITIES: Priority[] = ["Alta", "Média", "Baixa"];
+
+function toDateInput(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : "";
+}
+
+function fromDateInput(value: string): string | null {
+  return value ? new Date(`${value}T12:00:00`).toISOString() : null;
+}
 
 export default function LeadModal({
   lead,
@@ -32,6 +40,8 @@ export default function LeadModal({
   function field<K extends keyof Lead>(key: K, value: Lead[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
   }
+
+  const missing = missingGateFields(draft, draft.stage);
 
   return (
     <div
@@ -63,6 +73,13 @@ export default function LeadModal({
             ✕
           </button>
         </div>
+
+        {missing.length > 0 && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">
+            Faltam para o gate de <strong>{STAGES.find((s) => s.id === draft.stage)?.label}</strong>:{" "}
+            {missing.join(", ")}
+          </p>
+        )}
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <label className="text-xs text-canto-500">
@@ -159,9 +176,47 @@ export default function LeadModal({
 
           <label className="text-xs text-canto-500">
             Origem
-            <input
+            <select
               value={draft.origem ?? ""}
-              onChange={(e) => field("origem", e.target.value || null)}
+              onChange={(e) => field("origem", (e.target.value || null) as Channel | null)}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            >
+              <option value="">—</option>
+              {CHANNELS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.id}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {draft.origem === "Indicação" && (
+            <label className="text-xs text-canto-500">
+              Indicado por
+              <input
+                value={draft.indicadoPor ?? ""}
+                onChange={(e) => field("indicadoPor", e.target.value || null)}
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              />
+            </label>
+          )}
+
+          <label className="text-xs text-canto-500">
+            Data do 1º contato
+            <input
+              type="date"
+              value={toDateInput(draft.dataPrimeiroContato)}
+              onChange={(e) => field("dataPrimeiroContato", fromDateInput(e.target.value))}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            />
+          </label>
+
+          <label className="text-xs text-canto-500">
+            Data de fechamento
+            <input
+              type="date"
+              value={toDateInput(draft.dataFechamento)}
+              onChange={(e) => field("dataFechamento", fromDateInput(e.target.value))}
               className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
             />
           </label>

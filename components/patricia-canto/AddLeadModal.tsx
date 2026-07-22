@@ -1,19 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import type { Lead, Priority } from "@/lib/patricia-canto/leads";
+import type { Channel, Lead, Priority } from "@/lib/patricia-canto/leads";
+import { CHANNELS } from "@/lib/patricia-canto/leads";
+
+export type NewLeadInput = Omit<
+  Lead,
+  "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory"
+>;
 
 export default function AddLeadModal({
   onClose,
   onAdd,
 }: {
   onClose: () => void;
-  onAdd: (lead: Omit<Lead, "id" | "stage">) => void;
+  onAdd: (lead: NewLeadInput) => void;
 }) {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [origem, setOrigem] = useState("");
+  const [origem, setOrigem] = useState<Channel | "">("");
+  const [indicadoPor, setIndicadoPor] = useState("");
   const [prioridade, setPrioridade] = useState<Priority | "">("");
   const [valorAcao, setValorAcao] = useState("");
   const [honorarios, setHonorarios] = useState("");
@@ -32,7 +39,8 @@ export default function AddLeadModal({
       status: "Aberto",
       motivoPerda: null,
       prioridade: prioridade || null,
-      origem: origem.trim() || null,
+      origem: origem || null,
+      indicadoPor: origem === "Indicação" ? indicadoPor.trim() || null : null,
       descricao: null,
     });
     onClose();
@@ -41,7 +49,7 @@ export default function AddLeadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canto-900/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-canto-serif text-lg font-semibold text-canto-900">Novo lead</h3>
@@ -97,13 +105,19 @@ export default function AddLeadModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-canto-500">
-              Origem
-              <input
+              Origem <span className="text-rose-500">*</span>
+              <select
                 value={origem}
-                onChange={(e) => setOrigem(e.target.value)}
-                placeholder="Anúncio, Indicação..."
+                onChange={(e) => setOrigem(e.target.value as Channel | "")}
                 className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
-              />
+              >
+                <option value="">—</option>
+                {CHANNELS.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.id}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block text-xs text-canto-500">
               Prioridade
@@ -119,6 +133,17 @@ export default function AddLeadModal({
               </select>
             </label>
           </div>
+          {origem === "Indicação" && (
+            <label className="block text-xs text-canto-500">
+              Indicado por
+              <input
+                value={indicadoPor}
+                onChange={(e) => setIndicadoPor(e.target.value)}
+                placeholder="Nome de quem indicou"
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              />
+            </label>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
