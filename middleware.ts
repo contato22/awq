@@ -23,6 +23,9 @@ const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
   "live-shop": [
     /^\/api\/live-shop(\/|$)/,
   ],
+  // Convidados: NENHUMA API (lista vazia → bloqueia todo /api/*).
+  "live-guest": [],
+  "jacqes-guest": [],
   enrd: [
     /^\/api\/crm(\/|$)/,
     /^\/api\/ppm(\/|$)/,
@@ -50,6 +53,7 @@ export default withAuth(
     }
 
     const role = token.role as Role;
+    const brandGrants = (token.brandGrants as string[] | undefined) ?? [];
 
     // For API routes: inject identity headers so handlers don't need to re-decrypt
     // the JWT (getToken() fails in App Router API routes after NextResponse.next()).
@@ -74,9 +78,26 @@ export default withAuth(
       return withSecurityHeaders(res);
     }
 
+    // Convidado da marca: confinado ao portal da(s) marca(s) liberada(s).
+    if (role === "live-guest") {
+      const firstGrant = brandGrants[0];
+      if (!firstGrant) return NextResponse.redirect(new URL("/login", req.url));
+      const m = pathname.match(/^\/awq\/live-shop\/publico\/([^/]+)/);
+      if (m) {
+        if (!brandGrants.includes(m[1])) {
+          return NextResponse.redirect(new URL(`/awq/live-shop/publico/${firstGrant}`, req.url));
+        }
+        return withSecurityHeaders(NextResponse.next());
+      }
+      // qualquer outra rota → portal da primeira marca liberada
+      return NextResponse.redirect(new URL(`/awq/live-shop/publico/${firstGrant}`, req.url));
+    }
+
     if (!canAccess(role, pathname)) {
       const user = findUserByEmail(token.email as string);
-      const home = user?.homeRoute ?? "/login";
+      // Convidado JACQES fora do escopo → volta pra /jacqes (nunca vaza outras áreas).
+      const guestHome = role === "jacqes-guest" ? "/jacqes" : "/login";
+      const home = user?.homeRoute ?? guestHome;
       return NextResponse.redirect(new URL(home, req.url));
     }
 
@@ -91,6 +112,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|awq/live-shop/publico|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!login|patricia-canto|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

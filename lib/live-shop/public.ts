@@ -7,7 +7,15 @@
 
 import { getLiveSessions } from "./db";
 import { getBrand, BRAND_KIND_LABEL } from "./brands";
-import { getContentGrid, type ContentBlock } from "./content";
+import { getAgenda, type LivePlan } from "./agenda";
+
+// Estruturalmente igual a CalendarEntry de components/LiveShopCalendar (evita
+// acoplar a camada de dados ao componente de UI).
+export interface CalendarEntry {
+  id: string;
+  startsAt: string;
+  status: string;
+}
 
 export interface PublicBrand {
   id: string;
@@ -31,8 +39,9 @@ export interface PublicBrandPage {
   sessionCount: number;
   totalViews: number;
   peakCcv: number;
-  events: PublicEvent[];
-  contentGrid: ContentBlock[];
+  events: PublicEvent[]; // lives realizadas (audiência)
+  agenda: LivePlan[]; // lives planejadas (peças/responsáveis/roteiro/metas/comissões)
+  calendar: CalendarEntry[]; // realizadas + planejadas, para o calendário
 }
 
 /** DTO público de UMA marca — apenas campos whitelisted (zero financeiro). */
@@ -40,8 +49,8 @@ export async function getPublicBrandPage(brandId: string): Promise<PublicBrandPa
   const brand = await getBrand(brandId);
   if (!brand) return null;
 
-  const [sessions, contentGrid] = await Promise.all([getLiveSessions(), getContentGrid(brandId)]);
-  // (quando ls_order/ls_live_session.brand_id estiver populado, filtrar por marca;
+  const [sessions, agenda] = await Promise.all([getLiveSessions(), getAgenda(brandId)]);
+  // (quando ls_live_session.brand_id estiver populado, filtrar por marca;
   //  no piloto todas as sessões são da marca-piloto)
   const events: PublicEvent[] = sessions
     .map((s) => ({
@@ -50,12 +59,18 @@ export async function getPublicBrandPage(brandId: string): Promise<PublicBrandPa
     }))
     .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1));
 
+  const calendar: CalendarEntry[] = [
+    ...events.map((e) => ({ id: e.id, startsAt: e.startedAt, status: "realizada" })),
+    ...agenda.map((p) => ({ id: p.id, startsAt: p.startsAt, status: p.status })),
+  ];
+
   return {
     brand: { id: brand.id, name: brand.name, segment: brand.segment, kind: BRAND_KIND_LABEL[brand.kind] },
     sessionCount: sessions.length,
     totalViews: sessions.reduce((a, s) => a + s.views, 0),
     peakCcv: sessions.reduce((m, s) => Math.max(m, s.peakCcv), 0),
     events,
-    contentGrid,
+    agenda,
+    calendar,
   };
 }
