@@ -546,6 +546,7 @@ const ENRD_MODULES: BUModule[] = [
     { id: "ops", label: "Operações", description: "Montagem & Campo", icon: Wrench, items: [
         { label: "Controle de Montagem", href: "/enrd/montagem", icon: Wrench     },
         { label: "Pós-venda / O&M",      href: "/enrd/posvenda", icon: Activity   },
+        { label: "Relatório de Operações", href: "/enrd/relatorio", icon: FileText },
     ]},
     { id: "epm", label: "EPM", description: "Financeiro & Performance",  icon: DollarSign, items: [
         { label: "Financial (ENRD)",    href: "/enrd/financial",              icon: DollarSign    },
