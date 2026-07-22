@@ -39,11 +39,12 @@ export default function GtmView({
       <div className="rounded-xl border border-canto-200 bg-white p-4">
         <h3 className="font-canto-serif text-base font-semibold text-canto-900">Canais de aquisição</h3>
         <p className="mt-1 text-xs text-canto-500">
-          Preencha o investimento do período (opcional) para calcular o CAC por canal. Sem esse dado, o CAC fica
-          em branco — não estimamos valores.
+          Preencha o investimento do período (opcional) para calcular CAC e ROI por canal. Sem esse dado, os dois
+          ficam em branco — não estimamos valores. ROI usa receita realizada (honorários de leads já fechados),
+          não o pipeline em aberto.
         </p>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
+          <table className="w-full min-w-[760px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-canto-200 text-left text-xs uppercase tracking-wide text-canto-500">
                 <th className="py-2 pr-3">Canal</th>
@@ -52,6 +53,8 @@ export default function GtmView({
                 <th className="py-2 pr-3">Conversão</th>
                 <th className="py-2 pr-3">Investimento (R$)</th>
                 <th className="py-2 pr-3">CAC</th>
+                <th className="py-2 pr-3">Receita fechada</th>
+                <th className="py-2 pr-3">ROI</th>
               </tr>
             </thead>
             <tbody>
@@ -73,6 +76,14 @@ export default function GtmView({
                     />
                   </td>
                   <td className="py-2 pr-3 font-semibold text-canto-800">{c.cac == null ? "—" : currency(c.cac)}</td>
+                  <td className="py-2 pr-3 text-canto-700">{currency(c.receita)}</td>
+                  <td
+                    className={`py-2 pr-3 font-semibold ${
+                      c.roi == null ? "text-canto-800" : c.roi >= 0 ? "text-emerald-700" : "text-rose-600"
+                    }`}
+                  >
+                    {c.roi == null ? "—" : `${c.roi >= 0 ? "+" : ""}${c.roi.toFixed(0)}%`}
+                  </td>
                 </tr>
               ))}
             </tbody>

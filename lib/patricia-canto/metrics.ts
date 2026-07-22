@@ -76,6 +76,8 @@ export interface GtmMetrics {
     won: number;
     conversao: number | null;
     cac: number | null;
+    receita: number;
+    roi: number | null;
   }>;
   semOrigem: number;
   pctSemOrigem: number;
@@ -88,12 +90,17 @@ export function computeGtmMetrics(leads: Lead[], investment: Partial<Record<Chan
     const channelLeads = leads.filter((l) => l.origem === c.id);
     const won = channelLeads.filter((l) => l.stage === "ganho");
     const inv = investment[c.id];
+    // Receita = honorários dos leads desse canal já fechados (ganho) — retorno
+    // realizado, não potencial. ROI = (receita - investimento) / investimento.
+    const receita = won.reduce((sum, l) => sum + (l.honorarios ?? 0), 0);
     return {
       ...c,
       total: channelLeads.length,
       won: won.length,
       conversao: channelLeads.length > 0 ? (won.length / channelLeads.length) * 100 : null,
       cac: inv != null && channelLeads.length > 0 ? inv / channelLeads.length : null,
+      receita,
+      roi: inv != null && inv > 0 ? ((receita - inv) / inv) * 100 : null,
     };
   });
 
