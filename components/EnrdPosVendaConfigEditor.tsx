@@ -160,10 +160,21 @@ export default function EnrdPosVendaConfigEditor({ config }: { config: PosVendaC
                   className="w-full text-sm border rounded-lg px-2 py-1.5"
                 />
               </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">% tempo O&amp;M em vendas</span>
+                <input
+                  type="number"
+                  step={5}
+                  value={Number((c.pctTempoVendasOM * 100).toFixed(0))}
+                  onChange={(e) => set("pctTempoVendasOM", Number(e.target.value) / 100)}
+                  className="w-full text-sm border rounded-lg px-2 py-1.5"
+                />
+              </label>
             </div>
             <div className="text-xs text-gray-400 mt-1">
               Bônus da Tamara é 100% pós-venda (não rateado). Originação = % sobre venda de integração que o
-              pós-venda gerou (default 0 até o Miguel definir).
+              pós-venda gerou (default 0 até o Miguel definir). % tempo em vendas = fração do tempo de O&amp;M em
+              prospectar/renovar contratos (resto é operação/campo) — usado no ROCE.
             </div>
           </div>
 

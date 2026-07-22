@@ -262,9 +262,25 @@ export default async function EnrdRelatorioPage() {
                 <div className={`rounded-xl border p-3.5 ${resultadoOM >= 0 ? "border-emerald-100 bg-emerald-50/40" : "border-red-100 bg-red-50/40"}`}>
                   <div className={`text-[11px] uppercase tracking-wide ${resultadoOM >= 0 ? "text-emerald-600" : "text-red-600"}`}>Resultado O&amp;M (Miguel)</div>
                   <div className={`text-2xl font-bold mt-1 ${resultadoOM >= 0 ? "text-emerald-700" : "text-red-700"}`}>{BRL(resultadoOM)}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">receita real − folha (premissa {BRL(custoFixoPremissa)})</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    receita real − folha (premissa {BRL(custoFixoPremissa)})
+                    {recon.combustivelClassificado && <> − combustível real ({BRL(recon.combustivelReal)})</>}
+                  </div>
                 </div>
               </div>
+
+              {!recon.combustivelClassificado && (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 flex items-start gap-2">
+                  <AlertTriangle size={14} className="text-gray-400 mt-0.5 shrink-0" />
+                  <p className="text-xs text-gray-600">
+                    <strong>Combustível: 0 débitos classificados na Cora este mês.</strong> Todos os pagamentos caem
+                    em &ldquo;fornecedor operacional&rdquo; (categoria genérica) — nenhum foi marcado como{" "}
+                    <em>Deslocamento/Combustível</em>. Por isso o custo variável por serviço (seção 03) usa a{" "}
+                    <strong>tabela estimada por cidade</strong>, não um valor real. Reclassificar os débitos de
+                    combustível na conciliação faz esse custo virar real automaticamente.
+                  </p>
+                </div>
+              )}
 
               {/* Fronteira: a pós-venda bancou o caixa da integração */}
               {suporteIntegracao > 0 && (
@@ -272,10 +288,10 @@ export default async function EnrdRelatorioPage() {
                   <TrendingUp size={14} className="text-amber-600 mt-0.5 shrink-0 rotate-180" />
                   <p className="text-xs text-amber-900">
                     <strong>Suporte de caixa à integração: {BRL(suporteIntegracao)}.</strong> Os pagamentos da conta
-                    ENRD foram para <strong>terceirizados da integração</strong> (lado do Felipe), não para a equipe de
-                    O&amp;M. Ou seja, a pós-venda <strong>bancou o caixa da integração</strong> — isso reduz o saldo da
-                    conta ({BRL(recon.saldoCaixa)}) mas <strong>não é custo do O&amp;M</strong> e fica fora do resultado
-                    do Miguel.
+                    ENRD (fora do combustível já classificado) foram para <strong>terceirizados da integração</strong>{" "}
+                    (lado do Felipe), não para a equipe de O&amp;M. Ou seja, a pós-venda{" "}
+                    <strong>bancou o caixa da integração</strong> — isso reduz o saldo da conta ({BRL(recon.saldoCaixa)}
+                    ) mas <strong>não é custo do O&amp;M</strong> e fica fora do resultado do Miguel.
                   </p>
                 </div>
               )}
@@ -286,6 +302,69 @@ export default async function EnrdRelatorioPage() {
                 <strong> sem rastro</strong>. O O&amp;M está no positivo; o que falta é <strong>lançar e conciliar</strong>{" "}
                 para o BI parar de subestimar. A folha do O&amp;M é premissa (não há folha lançada na Cora) — por isso o
                 resultado é <em>aproximado</em>.
+              </p>
+            </section>
+
+            {/* 02 EFICIÊNCIA DE CAPITAL (ROCE · EBIT · Capital Empregado) */}
+            <section className="card p-5">
+              <SecHead
+                n="02"
+                title="Eficiência de capital"
+                sub="EBIT, Capital Empregado e ROCE do perímetro O&M (Miguel) — aproximado, sem balanço formal"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className={`rounded-xl border p-3.5 ${recon.ebit >= 0 ? "border-emerald-100 bg-emerald-50/40" : "border-red-100 bg-red-50/40"}`}>
+                  <div className={`text-[11px] uppercase tracking-wide ${recon.ebit >= 0 ? "text-emerald-600" : "text-red-600"}`}>EBIT</div>
+                  <div className={`text-2xl font-bold mt-1 ${recon.ebit >= 0 ? "text-emerald-700" : "text-red-700"}`}>{BRL(recon.ebit)}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">= Resultado O&amp;M (sem juros/impostos no perímetro)</div>
+                </div>
+                <div className="rounded-xl border border-gray-100 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Capital empregado (proxy)</div>
+                  <div className="text-2xl font-bold text-gray-900 mt-1">{BRL(recon.capitalEmpregado)}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    folha em operação ({PCT(recon.pctTempoOperacaoOM)}) + veículo
+                  </div>
+                </div>
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-orange-600">ROCE mensal</div>
+                  <div className="text-2xl font-bold text-orange-700 mt-1">{PCT(recon.roceMensal)}</div>
+                  <div className="text-xs text-orange-900/60 mt-0.5">EBIT ÷ capital empregado (mensal, não anualizado)</div>
+                </div>
+              </div>
+
+              {/* Detalhamento do tempo: vendas de O&M vs operação de O&M */}
+              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                <div className="text-xs font-medium text-gray-500 mb-2">
+                  Tempo de O&amp;M — vendas vs operação <span className="text-orange-400">(estimativa, confiança baixa)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2">
+                    <span className="text-xs text-gray-600">Vendas / renovação de O&amp;M</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {PCT(recon.pctTempoVendasOM)} · ~{((config.horasProdutivasMes * (config.dedWilliam + config.dedTamara)) * recon.pctTempoVendasOM).toFixed(0)}h/mês
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2">
+                    <span className="text-xs text-gray-600">Operação de O&amp;M (campo)</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {PCT(recon.pctTempoOperacaoOM)} · ~{((config.horasProdutivasMes * (config.dedWilliam + config.dedTamara)) * recon.pctTempoOperacaoOM).toFixed(0)}h/mês
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+                  Base: {config.horasProdutivasMes}h produtivas/mês × dedicação O&amp;M (William {PCT(config.dedWilliam)} +
+                  Tamara {PCT(config.dedTamara)}) = ~{(config.horasProdutivasMes * (config.dedWilliam + config.dedTamara)).toFixed(0)}h/mês
+                  de O&amp;M no total. Sem apontamento real de horas — William/Tamara são majoritariamente técnicos de
+                  campo, então a fração de vendas é estimada baixa. Editável em Pós-venda/O&amp;M → Parâmetros.
+                </p>
+              </div>
+
+              <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+                <strong>Leia com cautela:</strong> Capital Empregado aqui é um <strong>proxy simplificado</strong> — o
+                O&amp;M não tem balanço patrimonial próprio (sem ativo fixo além do veículo, sem estoque segregado).
+                Por isso ROCE mensal ({PCT(recon.roceMensal)}) compara um resultado mensal com um proxy de opex
+                mensal — é uma <strong>medida de eficiência aproximada</strong>, não o ROCE anualizado clássico de
+                balanço. Sobe/desce junto com o custo fixo premissa e a % de tempo em operação.
               </p>
             </section>
 
@@ -379,12 +458,19 @@ export default async function EnrdRelatorioPage() {
             {/* 06 RECEBIMENTO NA CORA */}
             <section className="card p-5">
               <SecHead n="06" title="Recebimento na Cora" sub="O caixa real da conta ENRD (bate com /enrd/conciliacao)" />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className={recon.combustivelClassificado ? "grid grid-cols-1 sm:grid-cols-4 gap-3" : "grid grid-cols-1 sm:grid-cols-3 gap-3"}>
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                   <div className="text-[11px] uppercase tracking-wide text-emerald-600">Recebido (AR realizado)</div>
                   <div className="text-2xl font-bold text-emerald-700 mt-1">{BRL(recebidoCora)}</div>
                   <div className="text-xs text-emerald-900/60 mt-0.5">receita real que entrou</div>
                 </div>
+                {recon.combustivelClassificado && (
+                  <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                    <div className="text-[11px] uppercase tracking-wide text-orange-600">Combustível (real)</div>
+                    <div className="text-2xl font-bold text-orange-700 mt-1">{BRL(recon.combustivelReal)}</div>
+                    <div className="text-xs text-orange-900/60 mt-0.5">{recon.nCombustivelReal} débito(s) classificado(s) — custo O&amp;M</div>
+                  </div>
+                )}
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                   <div className="text-[11px] uppercase tracking-wide text-red-500">Pagamentos → integração</div>
                   <div className="text-2xl font-bold text-red-700 mt-1">{BRL(suporteIntegracao)}</div>
@@ -397,10 +483,14 @@ export default async function EnrdRelatorioPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                A conta ENRD recebeu <strong>{BRL(recebidoCora)}</strong> e pagou <strong>{BRL(suporteIntegracao)}</strong> —
-                mas esses pagamentos foram para <strong>terceirizados da integração</strong>, não para o O&amp;M. Então o
-                O&amp;M do Miguel está positivo ({BRL(resultadoOM)}); o saldo da conta ({BRL(recon.saldoCaixa)}) é menor
-                porque a pós-venda <strong>subsidiou o caixa da integração</strong>.
+                A conta ENRD recebeu <strong>{BRL(recebidoCora)}</strong> e pagou <strong>{BRL(recon.pagamentosCora)}</strong>
+                {recon.combustivelClassificado ? (
+                  <> — {BRL(recon.combustivelReal)} é combustível real (custo O&amp;M) e {BRL(suporteIntegracao)} foi para{" "}
+                  <strong>terceirizados da integração</strong></>
+                ) : (
+                  <> — desses pagamentos, <strong>{BRL(suporteIntegracao)} foram para terceirizados da integração</strong></>
+                )}, não para o O&amp;M. Então o O&amp;M do Miguel está positivo ({BRL(resultadoOM)}); o saldo da conta (
+                {BRL(recon.saldoCaixa)}) é menor porque a pós-venda <strong>subsidiou o caixa da integração</strong>.
               </p>
               <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
                 <div className="text-xs font-medium text-gray-500 mb-2">Para o BI parar de subestimar e o número fechar</div>

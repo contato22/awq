@@ -39,6 +39,12 @@ export type PosVendaConfig = {
   taxaContribuicaoDefault: number;
   // Piso de contribuição por OS (flag vermelha abaixo disto).
   pisoContribuicao: number;
+  // ── Split do tempo de O&M: vendas (originação/renovação) vs operação ───────
+  // Do tempo já dedicado ao pós-venda (dedWilliam/dedTamara), qual fração é
+  // VENDA de O&M (prospectar/negociar renovação e novos contratos de O&M) vs
+  // OPERAÇÃO (executar limpeza/manutenção em campo). Não há apontamento real —
+  // ESTIMATIVA (confiança baixa) para ROCE/Capital Empregado. Editável.
+  pctTempoVendasOM: number; // 0..1 — resto (1 − isso) é operação
 };
 
 // Defaults ancorados na tese apurada (5 meses).
@@ -67,6 +73,9 @@ export const DEFAULT_POSVENDA_CONFIG: PosVendaConfig = {
   // 0,677 → reproduz break-even ≈ 11,4k (sem bônus) e ≈ 16,5k (com bônus).
   taxaContribuicaoDefault: 0.677,
   pisoContribuicao: 0,
+  // ESTIMADO (confiança baixa): William/Tamara são majoritariamente técnicos de
+  // campo — só uma fração pequena do tempo de O&M é venda/renovação.
+  pctTempoVendasOM: 0.2,
 };
 
 // Normalização de cidade para casar com a tabela de combustível.

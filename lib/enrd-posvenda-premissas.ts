@@ -80,6 +80,13 @@ export function premissasEstimadas(config: PosVendaConfig): PremissaEstimada[] {
       base: "22 dias úteis × 8h. Usada para capacidade e para expressar a dedicação em horas.",
       confianca: "média",
     },
+    {
+      key: "pctTempoVendasOM",
+      parametro: "% tempo O&M em vendas (vs operação)",
+      valorEstimado: `${(config.pctTempoVendasOM * 100).toFixed(0)}% vendas / ${((1 - config.pctTempoVendasOM) * 100).toFixed(0)}% operação`,
+      base: "Sem apontamento real de horas. William/Tamara são majoritariamente técnicos de campo — estimativa até o Miguel confirmar. Usado para separar Capital Empregado (operação) de esforço comercial (vendas) no ROCE.",
+      confianca: "baixa",
+    },
     ...fuel.map((f) => ({
       key: `combustivel:${f.cidade}`,
       parametro: `Combustível — ${f.cidade}`,
