@@ -9,13 +9,15 @@ import type { PcRole } from "@/lib/patricia-canto/auth";
 import type { NewLeadInput } from "./AddLeadModal";
 import { pcApi } from "@/lib/patricia-canto/api-client";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
+import BiOverview from "./BiOverview";
 import GtmView from "./GtmView";
 import ComercialBoard from "./ComercialBoard";
 import CsJuridicoBoard from "./CsJuridicoBoard";
 
-type Tab = "gtm" | "comercial" | "cs";
+type Tab = "bi" | "gtm" | "comercial" | "cs";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "bi", label: "BI · Visão Geral" },
   { id: "gtm", label: "GTM · Aquisição" },
   { id: "comercial", label: "Pipeline Comercial" },
   { id: "cs", label: "CS / Jurídico" },
@@ -25,7 +27,7 @@ const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Ma
 
 export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("comercial");
+  const [tab, setTab] = useState<Tab>("bi");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
@@ -248,6 +250,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
           </div>
         ) : (
           <>
+            {tab === "bi" && <BiOverview leads={leads} cases={cases} investment={investment} />}
             {tab === "gtm" && (
               <GtmView leads={leads} investment={investment} onInvestmentChange={setChannelInvestment} />
             )}

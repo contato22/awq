@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
-import { CASE_STAGES, isCommunicationLate } from "@/lib/patricia-canto/cases";
+import { CASE_STAGES } from "@/lib/patricia-canto/cases";
+import { computeCsMetrics } from "@/lib/patricia-canto/metrics";
 import CaseCard from "./CaseCard";
 import CaseModal from "./CaseModal";
+import StatTile from "./StatTile";
 
 export default function CsJuridicoBoard({
   cases,
@@ -30,36 +32,7 @@ export default function CsJuridicoBoard({
 
   const open = cases.find((c) => c.id === openId) ?? null;
 
-  const metrics = useMemo(() => {
-    const decididos = cases.filter((c) => c.resultado != null);
-    const deferidos = decididos.filter((c) => c.resultado === "Deferido");
-    const porTipo = new Map<string, { total: number; deferidos: number }>();
-    for (const c of decididos) {
-      const cur = porTipo.get(c.tipoProcesso) ?? { total: 0, deferidos: 0 };
-      cur.total += 1;
-      if (c.resultado === "Deferido") cur.deferidos += 1;
-      porTipo.set(c.tipoProcesso, cur);
-    }
-
-    const temposDecisao = cases
-      .filter((c) => c.dataDecisao && c.dataAberturaProcesso)
-      .map((c) => (new Date(c.dataDecisao!).getTime() - new Date(c.dataAberturaProcesso!).getTime()) / 86_400_000)
-      .filter((d) => d >= 0);
-    const tempoMedioDecisao = temposDecisao.length > 0 ? temposDecisao.reduce((a, b) => a + b, 0) / temposDecisao.length : null;
-
-    const fechados = cases.filter((c) => c.stage === "pos_caso");
-    const indicaram = fechados.filter((c) => c.pedidoIndicacaoEnviado);
-    const atrasados = cases.filter((c) => isCommunicationLate(c));
-
-    return {
-      taxaSucesso: decididos.length > 0 ? (deferidos.length / decididos.length) * 100 : null,
-      porTipo: [...porTipo.entries()],
-      tempoMedioDecisao,
-      taxaIndicacao: fechados.length > 0 ? (indicaram.length / fechados.length) * 100 : null,
-      pctAtrasados: cases.length > 0 ? (atrasados.length / cases.length) * 100 : 0,
-      atrasadosCount: atrasados.length,
-    };
-  }, [cases]);
+  const metrics = useMemo(() => computeCsMetrics(cases), [cases]);
 
   function handleMove(id: string, stage: CaseStage) {
     onMoveCase(id, stage);
@@ -68,16 +41,19 @@ export default function CsJuridicoBoard({
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Taxa de sucesso" value={metrics.taxaSucesso == null ? "—" : `${metrics.taxaSucesso.toFixed(0)}%`} />
-        <Stat
+        <StatTile label="Taxa de sucesso" value={metrics.taxaSucesso == null ? "—" : `${metrics.taxaSucesso.toFixed(0)}%`} />
+        <StatTile
           label="Tempo médio até decisão"
           value={metrics.tempoMedioDecisao == null ? "—" : `${metrics.tempoMedioDecisao.toFixed(0)} dias`}
         />
-        <Stat label="Taxa de indicação pós-caso" value={metrics.taxaIndicacao == null ? "—" : `${metrics.taxaIndicacao.toFixed(0)}%`} />
-        <Stat
+        <StatTile
+          label="Taxa de indicação pós-caso"
+          value={metrics.taxaIndicacao == null ? "—" : `${metrics.taxaIndicacao.toFixed(0)}%`}
+        />
+        <StatTile
           label="Casos com comunicação atrasada"
           value={`${metrics.atrasadosCount} (${metrics.pctAtrasados.toFixed(0)}%)`}
-          warn={metrics.atrasadosCount > 0}
+          variant={metrics.atrasadosCount > 0 ? "warn" : "default"}
         />
       </div>
 
@@ -178,15 +154,6 @@ export default function CsJuridicoBoard({
           }}
         />
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
-  return (
-    <div className={`rounded-lg border px-3 py-2.5 ${warn ? "border-amber-300 bg-amber-50" : "border-canto-200 bg-canto-50"}`}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-canto-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${warn ? "text-amber-700" : "text-canto-900"}`}>{value}</p>
     </div>
   );
 }

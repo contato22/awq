@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import type { Lead, Stage } from "@/lib/patricia-canto/leads";
 import { STAGES, missingGateFields } from "@/lib/patricia-canto/leads";
+import { computeComercialMetrics } from "@/lib/patricia-canto/metrics";
 import LeadCard from "./LeadCard";
 import LeadModal from "./LeadModal";
 import AddLeadModal, { type NewLeadInput } from "./AddLeadModal";
+import StatTile from "./StatTile";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -50,37 +52,7 @@ export default function ComercialBoard({
 
   const openLead = leads.find((l) => l.id === openLeadId) ?? null;
 
-  const totalValorAcao = leads.reduce((sum, l) => sum + (l.valorAcao ?? 0), 0);
-  const totalHonorarios = leads.reduce((sum, l) => sum + (l.honorarios ?? 0), 0);
-  const ganhos = leads.filter((l) => l.stage === "ganho").length;
-
-  const metrics = useMemo(() => {
-    const conversion = STAGES.filter((s) => s.id !== "ganho" && s.id !== "perdido").map((s) => {
-      const entered = leads.filter((l) => l.stageHistory.some((h) => h.stage === s.id));
-      const won = entered.filter((l) => l.stageHistory.some((h) => h.stage === "ganho"));
-      return {
-        stage: s.label,
-        entered: entered.length,
-        rate: entered.length > 0 ? (won.length / entered.length) * 100 : null,
-      };
-    });
-
-    const cycleDays = leads
-      .filter((l) => l.stage === "ganho" && l.dataFechamento)
-      .map((l) => (new Date(l.dataFechamento!).getTime() - new Date(l.dataEntrada).getTime()) / 86_400_000)
-      .filter((d) => d >= 0);
-    const avgCycle = cycleDays.length > 0 ? cycleDays.reduce((a, b) => a + b, 0) / cycleDays.length : null;
-
-    const perdidos = leads.filter((l) => l.stage === "perdido");
-    const motivos = new Map<string, number>();
-    for (const l of perdidos) {
-      const m = l.motivoPerda || "Sem motivo registrado";
-      motivos.set(m, (motivos.get(m) ?? 0) + 1);
-    }
-    const motivoPredominante = [...motivos.entries()].sort((a, b) => b[1] - a[1])[0];
-
-    return { conversion, avgCycle, perdidos: perdidos.length, motivoPredominante };
-  }, [leads]);
+  const metrics = useMemo(() => computeComercialMetrics(leads), [leads]);
 
   function handleMoveStage(id: string, stage: Stage) {
     const lead = leads.find((l) => l.id === id);
@@ -99,11 +71,11 @@ export default function ComercialBoard({
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Stat label="Total de leads" value={leads.length.toString()} />
-        <Stat label="Qualificados" value={byStage.get("qualificado")?.length.toString() ?? "0"} />
-        <Stat label="Fechados (ganho)" value={ganhos.toString()} />
-        <Stat label="Valor das ações" value={currency(totalValorAcao)} />
-        <Stat label="Honorários em pipeline" value={currency(totalHonorarios)} accent />
+        <StatTile label="Total de leads" value={metrics.totalLeads.toString()} />
+        <StatTile label="Qualificados" value={metrics.qualificados.toString()} />
+        <StatTile label="Fechados (ganho)" value={metrics.ganhos.toString()} />
+        <StatTile label="Valor das ações" value={currency(metrics.valorAcaoTotal)} />
+        <StatTile label="Honorários em pipeline" value={currency(metrics.honorariosPipeline)} variant="accent" />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -204,7 +176,9 @@ export default function ComercialBoard({
                 Tempo médio de ciclo (lead → fechado)
               </p>
               <p className="mt-1 text-sm font-semibold text-canto-900">
-                {metrics.avgCycle == null ? "— (nenhum fechamento com data ainda)" : `${metrics.avgCycle.toFixed(1)} dias`}
+                {metrics.avgCycleDays == null
+                  ? "— (nenhum fechamento com data ainda)"
+                  : `${metrics.avgCycleDays.toFixed(1)} dias`}
               </p>
             </div>
             <div>
@@ -233,15 +207,6 @@ export default function ComercialBoard({
         />
       )}
       {addOpen && <AddLeadModal onClose={() => setAddOpen(false)} onAdd={onAddLead} />}
-    </div>
-  );
-}
-
-function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="rounded-lg border border-canto-200 bg-canto-50 px-3 py-2.5">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-canto-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${accent ? "text-canto-700" : "text-canto-900"}`}>{value}</p>
     </div>
   );
 }
