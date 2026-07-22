@@ -4,9 +4,9 @@ import type { Lead, Stage } from "@/lib/patricia-canto/leads";
 import { STAGES } from "@/lib/patricia-canto/leads";
 
 const PRIORITY_STYLES: Record<string, string> = {
-  Alta: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
-  Média: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
-  Baixa: "bg-slate-50 text-slate-600 ring-1 ring-slate-200",
+  Alta: "bg-orange-50 text-orange-800 ring-1 ring-orange-200",
+  Média: "bg-canto-100 text-canto-700 ring-1 ring-canto-300",
+  Baixa: "bg-canto-50 text-canto-500 ring-1 ring-canto-200",
 };
 
 function formatPhone(raw: string) {
@@ -51,12 +51,12 @@ export default function LeadCard({
       }}
       onDragEnd={onDragEnd}
       onClick={() => onOpen(lead.id)}
-      className={`group cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing ${
+      className={`group cursor-grab rounded-xl border border-canto-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-canto-300 hover:shadow-md active:cursor-grabbing ${
         dragging ? "opacity-40" : "opacity-100"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold leading-tight text-slate-900">
+        <p className="text-sm font-semibold leading-tight text-canto-900">
           {lead.nomeCliente || "Sem nome"}
         </p>
         {lead.prioridade && (
@@ -68,9 +68,9 @@ export default function LeadCard({
         )}
       </div>
 
-      <p className="mt-1 text-xs font-medium text-teal-700">{lead.tipoProcesso}</p>
+      <p className="mt-1 text-xs font-medium text-canto-600">{lead.tipoProcesso}</p>
 
-      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-2 flex items-center justify-between text-xs text-canto-500">
         <span>{formatPhone(lead.telefone)}</span>
         {canWhatsapp && (
           <a
@@ -88,34 +88,34 @@ export default function LeadCard({
       {(lead.valorAcao != null || lead.honorarios != null) && (
         <div className="mt-2 space-y-0.5 text-xs">
           {lead.valorAcao != null && (
-            <p className="text-slate-500">
-              Valor da ação: <span className="font-semibold text-slate-700">{currency(lead.valorAcao)}</span>
+            <p className="text-canto-500">
+              Valor da ação: <span className="font-semibold text-canto-800">{currency(lead.valorAcao)}</span>
             </p>
           )}
           {lead.honorarios != null && (
-            <p className="text-slate-500">
-              Honorários: <span className="font-semibold text-teal-700">{currency(lead.honorarios)}</span>
+            <p className="text-canto-500">
+              Honorários: <span className="font-semibold text-canto-700">{currency(lead.honorarios)}</span>
             </p>
           )}
         </div>
       )}
 
       {lead.percChances != null && (
-        <p className="mt-1 text-xs text-slate-500">{Math.round(lead.percChances * 100)}% chance</p>
+        <p className="mt-1 text-xs text-canto-500">{Math.round(lead.percChances * 100)}% chance</p>
       )}
 
       {lead.origem && (
-        <p className="mt-2 text-[11px] text-slate-400">Origem: {lead.origem}</p>
+        <p className="mt-2 text-[11px] text-canto-400">Origem: {lead.origem}</p>
       )}
 
       <div
-        className="mt-3 border-t border-slate-100 pt-2"
+        className="mt-3 border-t border-canto-100 pt-2"
         onClick={(e) => e.stopPropagation()}
       >
         <select
           value={lead.stage}
           onChange={(e) => onMoveStage(lead.id, e.target.value as Stage)}
-          className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600 outline-none focus:border-teal-400"
+          className="w-full rounded-md border border-canto-200 bg-canto-50 px-2 py-1 text-[11px] text-canto-600 outline-none focus:border-canto-500"
           aria-label="Mover lead para outra etapa"
         >
           {STAGES.map((s) => (

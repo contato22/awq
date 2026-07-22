@@ -37,9 +37,23 @@ const config: Config = {
           muted:   "#F3F4F6",
           sunken:  "#E5E7EB",
         },
+        // Identidade visual da Patricia Canto Advocacia (CRM independente em /patricia-canto).
+        canto: {
+          50:  "#FBF9F5",
+          100: "#F3EEE4",
+          200: "#E3D9C4",
+          300: "#CBBB9A",
+          400: "#B3A385",
+          500: "#9C8B6C",
+          600: "#847455",
+          700: "#665845",
+          800: "#473F34",
+          900: "#2B2620",
+        },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        "canto-serif": ["var(--font-canto-serif)", "Georgia", "serif"],
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.875rem" }],  // 10px
