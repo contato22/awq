@@ -1,13 +1,17 @@
 // Persistência real (Supabase, projeto ERP kkhxxsrgsewjfvnnssyf) para o CRM
 // independente da Patrícia Canto. Tabelas novas, sem relação com as tabelas
-// financeiras do AWQ. RLS desabilitado (mesmo padrão de financial_documents /
-// bank_transactions) — todo acesso passa pelas rotas /api/patricia-canto/*,
-// que exigem sessão válida (ver lib/patricia-canto/auth.ts).
-import { erpAdmin, erpAnon } from "@/lib/supabase";
+// financeiras do AWQ. Guardam dado pessoal de cliente (nome/telefone/caso),
+// então — ao contrário de financial_documents/bank_transactions — usamos
+// SÓ a service role key (erpAdmin), nunca o fallback anon: a anon key é
+// pública (hardcoded em lib/supabase.ts), e a service role já ignora RLS
+// por padrão, então não precisa de GRANT/DISABLE RLS nenhum. Sem
+// ERP_SUPABASE_SERVICE_ROLE_KEY configurado, essas rotas ficam indisponíveis
+// (ver isDbConfigured) em vez de cair para um acesso mais aberto.
+import { erpAdmin } from "@/lib/supabase";
 import type { Lead, Stage, StageEvent, Channel, Priority } from "./leads";
 import type { CaseItem, CaseStage, Resultado } from "./cases";
 
-const db = erpAdmin ?? erpAnon;
+const db = erpAdmin;
 
 export function isDbConfigured(): boolean {
   return !!db;
