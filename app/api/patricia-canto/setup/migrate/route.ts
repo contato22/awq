@@ -66,14 +66,13 @@ CREATE INDEX IF NOT EXISTS idx_pc_leads_stage   ON patricia_canto_leads(stage);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_stage   ON patricia_canto_cases(stage);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_lead_id ON patricia_canto_cases(lead_id);
 
--- Anon key precisa escrever (mesmo padrão de financial_documents / bank_transactions)
-GRANT ALL ON patricia_canto_leads     TO anon, authenticated;
-GRANT ALL ON patricia_canto_cases     TO anon, authenticated;
-GRANT ALL ON patricia_canto_settings  TO anon, authenticated;
-
-ALTER TABLE patricia_canto_leads     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_cases     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_settings  DISABLE ROW LEVEL SECURITY;
+-- Dado pessoal de cliente (nome/telefone/caso) — RLS ativado e sem nenhuma
+-- policy, ou seja, fechado por padrão. A service role key (única que o app
+-- usa para essas tabelas) ignora RLS, então continua funcionando; a anon
+-- key (pública, hardcoded no código) não enxerga nada aqui.
+ALTER TABLE patricia_canto_leads     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_cases     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_settings  ENABLE ROW LEVEL SECURITY;
 `;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
