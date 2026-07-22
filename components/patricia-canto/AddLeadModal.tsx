@@ -39,78 +39,78 @@ export default function AddLeadModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canto-900/50 p-4" onClick={onClose}>
       <div
         className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-slate-900">Novo lead</h3>
+        <h3 className="font-canto-serif text-lg font-semibold text-canto-900">Novo lead</h3>
         <div className="mt-4 space-y-3">
-          <label className="block text-xs text-slate-500">
+          <label className="block text-xs text-canto-500">
             Nome do cliente
             <input
               autoFocus
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
             />
           </label>
-          <label className="block text-xs text-slate-500">
+          <label className="block text-xs text-canto-500">
             Tipo de processo
             <input
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
               placeholder="Ex: APOSENTADORIA POR IDADE"
-              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
             />
           </label>
-          <label className="block text-xs text-slate-500">
+          <label className="block text-xs text-canto-500">
             Telefone
             <input
               value={telefone}
               onChange={(e) => setTelefone(e.target.value)}
               placeholder="21 90000-0000"
-              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs text-slate-500">
+            <label className="block text-xs text-canto-500">
               Valor da ação (R$)
               <input
                 type="number"
                 value={valorAcao}
                 onChange={(e) => setValorAcao(e.target.value)}
                 placeholder="0,00"
-                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               />
             </label>
-            <label className="block text-xs text-slate-500">
+            <label className="block text-xs text-canto-500">
               Honorários (R$)
               <input
                 type="number"
                 value={honorarios}
                 onChange={(e) => setHonorarios(e.target.value)}
                 placeholder="0,00"
-                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs text-slate-500">
+            <label className="block text-xs text-canto-500">
               Origem
               <input
                 value={origem}
                 onChange={(e) => setOrigem(e.target.value)}
                 placeholder="Anúncio, Indicação..."
-                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               />
             </label>
-            <label className="block text-xs text-slate-500">
+            <label className="block text-xs text-canto-500">
               Prioridade
               <select
                 value={prioridade}
                 onChange={(e) => setPrioridade(e.target.value as Priority | "")}
-                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               >
                 <option value="">—</option>
                 <option value="Alta">Alta</option>
@@ -124,14 +124,14 @@ export default function AddLeadModal({
         <div className="mt-6 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-lg border border-canto-200 px-4 py-2 text-sm font-medium text-canto-600 hover:bg-canto-50"
           >
             Cancelar
           </button>
           <button
             onClick={submit}
             disabled={!nome.trim() || !tipo.trim()}
-            className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg bg-canto-700 px-4 py-2 text-sm font-medium text-white hover:bg-canto-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Adicionar
           </button>
