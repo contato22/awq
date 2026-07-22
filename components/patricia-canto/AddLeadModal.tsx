@@ -15,6 +15,8 @@ export default function AddLeadModal({
   const [telefone, setTelefone] = useState("");
   const [origem, setOrigem] = useState("");
   const [prioridade, setPrioridade] = useState<Priority | "">("");
+  const [valorAcao, setValorAcao] = useState("");
+  const [honorarios, setHonorarios] = useState("");
 
   function submit() {
     if (!nome.trim() || !tipo.trim()) return;
@@ -23,7 +25,8 @@ export default function AddLeadModal({
       tipoProcesso: tipo.trim(),
       telefone: telefone.trim(),
       escritorio: null,
-      valor: null,
+      valorAcao: valorAcao === "" ? null : Number(valorAcao),
+      honorarios: honorarios === "" ? null : Number(honorarios),
       dataFechamento: null,
       percChances: null,
       status: "Aberto",
@@ -70,6 +73,28 @@ export default function AddLeadModal({
               className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
             />
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs text-slate-500">
+              Valor da ação (R$)
+              <input
+                type="number"
+                value={valorAcao}
+                onChange={(e) => setValorAcao(e.target.value)}
+                placeholder="0,00"
+                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+              />
+            </label>
+            <label className="block text-xs text-slate-500">
+              Honorários (R$)
+              <input
+                type="number"
+                value={honorarios}
+                onChange={(e) => setHonorarios(e.target.value)}
+                placeholder="0,00"
+                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+              />
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-slate-500">
               Origem

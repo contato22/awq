@@ -85,13 +85,23 @@ export default function LeadCard({
         )}
       </div>
 
-      {(lead.valor != null || lead.percChances != null) && (
-        <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-          {lead.valor != null && (
-            <span className="font-semibold text-slate-700">{currency(lead.valor)}</span>
+      {(lead.valorAcao != null || lead.honorarios != null) && (
+        <div className="mt-2 space-y-0.5 text-xs">
+          {lead.valorAcao != null && (
+            <p className="text-slate-500">
+              Valor da ação: <span className="font-semibold text-slate-700">{currency(lead.valorAcao)}</span>
+            </p>
           )}
-          {lead.percChances != null && <span>{Math.round(lead.percChances * 100)}% chance</span>}
+          {lead.honorarios != null && (
+            <p className="text-slate-500">
+              Honorários: <span className="font-semibold text-teal-700">{currency(lead.honorarios)}</span>
+            </p>
+          )}
         </div>
+      )}
+
+      {lead.percChances != null && (
+        <p className="mt-1 text-xs text-slate-500">{Math.round(lead.percChances * 100)}% chance</p>
       )}
 
       {lead.origem && (
