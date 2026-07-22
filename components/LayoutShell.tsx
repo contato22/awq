@@ -25,7 +25,11 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   // Páginas standalone (sem chrome da plataforma): login e a página pública da
   // Live Shop (acesso sem login — não deve expor nav/sidebar da plataforma).
-  if (pathname === "/login" || pathname?.startsWith("/awq/live-shop/publico")) {
+  if (
+    pathname === "/login" ||
+    pathname?.startsWith("/awq/live-shop/publico") ||
+    pathname?.startsWith("/patricia-canto")
+  ) {
     return <>{children}</>;
   }
 
