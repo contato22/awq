@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { getConfig } from "@/lib/enrd-posvenda-db";
 import { getLiveProjetosPosVenda } from "@/lib/enerdy-projetos";
+import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
 import {
   contribuicaoOS,
   resultadoMes,
@@ -39,6 +40,7 @@ export async function GET(): Promise<NextResponse> {
 
     const hoje = new Date().toISOString().slice(0, 10);
     const mes = hoje.slice(0, 7);
+    const recon = await getReconciliacaoMes(mes);
     const mtd = contrib.filter((o) => (o.data ?? "").startsWith(mes));
     const res = resultadoMes(mtd, config);
     const [y, m] = mes.split("-").map(Number);
@@ -94,6 +96,15 @@ export async function GET(): Promise<NextResponse> {
         custoFixoDia: round2(custoFixoDia),
         diasNoMes,
         comBonus: res.comBonus,
+      },
+      // Caixa REAL (Cora) — a verdade, para o número do CRM não enganar.
+      real: {
+        recebidoCora: round2(recon.recebidoCora),
+        logadoCRM: round2(recon.valorLogado),
+        resultadoOM: round2(recon.resultadoOM),
+        suporteIntegracao: round2(recon.suporteIntegracao),
+        saldoCaixa: round2(recon.saldoCaixa),
+        coraDisponivel: recon.coraDisponivel,
       },
     });
   } catch (e) {

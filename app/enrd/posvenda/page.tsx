@@ -45,6 +45,7 @@ import {
   type PosVendaFunil,
 } from "@/lib/enerdy-projetos";
 import { getTransactionsByEntity } from "@/lib/financial-db";
+import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
 import EnrdPosVendaChart, { type Series, type SeriePonto } from "@/components/EnrdPosVendaChart";
 import type { PosVendaConfig } from "@/lib/enrd-posvenda-config";
 import {
@@ -180,6 +181,9 @@ function buildSeries(os: SerieOS[], cora: SerieCora[], config: PosVendaConfig): 
 
 export default async function EnrdPosVendaPage() {
   const config = await getConfig();
+  // Reconciliação canônica (mesma da /enrd/conciliacao e do relatório) — âncora
+  // no caixa real. Evita o número do CRM (subnotificado) contradizer o banco.
+  const recon = await getReconciliacaoMes();
   type DashOS = OS & { status?: string | null };
   let os: DashOS[] = [];
   let osSource: "projetos" | "tamara" | "none" = "none";
@@ -408,29 +412,30 @@ export default async function EnrdPosVendaPage() {
             </span>
           </div>
 
+          {/* PRIMÁRIO: o número real (caixa Cora), não o CRM subnotificado */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <HeroStat
-              label="Resultado do mês"
-              value={BRL(resCom.resultado)}
-              tone={resCom.resultado >= 0 ? "pos" : "neg"}
-              sub={`margem ${PCT(resCom.resultadoPct)}`}
+              label="Resultado O&M (real)"
+              value={BRL(recon.resultadoOM)}
+              tone={recon.resultadoOM >= 0 ? "pos" : "neg"}
+              sub={`receita real − folha (premissa ${BRL(recon.custoFixoPremissa)})`}
             />
             <HeroStat
-              label="Faturado (MTD)"
-              value={BRL(resCom.faturamento)}
-              sub={`${resCom.nOS} OS · contrib. ${PCT(resCom.taxaContribuicao)}`}
+              label="Recebido na Cora"
+              value={BRL(recon.recebidoCora)}
+              sub={`${recon.nCoraTx} créditos · real`}
             />
             <HeroStat
-              label="Custo fixo aplicado"
-              value={BRL(resCom.custoFixoAplicado)}
-              tone="neg"
-              sub={resCom.comBonus ? "com bônus" : "sem bônus"}
+              label="Suporte à integração"
+              value={BRL(recon.suporteIntegracao)}
+              tone="warn"
+              sub="pago a terceirizados do Felipe (fora do O&M)"
             />
             <HeroStat
-              label="Break-even (c/ bônus)"
-              value={BRL(be.breakEvenCom)}
-              tone={resCom.faturamento >= be.breakEvenCom ? "pos" : "warn"}
-              sub={resCom.faturamento >= be.breakEvenCom ? "faturamento acima ✓" : "abaixo do break-even"}
+              label="Saldo da conta"
+              value={BRL(recon.saldoCaixa)}
+              tone={recon.saldoCaixa >= 0 ? "neutral" : "neg"}
+              sub="recebido − pagamentos (movimento real)"
             />
           </div>
 
@@ -440,6 +445,38 @@ export default async function EnrdPosVendaPage() {
               direcional.
             </div>
           )}
+
+          {/* SECUNDÁRIO: modelo de custeio do CRM (direcional, subnotificado) */}
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Modelo de custeio <span className="normal-case font-normal text-gray-400">(CRM · direcional — subnotificado)</span>
+              </span>
+              <a href="/enrd/relatorio" className="text-[11px] text-orange-600 hover:underline">ver relatório →</a>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-lg border border-gray-100 p-2.5">
+                <div className="text-[10px] uppercase text-gray-400">Resultado (modelo)</div>
+                <div className={`text-lg font-bold ${resCom.resultado >= 0 ? "text-gray-900" : "text-red-600"}`}>{BRL(resCom.resultado)}</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 p-2.5">
+                <div className="text-[10px] uppercase text-gray-400">Faturado (CRM)</div>
+                <div className="text-lg font-bold text-gray-900">{BRL(resCom.faturamento)}</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 p-2.5">
+                <div className="text-[10px] uppercase text-gray-400">Custo fixo</div>
+                <div className="text-lg font-bold text-gray-900">{BRL(resCom.custoFixoAplicado)}</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 p-2.5">
+                <div className="text-[10px] uppercase text-gray-400">Break-even</div>
+                <div className="text-lg font-bold text-gray-900">{BRL(be.breakEvenCom)}</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">
+              O modelo lê o CRM (subnotificado — só {recon.nLogados} de {recon.nExecutados} serviços com valor). Serve
+              para a lógica de break-even/margem, mas o número que <strong>vale é o caixa real (acima)</strong>.
+            </p>
+          </div>
         </section>
 
         <GroupLabel hint="receita no perímetro vs fronteira (Felipe)">Receita &amp; perímetro</GroupLabel>

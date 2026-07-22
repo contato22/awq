@@ -1,18 +1,20 @@
 // ─── /enrd/relatorio — Relatório de Operações (Pós-venda/O&M) ────────────────
 // Segue a estrutura do relatório de RI (Panorama · Serviço a serviço · Perfil de
 // recebimento · Recebimento na Cora · Pontos de atenção), AO VIVO.
-// Fonte serviço-a-serviço: montagem (installations Serviço/Limpeza do mês).
-// Valor: casado com a cobrança do CRM projetos (pos_venda_servicos) por cliente;
-// sem casar → estimado pelo ticket mediano (marcado com *). Recebimento é
-// inferido (à vista / risco / cortesia) — forma de pagamento não vem da fonte.
+// ÂNCORA = CAIXA REAL (Cora). Antes o "cobrável" era Σ de estimativas soltas e
+// inflava (~R$16k vs R$12k reais). Agora o total bate com o que entrou no banco:
+// serviço não-logado recebe RATEIO do caixa da Cora (marcado ⌁), não ticket fixo.
+// Fonte serviço-a-serviço: montagem (installations Serviço/Limpeza do mês);
+// valor real quando há no CRM projetos, senão rateio. Reconciliação em
+// lib/enrd-reconciliacao.ts (usada por todas as telas → números consistentes).
 
 import Header from "@/components/Header";
 import { getLiveMontagem } from "@/lib/enrd-montagem-live";
 import { getInstallations } from "@/lib/enrd-montagem-db";
 import { getLiveProjetosFull } from "@/lib/enerdy-projetos";
 import { getConfig, normalizeDate } from "@/lib/enrd-posvenda-db";
-import { getTransactionsByEntity } from "@/lib/financial-db";
 import { contribuicaoOS, classificarDono, isRealizado } from "@/lib/enrd-posvenda-costing";
+import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
 import { AlertTriangle, CheckCircle2, TrendingUp, Wallet, Info } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +24,6 @@ const BRL = (v: number) =>
 const PCT = (v: number) => `${Math.round(v * 100)}%`;
 const norm = (s: string | null | undefined) =>
   (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-const mediana = (xs: number[]) => {
-  if (!xs.length) return 0;
-  const s = [...xs].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
-};
 // Encurta local: some coordenada crua (lat,lng) e endereço completo → cidade/bairro.
 // A fonte às vezes grava GPS em vez de um nome de lugar; melhor "—" que "-22.36,-42.94".
 function localCurto(raw: string | null): string | null {
@@ -76,7 +73,6 @@ export default async function EnrdRelatorioPage() {
   } catch {
     /* vazio */
   }
-  const ticketMediano = mediana(cobrancas.filter((c) => c.valor > 0).map((c) => c.valor)) || 400;
   const cobrancaPorCliente = new Map<string, { valor: number; status: string | null }>();
   for (const c of cobrancas) {
     const k = norm(c.cliente);
@@ -91,6 +87,11 @@ export default async function EnrdRelatorioPage() {
   const mesLabel = now
     .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
     .replace(/^./, (c) => c.toUpperCase());
+
+  // Reconciliação canônica (âncora = Cora real). O valor por serviço não-logado
+  // é o RATEIO calibrado para o total bater com o caixa, não Σ de estimativas.
+  const recon = await getReconciliacaoMes(mes);
+  const valorEstimadoServico = recon.valorRateioPorServico || 400;
 
   // ── Serviço a serviço: O&M executado/agendado no mês (montagem) ──────────────
   type Servico = {
@@ -113,7 +114,7 @@ export default async function EnrdRelatorioPage() {
       const temCobranca = match && match.valor > 0;
       const cortesia = match != null && match.valor <= 0 && isRealizado(match.status);
       const risco = match != null && !isRealizado(match.status);
-      const valor = cortesia ? 0 : temCobranca ? match!.valor : ticketMediano;
+      const valor = cortesia ? 0 : temCobranca ? match!.valor : valorEstimadoServico;
       const recebimento: Recebimento = cortesia ? "Cortesia" : risco ? "Risco" : "À vista";
       return {
         id: i.id,
@@ -136,28 +137,23 @@ export default async function EnrdRelatorioPage() {
   })();
   const equipeLabel = equipe[0]?.[0] ?? "—";
 
-  // ── Panorama ─────────────────────────────────────────────────────────────────
-  const totalAgendado = servicos.reduce((s, x) => s + x.valor, 0);
+  // ── Panorama — âncora no CAIXA REAL (Cora), não em Σ de estimativas ──────────
   const cortesias = servicos.filter((s) => s.recebimento === "Cortesia");
   const riscos = servicos.filter((s) => s.recebimento === "Risco");
   const aVista = servicos.filter((s) => s.recebimento === "À vista");
-  const cobravel = totalAgendado - cortesias.reduce((s, x) => s + x.valor, 0);
   const somaAVista = aVista.reduce((s, x) => s + x.valor, 0);
   const somaRisco = riscos.reduce((s, x) => s + x.valor, 0);
   const somaCortesia = cortesias.reduce((s, x) => s + x.valor, 0);
   const semValor = servicos.filter((s) => s.estimado).length;
 
-  // ── Recebimento na Cora (real do mês) ────────────────────────────────────────
-  let coraConfirmado = 0;
-  try {
-    const tx = await getTransactionsByEntity("ENERDY");
-    coraConfirmado = tx
-      .filter((t) => !t.excludedFromConsolidated && t.amount > 0 && (t.transactionDate ?? "").startsWith(mes))
-      .reduce((s, t) => s + t.amount, 0);
-  } catch {
-    /* sem Cora */
-  }
-  const cobrancaGap = Math.max(0, cobravel - coraConfirmado);
+  // Três camadas reais + resultado. Cora = verdade; CRM = o que está rastreado.
+  const recebidoCora = recon.recebidoCora; // AR realizado real (receita O&M)
+  const logadoCRM = recon.valorLogado; // valor lançado no CRM (rastreado)
+  const custoFixoPremissa = recon.custoFixoPremissa; // folha O&M (premissa)
+  const resultadoOM = recon.resultadoOM; // receita real − folha premissa (perímetro Miguel)
+  const suporteIntegracao = recon.suporteIntegracao; // pagamentos → terceirizados da integração
+  // Gap que importa: quanto do que ENTROU não tem lançamento no CRM.
+  const gapRastreio = Math.max(0, recebidoCora - logadoCRM);
 
   // ── Pontos de atenção (derivados) ────────────────────────────────────────────
   const nomes = new Map<string, number>();
@@ -178,7 +174,7 @@ export default async function EnrdRelatorioPage() {
   if (semValor > 0)
     pontos.push({
       t: `${semValor} de ${servicos.length} sem valor lançado`,
-      d: "Serviços marcados com * têm valor estimado (ticket mediano). Enquanto ficarem em branco na fonte, o “a entrar” é estimativa.",
+      d: "Serviços marcados com ⌁ têm valor por rateio do caixa da Cora (não medição). Lançar o valor real no CRM é o que faz o BI parar de subestimar.",
     });
   if (maiorCortesia)
     pontos.push({
@@ -200,7 +196,7 @@ export default async function EnrdRelatorioPage() {
   if (topTicket && servicos.length > 0)
     pontos.push({
       t: `${topTicket.cliente} concentra o mês`,
-      d: `Maior ticket (${BRL(topTicket.valor)}) — ${PCT(cobravel > 0 ? topTicket.valor / cobravel : 0)} do cobrável num só serviço.`,
+      d: `Maior ticket (${BRL(topTicket.valor)}) — ${PCT(recebidoCora > 0 ? topTicket.valor / recebidoCora : 0)} do recebido num só serviço.`,
     });
 
   const semDados = servicos.length === 0;
@@ -240,54 +236,56 @@ export default async function EnrdRelatorioPage() {
           <>
             {/* 01 PANORAMA */}
             <section className="card p-5">
-              <SecHead n="01" title="Panorama" sub="O mês em números" />
+              <SecHead n="01" title="Panorama" sub="O mês em números — ancorado no caixa real (Cora)" />
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Verdade: dinheiro que entrou */}
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-blue-600 flex items-center gap-1">
+                    Recebido na Cora <span className="text-[9px] font-bold bg-blue-600 text-white px-1 rounded">REAL</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700 mt-1">{BRL(recebidoCora)}</div>
+                  <div className="text-xs text-blue-800/70 mt-0.5">{recon.nCoraTx} créditos ENERDY no mês</div>
+                </div>
+                {/* Rastreado no CRM */}
                 <div className="rounded-xl border border-gray-100 p-3.5">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Serviços na agenda</div>
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Logado no CRM</div>
+                  <div className="text-2xl font-bold text-gray-900 mt-1">{BRL(logadoCRM)}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{recon.nLogados} de {servicos.length} serviços com valor</div>
+                </div>
+                {/* Volume executado */}
+                <div className="rounded-xl border border-gray-100 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Executados</div>
                   <div className="text-2xl font-bold text-gray-900 mt-1">{servicos.length}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{riscos.length} em risco · {cortesias.length} cortesia</div>
                 </div>
-                <div className="rounded-xl border border-gray-100 p-3.5">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Total agendado</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">{BRL(totalAgendado)}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">tudo que a equipe executou/agendou</div>
-                </div>
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3.5">
-                  <div className="text-[11px] uppercase tracking-wide text-emerald-600">Cobrável</div>
-                  <div className="text-2xl font-bold text-emerald-700 mt-1">{BRL(cobravel)}</div>
-                  <div className="text-xs text-emerald-800/70 mt-0.5">exclui as cortesias</div>
-                </div>
-                <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5">
-                  <div className="text-[11px] uppercase tracking-wide text-blue-600">Confirmado na Cora</div>
-                  <div className="text-2xl font-bold text-blue-700 mt-1">{BRL(coraConfirmado)}</div>
-                  <div className="text-xs text-blue-800/70 mt-0.5">créditos ENERDY conciliados no mês</div>
+                {/* Resultado do perímetro O&M (Miguel) */}
+                <div className={`rounded-xl border p-3.5 ${resultadoOM >= 0 ? "border-emerald-100 bg-emerald-50/40" : "border-red-100 bg-red-50/40"}`}>
+                  <div className={`text-[11px] uppercase tracking-wide ${resultadoOM >= 0 ? "text-emerald-600" : "text-red-600"}`}>Resultado O&amp;M (Miguel)</div>
+                  <div className={`text-2xl font-bold mt-1 ${resultadoOM >= 0 ? "text-emerald-700" : "text-red-700"}`}>{BRL(resultadoOM)}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">receita real − folha (premissa {BRL(custoFixoPremissa)})</div>
                 </div>
               </div>
 
-              {/* Composição do cobrável */}
-              <div className="mt-4">
-                <div className="text-xs font-medium text-gray-500 mb-2">Composição do cobrável ({BRL(cobravel)})</div>
-                <div className="flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
-                  {cobravel > 0 && (
-                    <>
-                      <div className="bg-emerald-400" style={{ width: `${(somaAVista / cobravel) * 100}%` }} title={`À vista ${BRL(somaAVista)}`} />
-                      <div className="bg-amber-400" style={{ width: `${(somaRisco / cobravel) * 100}%` }} title={`Risco ${BRL(somaRisco)}`} />
-                    </>
-                  )}
+              {/* Fronteira: a pós-venda bancou o caixa da integração */}
+              {suporteIntegracao > 0 && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
+                  <TrendingUp size={14} className="text-amber-600 mt-0.5 shrink-0 rotate-180" />
+                  <p className="text-xs text-amber-900">
+                    <strong>Suporte de caixa à integração: {BRL(suporteIntegracao)}.</strong> Os pagamentos da conta
+                    ENRD foram para <strong>terceirizados da integração</strong> (lado do Felipe), não para a equipe de
+                    O&amp;M. Ou seja, a pós-venda <strong>bancou o caixa da integração</strong> — isso reduz o saldo da
+                    conta ({BRL(recon.saldoCaixa)}) mas <strong>não é custo do O&amp;M</strong> e fica fora do resultado
+                    do Miguel.
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-4 mt-2 text-xs">
-                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /> À vista · {BRL(somaAVista)}</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> Risco/backlog · {BRL(somaRisco)}</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-gray-300" /> Cortesia · {BRL(somaCortesia)} (fora do caixa)</span>
-                </div>
-              </div>
+              )}
 
               <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                O teto é <strong>{BRL(cobravel)}</strong>, mas o que cai na Cora depende da cobrança, não do cliente.
-                Confirmado até agora: <strong>{BRL(coraConfirmado)}</strong>
-                {cobrancaGap > 0 && (
-                  <> — faltam <strong className="text-red-600">{BRL(cobrancaGap)}</strong> de execução de cobrança (recolher, emitir, conciliar).</>
-                )}
+                <strong>{BRL(recebidoCora)}</strong> entraram na Cora (real), mas só <strong>{BRL(logadoCRM)}</strong>{" "}
+                estão lançados no CRM — <strong className="text-red-600">{BRL(gapRastreio)}</strong> de receita recebida
+                <strong> sem rastro</strong>. O O&amp;M está no positivo; o que falta é <strong>lançar e conciliar</strong>{" "}
+                para o BI parar de subestimar. A folha do O&amp;M é premissa (não há folha lançada na Cora) — por isso o
+                resultado é <em>aproximado</em>.
               </p>
             </section>
 
@@ -317,7 +315,7 @@ export default async function EnrdRelatorioPage() {
                         <td className="py-2 pr-3 text-gray-500">{s.local || "—"}</td>
                         <td className="py-2 pr-3 text-right tabular-nums text-gray-800">
                           {BRL(s.valor)}
-                          {s.estimado && <span className="text-orange-400" title="valor estimado">*</span>}
+                          {s.estimado && <span className="text-orange-400" title="rateio do caixa da Cora">⌁</span>}
                         </td>
                         <td className="py-2 pl-3">
                           <span
@@ -338,9 +336,9 @@ export default async function EnrdRelatorioPage() {
                 </table>
               </div>
               <p className="text-[11px] text-gray-400 mt-2">
-                <span className="text-orange-400">*</span> valor estimado (ticket mediano {BRL(ticketMediano)}) — o
-                gestão registra a execução, não o valor. Recebimento é inferido; a forma de pagamento (à vista/parcelado)
-                não vem da fonte.
+                <span className="text-orange-400">⌁</span> valor por <strong>rateio do caixa da Cora</strong> (o total
+                da coluna bate com o que entrou no banco, {BRL(recebidoCora)}) — o gestão registra a execução, não o
+                valor. Recebimento é inferido; a forma de pagamento não vem da fonte.
               </p>
             </section>
 
@@ -371,38 +369,45 @@ export default async function EnrdRelatorioPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                <strong>Leitura:</strong> {cobravel > 0 ? PCT(somaAVista / cobravel) : "—"} do cobrável é à vista e
-                deveria cair na Cora em dias. O que espalha ou arrisca o caixa é o backlog/risco ({BRL(somaRisco)}). Se o
-                à vista for recolhido e conciliado na hora, a maior parte do mês entra rápido — o resto é
-                acompanhamento e cobrança do que ficou pendente.
+                <strong>Leitura:</strong> {somaAVista + somaRisco > 0 ? PCT(somaAVista / (somaAVista + somaRisco + somaCortesia)) : "—"} da
+                execução é à vista e deveria cair na Cora em dias. O que arrisca o caixa é o backlog/risco ({BRL(somaRisco)}).
+                Estes valores são rateio do caixa real — a composição real por forma de pagamento aparece quando o CRM
+                for preenchido.
               </p>
             </section>
 
             {/* 06 RECEBIMENTO NA CORA */}
             <section className="card p-5">
-              <SecHead n="06" title="Recebimento na Cora" sub="Quanto vira caixa" />
+              <SecHead n="06" title="Recebimento na Cora" sub="O caixa real da conta ENRD (bate com /enrd/conciliacao)" />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-xl border border-gray-200 p-4">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Teto (cobrável)</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">{BRL(cobravel)}</div>
-                </div>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                  <div className="text-[11px] uppercase tracking-wide text-blue-500">Confirmado na Cora</div>
-                  <div className="text-2xl font-bold text-blue-700 mt-1">{BRL(coraConfirmado)}</div>
-                  <div className="text-xs text-blue-900/60 mt-0.5">{cobravel > 0 ? PCT(coraConfirmado / cobravel) : "—"} do cobrável</div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="text-[11px] uppercase tracking-wide text-emerald-600">Recebido (AR realizado)</div>
+                  <div className="text-2xl font-bold text-emerald-700 mt-1">{BRL(recebidoCora)}</div>
+                  <div className="text-xs text-emerald-900/60 mt-0.5">receita real que entrou</div>
                 </div>
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                  <div className="text-[11px] uppercase tracking-wide text-red-500">Falta executar (cobrança)</div>
-                  <div className="text-2xl font-bold text-red-700 mt-1">{BRL(cobrancaGap)}</div>
-                  <div className="text-xs text-red-900/60 mt-0.5">não depende do cliente — depende de recolher/conciliar</div>
+                  <div className="text-[11px] uppercase tracking-wide text-red-500">Pagamentos → integração</div>
+                  <div className="text-2xl font-bold text-red-700 mt-1">{BRL(suporteIntegracao)}</div>
+                  <div className="text-xs text-red-900/60 mt-0.5">terceirizados do Felipe — não é custo O&amp;M</div>
+                </div>
+                <div className={`rounded-xl border p-4 ${recon.saldoCaixa >= 0 ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+                  <div className="text-[11px] uppercase tracking-wide text-amber-600">Saldo líquido da conta</div>
+                  <div className={`text-2xl font-bold mt-1 ${recon.saldoCaixa >= 0 ? "text-amber-700" : "text-red-700"}`}>{BRL(recon.saldoCaixa)}</div>
+                  <div className="text-xs text-amber-900/60 mt-0.5">recebido − pagamentos (movimento real)</div>
                 </div>
               </div>
-              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
-                <div className="text-xs font-medium text-gray-500 mb-2">Para fechar o número exato</div>
+              <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                A conta ENRD recebeu <strong>{BRL(recebidoCora)}</strong> e pagou <strong>{BRL(suporteIntegracao)}</strong> —
+                mas esses pagamentos foram para <strong>terceirizados da integração</strong>, não para o O&amp;M. Então o
+                O&amp;M do Miguel está positivo ({BRL(resultadoOM)}); o saldo da conta ({BRL(recon.saldoCaixa)}) é menor
+                porque a pós-venda <strong>subsidiou o caixa da integração</strong>.
+              </p>
+              <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                <div className="text-xs font-medium text-gray-500 mb-2">Para o BI parar de subestimar e o número fechar</div>
                 <ol className="space-y-1 text-xs text-gray-600">
-                  <li className="flex gap-2"><span className="text-gray-400">1.</span> Forma de pagamento de cada OS (à vista / Nx) lançada no CRM.</li>
-                  <li className="flex gap-2"><span className="text-gray-400">2.</span> Extrato da Cora do mês para marcar o que bateu.</li>
-                  <li className="flex gap-2"><span className="text-gray-400">3.</span> Rodar a conciliação ENRD — hoje o gap é {BRL(cobrancaGap)}.</li>
+                  <li className="flex gap-2"><span className="text-gray-400">1.</span> Lançar valor de cada serviço no CRM (hoje {recon.nLogados} de {servicos.length}) — fecha o {BRL(gapRastreio)} de receita sem rastro.</li>
+                  <li className="flex gap-2"><span className="text-gray-400">2.</span> Marcar os pagamentos como <strong>integração</strong> (não O&amp;M) na conciliação, para separar o perímetro.</li>
+                  <li className="flex gap-2"><span className="text-gray-400">3.</span> Lançar a folha real do O&amp;M para o resultado do Miguel deixar de ser premissa.</li>
                 </ol>
               </div>
             </section>

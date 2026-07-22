@@ -19,6 +19,14 @@ type BiResp = {
   hoje: Day;
   dias: Day[];
   mes: { ref: string; custoFixoDia: number; diasNoMes: number; comBonus: boolean };
+  real?: {
+    recebidoCora: number;
+    logadoCRM: number;
+    resultadoOM: number;
+    suporteIntegracao: number;
+    saldoCaixa: number;
+    coraDisponivel: boolean;
+  };
 };
 
 const BRL = (v: number) =>
@@ -134,10 +142,36 @@ export default function EnrdBiDaily() {
         </div>
       </div>
 
+      {/* Caixa REAL (Cora) — âncora, para o BI do CRM não enganar */}
+      {data.real?.coraDisponivel && (
+        <div className="mt-4 pt-3 border-t">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
+            Caixa real na Cora <span className="text-blue-600 normal-case font-normal">(a verdade — bate com a conciliação)</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-2">
+              <div className="text-[9px] uppercase text-blue-500">Recebido</div>
+              <div className="text-base font-bold text-blue-700">{BRL(data.real.recebidoCora)}</div>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2">
+              <div className="text-[9px] uppercase text-gray-400">Logado CRM</div>
+              <div className="text-base font-bold text-gray-900">{BRL(data.real.logadoCRM)}</div>
+            </div>
+            <div className={`rounded-lg border p-2 ${data.real.resultadoOM >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+              <div className="text-[9px] uppercase text-gray-400">Result. O&amp;M</div>
+              <div className={`text-base font-bold ${data.real.resultadoOM >= 0 ? "text-emerald-700" : "text-red-700"}`}>{BRL(data.real.resultadoOM)}</div>
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
+              <div className="text-[9px] uppercase text-amber-600">Supte. integração</div>
+              <div className="text-base font-bold text-amber-700">{BRL(data.real.suporteIntegracao)}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <p className="text-[11px] text-gray-400 mt-3">
-        Faturado = OS de pós-venda realizadas no dia · Gasto = material+combustível do dia + rateio diário do custo
-        fixo (folha/veículo ÷ {data.mes.diasNoMes} dias) · Margem = faturado − gasto. Dias sem OS mostram só o burn
-        fixo (margem negativa) — é a tese do custo fixo diário.
+        As barras acima são o modelo diário do CRM (subnotificado). A <strong>verdade é o caixa da Cora</strong>:
+        recebido − pagamentos. Os pagamentos foram p/ terceirizados da <strong>integração</strong> (Felipe), não O&amp;M.
       </p>
     </div>
   );
