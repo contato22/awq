@@ -115,11 +115,21 @@ export default function LeadModal({
           </label>
 
           <label className="text-xs text-slate-500">
-            Valor (R$)
+            Valor da ação (R$)
             <input
               type="number"
-              value={draft.valor ?? ""}
-              onChange={(e) => field("valor", e.target.value === "" ? null : Number(e.target.value))}
+              value={draft.valorAcao ?? ""}
+              onChange={(e) => field("valorAcao", e.target.value === "" ? null : Number(e.target.value))}
+              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
+            />
+          </label>
+
+          <label className="text-xs text-slate-500">
+            Honorários (R$)
+            <input
+              type="number"
+              value={draft.honorarios ?? ""}
+              onChange={(e) => field("honorarios", e.target.value === "" ? null : Number(e.target.value))}
               className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-teal-400"
             />
           </label>

@@ -77,7 +77,8 @@ export default function PatriciaCantoBoard({ initialLeads }: { initialLeads: Lea
 
   const openLead = leads.find((l) => l.id === openLeadId) ?? null;
 
-  const totalValor = leads.reduce((sum, l) => sum + (l.valor ?? 0), 0);
+  const totalValorAcao = leads.reduce((sum, l) => sum + (l.valorAcao ?? 0), 0);
+  const totalHonorarios = leads.reduce((sum, l) => sum + (l.honorarios ?? 0), 0);
   const ganhos = leads.filter((l) => l.stage === "ganho").length;
 
   return (
@@ -99,13 +100,17 @@ export default function PatriciaCantoBoard({ initialLeads }: { initialLeads: Lea
             </button>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
             <Stat label="Total de leads" value={leads.length.toString()} />
             <Stat label="Qualificados" value={byStage.get("qualificado")?.length.toString() ?? "0"} />
             <Stat label="Fechados (ganho)" value={ganhos.toString()} />
             <Stat
-              label="Valor em pipeline"
-              value={totalValor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              label="Valor das ações"
+              value={totalValorAcao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            />
+            <Stat
+              label="Honorários em pipeline"
+              value={totalHonorarios.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             />
           </div>
 
@@ -124,6 +129,7 @@ export default function PatriciaCantoBoard({ initialLeads }: { initialLeads: Lea
         <div className="flex gap-4 overflow-x-auto pb-4">
           {STAGES.map((stage) => {
             const items = byStage.get(stage.id) ?? [];
+            const stageHonorarios = items.reduce((sum, l) => sum + (l.honorarios ?? 0), 0);
             const isOver = dragOverStage === stage.id;
             return (
               <div
@@ -149,7 +155,10 @@ export default function PatriciaCantoBoard({ initialLeads }: { initialLeads: Lea
                     {items.length}
                   </span>
                 </div>
-                <p className="mb-2 px-1 text-[11px] text-slate-400">{stage.hint}</p>
+                <p className="px-1 text-[11px] text-slate-400">{stage.hint}</p>
+                <p className="mb-2 px-1 text-[11px] font-semibold text-teal-700">
+                  Honorários: {stageHonorarios.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
 
                 <div className="flex min-h-[80px] flex-1 flex-col gap-2">
                   {items.map((lead) => (
