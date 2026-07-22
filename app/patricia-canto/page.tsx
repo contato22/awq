@@ -1,6 +1,11 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import PatriciaCantoBoard from "@/components/patricia-canto/PatriciaCantoBoard";
-import { buildInitialLeads } from "@/lib/patricia-canto/leads";
+import { PC_SESSION_COOKIE, verifySessionToken } from "@/lib/patricia-canto/auth";
 
 export default function PatriciaCantoPage() {
-  return <PatriciaCantoBoard initialLeads={buildInitialLeads()} />;
+  const role = verifySessionToken(cookies().get(PC_SESSION_COOKIE)?.value);
+  if (!role) redirect("/patricia-canto/login");
+
+  return <PatriciaCantoBoard role={role} />;
 }

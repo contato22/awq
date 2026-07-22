@@ -1,90 +1,180 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { Lead, Stage } from "@/lib/patricia-canto/leads";
-import { STAGES } from "@/lib/patricia-canto/leads";
-import LeadCard from "./LeadCard";
-import LeadModal from "./LeadModal";
-import AddLeadModal from "./AddLeadModal";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Channel, Lead, Stage } from "@/lib/patricia-canto/leads";
+import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
+import { createCaseFromLead } from "@/lib/patricia-canto/cases";
+import type { PcRole } from "@/lib/patricia-canto/auth";
+import type { NewLeadInput } from "./AddLeadModal";
+import { pcApi } from "@/lib/patricia-canto/api-client";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
+import GtmView from "./GtmView";
+import ComercialBoard from "./ComercialBoard";
+import CsJuridicoBoard from "./CsJuridicoBoard";
 
-const STORAGE_KEY = "pc-crm-leads-v1";
+type Tab = "gtm" | "comercial" | "cs";
 
-function currency(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+const TABS: { id: Tab; label: string }[] = [
+  { id: "gtm", label: "GTM · Aquisição" },
+  { id: "comercial", label: "Pipeline Comercial" },
+  { id: "cs", label: "CS / Jurídico" },
+];
 
-export default function PatriciaCantoBoard({ initialLeads }: { initialLeads: Lead[] }) {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [hydrated, setHydrated] = useState(false);
-  const [search, setSearch] = useState("");
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
-  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
+const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master" };
 
-  // Load persisted board state once, after the SSR-matching first paint.
+export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>("comercial");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [cases, setCases] = useState<CaseItem[]>([]);
+  const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setLeads(JSON.parse(saved));
-    } catch {
-      // localStorage indisponível (modo privado etc.) — segue com dados padrão.
-    }
-    setHydrated(true);
+    let cancelled = false;
+    Promise.all([pcApi.getLeads(), pcApi.getCases(), pcApi.getInvestment()])
+      .then(([l, c, inv]) => {
+        if (cancelled) return;
+        setLeads(l);
+        setCases(c);
+        setInvestment(inv);
+      })
+      .catch((e) => {
+        if (!cancelled) setLoadError(e.message || "Falha ao carregar dados");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!hydrated) return;
+  function reportSyncError(e: unknown) {
+    setSyncError(e instanceof Error ? e.message : "Falha ao salvar — tente novamente");
+  }
+
+  async function promoteToCase(lead: Lead) {
+    if (cases.some((c) => c.leadId === lead.id)) return;
+    const newCase = createCaseFromLead(lead);
+    setCases((prev) => [...prev, newCase]);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-    } catch {
-      // ignora falha de gravação (quota, modo privado)
+      await pcApi.createCase(newCase);
+    } catch (e) {
+      reportSyncError(e);
     }
-  }, [leads, hydrated]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return leads;
-    return leads.filter(
-      (l) =>
-        l.nomeCliente.toLowerCase().includes(q) ||
-        l.tipoProcesso.toLowerCase().includes(q) ||
-        l.telefone.includes(q),
-    );
-  }, [leads, search]);
-
-  const byStage = useMemo(() => {
-    const map = new Map<Stage, Lead[]>();
-    for (const s of STAGES) map.set(s.id, []);
-    for (const lead of filtered) map.get(lead.stage)?.push(lead);
-    return map;
-  }, [filtered]);
-
-  function moveLead(id: string, stage: Stage) {
-    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, stage } : l)));
   }
 
-  function saveLead(updated: Lead) {
-    setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
-    setOpenLeadId(null);
+  async function moveLead(id: string, stage: Stage) {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead || lead.stage === stage) return;
+    const now = new Date().toISOString();
+    const updated = { ...lead, stage, stageHistory: [...lead.stageHistory, { stage, enteredAt: now }] };
+    setLeads((prev) => prev.map((l) => (l.id === id ? updated : l)));
+    try {
+      await pcApi.updateLead(updated);
+    } catch (e) {
+      reportSyncError(e);
+    }
+    if (stage === "ganho") await promoteToCase(updated);
   }
 
-  function deleteLead(id: string) {
+  async function saveLead(updated: Lead) {
+    const original = leads.find((l) => l.id === updated.id);
+    const next =
+      original && original.stage !== updated.stage
+        ? { ...updated, stageHistory: [...original.stageHistory, { stage: updated.stage, enteredAt: new Date().toISOString() }] }
+        : updated;
+    setLeads((prev) => prev.map((l) => (l.id === next.id ? next : l)));
+    try {
+      await pcApi.updateLead(next);
+    } catch (e) {
+      reportSyncError(e);
+    }
+    if (next.stage === "ganho") await promoteToCase(next);
+  }
+
+  async function deleteLead(id: string) {
     setLeads((prev) => prev.filter((l) => l.id !== id));
-    setOpenLeadId(null);
+    try {
+      await pcApi.deleteLead(id);
+    } catch (e) {
+      reportSyncError(e);
+    }
   }
 
-  function addLead(data: Omit<Lead, "id" | "stage">) {
+  async function addLead(data: NewLeadInput) {
+    const now = new Date().toISOString();
     const id = `pc-custom-${Date.now()}`;
-    setLeads((prev) => [...prev, { ...data, id, stage: "novo" }]);
+    const lead: Lead = {
+      ...data,
+      id,
+      stage: "novo",
+      dataEntrada: now,
+      dataPrimeiroContato: null,
+      stageHistory: [{ stage: "novo", enteredAt: now }],
+    };
+    setLeads((prev) => [...prev, lead]);
+    try {
+      await pcApi.createLead(lead);
+    } catch (e) {
+      reportSyncError(e);
+    }
   }
 
-  const openLead = leads.find((l) => l.id === openLeadId) ?? null;
+  async function moveCase(id: string, stage: CaseStage) {
+    const item = cases.find((c) => c.id === id);
+    if (!item) return;
+    const updated = { ...item, stage, dataUltimaAtualizacao: new Date().toISOString() };
+    setCases((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    try {
+      await pcApi.updateCase(updated);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
 
-  const totalValorAcao = leads.reduce((sum, l) => sum + (l.valorAcao ?? 0), 0);
-  const totalHonorarios = leads.reduce((sum, l) => sum + (l.honorarios ?? 0), 0);
-  const ganhos = leads.filter((l) => l.stage === "ganho").length;
+  async function saveCase(updated: CaseItem) {
+    setCases((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    try {
+      await pcApi.updateCase(updated);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function deleteCase(id: string) {
+    setCases((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await pcApi.deleteCase(id);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function setChannelInvestment(channel: Channel, value: number | null) {
+    const next = { ...investment };
+    if (value == null) delete next[channel];
+    else next[channel] = value;
+    setInvestment(next);
+    try {
+      await pcApi.setInvestment(next);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function logout() {
+    try {
+      await pcApi.logout();
+    } finally {
+      router.replace("/patricia-canto/login");
+      router.refresh();
+    }
+  }
 
   return (
     <div className="min-h-screen bg-canto-50 text-canto-900">
@@ -100,120 +190,87 @@ export default function PatriciaCantoBoard({ initialLeads }: { initialLeads: Lea
                 <p className="-mt-0.5 text-[11px] font-medium tracking-[0.25em] text-canto-300">ADVOGADA</p>
               </div>
             </div>
-            <button
-              onClick={() => setAddOpen(true)}
-              className="rounded-lg bg-canto-300 px-4 py-2.5 text-sm font-semibold text-canto-900 shadow-sm transition hover:bg-canto-200"
-            >
-              + Novo Lead
-            </button>
+            <div className="flex items-center gap-3 text-xs text-canto-300">
+              <span>
+                Logado como <span className="font-semibold text-white">{ROLE_LABEL[role]}</span>
+              </span>
+              <button
+                onClick={logout}
+                className="rounded-lg border border-canto-700 px-3 py-1.5 font-semibold text-canto-200 transition hover:bg-canto-800 hover:text-white"
+              >
+                Sair
+              </button>
+            </div>
           </div>
           <p className="mt-4 text-xs font-medium uppercase tracking-[0.2em] text-canto-400">
-            CRM · Pipeline de Casos Previdenciários e Cíveis
+            CRM · Aquisição → Pipeline Comercial → CS/Jurídico
           </p>
         </div>
+
+        <nav className="mx-auto flex max-w-[1600px] gap-1 px-4 sm:px-6 lg:px-8">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
+                tab === t.id ? "bg-canto-50 text-canto-900" : "text-canto-300 hover:bg-canto-800 hover:text-white"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div className="border-b border-canto-200 bg-white">
-        <div className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <Stat label="Total de leads" value={leads.length.toString()} />
-            <Stat label="Qualificados" value={byStage.get("qualificado")?.length.toString() ?? "0"} />
-            <Stat label="Fechados (ganho)" value={ganhos.toString()} />
-            <Stat label="Valor das ações" value={currency(totalValorAcao)} />
-            <Stat label="Honorários em pipeline" value={currency(totalHonorarios)} accent />
-          </div>
-
-          <div className="mt-4">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, tipo de processo ou telefone..."
-              className="w-full max-w-md rounded-lg border border-canto-200 bg-canto-50 px-3 py-2 font-sans text-sm text-canto-900 placeholder:text-canto-500 outline-none focus:border-canto-500 focus:bg-white sm:w-96"
-            />
+      {syncError && (
+        <div className="mx-auto max-w-[1600px] px-4 pt-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-rose-200">
+            <span>Não foi possível salvar no banco: {syncError}</span>
+            <button onClick={() => setSyncError(null)} className="font-semibold hover:underline">
+              Fechar
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {STAGES.map((stage) => {
-            const items = byStage.get(stage.id) ?? [];
-            const stageHonorarios = items.reduce((sum, l) => sum + (l.honorarios ?? 0), 0);
-            const isOver = dragOverStage === stage.id;
-            return (
-              <div
-                key={stage.id}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOverStage(stage.id);
-                }}
-                onDragLeave={() => setDragOverStage((s) => (s === stage.id ? null : s))}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggingId) moveLead(draggingId, stage.id);
-                  setDraggingId(null);
-                  setDragOverStage(null);
-                }}
-                className={`flex w-72 shrink-0 flex-col rounded-xl border bg-canto-100/70 p-2.5 transition ${
-                  isOver ? "border-canto-500 bg-canto-100" : "border-canto-200"
-                }`}
-              >
-                <div className="mb-1 flex items-center justify-between px-1">
-                  <h2 className="text-sm font-semibold text-canto-900">{stage.label}</h2>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-canto-600 ring-1 ring-canto-200">
-                    {items.length}
-                  </span>
-                </div>
-                <p className="px-1 text-[11px] text-canto-500">{stage.hint}</p>
-                <p className="mb-2 px-1 text-[11px] font-semibold text-canto-700">
-                  Honorários: {currency(stageHonorarios)}
-                </p>
-
-                <div className="flex min-h-[80px] flex-1 flex-col gap-2">
-                  {items.map((lead) => (
-                    <LeadCard
-                      key={lead.id}
-                      lead={lead}
-                      dragging={draggingId === lead.id}
-                      onDragStart={setDraggingId}
-                      onDragEnd={() => {
-                        setDraggingId(null);
-                        setDragOverStage(null);
-                      }}
-                      onOpen={setOpenLeadId}
-                      onMoveStage={moveLead}
-                    />
-                  ))}
-                  {items.length === 0 && (
-                    <div className="rounded-lg border border-dashed border-canto-300 py-6 text-center text-xs text-canto-500">
-                      Nenhum card
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {loading ? (
+          <p className="py-16 text-center text-sm text-canto-500">Carregando dados do banco...</p>
+        ) : loadError ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <p className="font-semibold">Não foi possível carregar os dados.</p>
+            <p className="mt-1">{loadError}</p>
+            <p className="mt-2 text-xs text-rose-600">
+              Se as tabelas ainda não existem, rode a migração em{" "}
+              <code className="rounded bg-rose-100 px-1">/api/patricia-canto/setup/migrate</code> no Supabase SQL
+              Editor.
+            </p>
+          </div>
+        ) : (
+          <>
+            {tab === "gtm" && (
+              <GtmView leads={leads} investment={investment} onInvestmentChange={setChannelInvestment} />
+            )}
+            {tab === "comercial" && (
+              <ComercialBoard
+                leads={leads}
+                onMoveLead={moveLead}
+                onSaveLead={saveLead}
+                onDeleteLead={deleteLead}
+                onAddLead={addLead}
+              />
+            )}
+            {tab === "cs" && (
+              <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
+            )}
+          </>
+        )}
       </main>
 
-      {openLead && (
-        <LeadModal lead={openLead} onClose={() => setOpenLeadId(null)} onSave={saveLead} onDelete={deleteLead} />
-      )}
-      {addOpen && <AddLeadModal onClose={() => setAddOpen(false)} onAdd={addLead} />}
-
       <footer className="mx-auto max-w-[1600px] px-4 pb-8 pt-2 text-center text-[11px] text-canto-500 sm:px-6 lg:px-8">
-        Board local ao seu navegador — alterações ficam salvas neste dispositivo (localStorage), sem
-        sincronizar com a planilha original.
+        Dados salvos no banco (Supabase) — sincronizados entre qualquer dispositivo. Leads marcados como
+        &quot;Fechado — Ganho&quot; no Comercial criam automaticamente um card em CS/Jurídico.
       </footer>
-    </div>
-  );
-}
-
-function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="rounded-lg border border-canto-200 bg-canto-50 px-3 py-2.5">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-canto-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${accent ? "text-canto-700" : "text-canto-900"}`}>{value}</p>
     </div>
   );
 }

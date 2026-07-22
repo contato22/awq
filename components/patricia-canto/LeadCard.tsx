@@ -1,7 +1,7 @@
 "use client";
 
 import type { Lead, Stage } from "@/lib/patricia-canto/leads";
-import { STAGES } from "@/lib/patricia-canto/leads";
+import { STAGES, STAGE_SLA_DAYS, daysInCurrentStage } from "@/lib/patricia-canto/leads";
 
 const PRIORITY_STYLES: Record<string, string> = {
   Alta: "bg-orange-50 text-orange-800 ring-1 ring-orange-200",
@@ -41,6 +41,10 @@ export default function LeadCard({
 }) {
   const whatsappDigits = lead.telefone.replace(/\D/g, "");
   const canWhatsapp = whatsappDigits.length >= 10;
+  const sla = STAGE_SLA_DAYS[lead.stage];
+  const days = daysInCurrentStage(lead);
+  const isLate = sla != null && days > sla;
+  const isWarning = sla != null && days === sla;
 
   return (
     <div
@@ -68,7 +72,17 @@ export default function LeadCard({
         )}
       </div>
 
-      <p className="mt-1 text-xs font-medium text-canto-600">{lead.tipoProcesso}</p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-canto-600">{lead.tipoProcesso}</p>
+        <span
+          className={`shrink-0 text-[10px] font-semibold ${
+            isLate ? "text-rose-600" : isWarning ? "text-amber-600" : "text-canto-400"
+          }`}
+          title={sla != null ? `SLA do estágio: ${sla} dia(s)` : undefined}
+        >
+          {days === 0 ? "hoje" : `${days}d`} no estágio
+        </span>
+      </div>
 
       <div className="mt-2 flex items-center justify-between text-xs text-canto-500">
         <span>{formatPhone(lead.telefone)}</span>
@@ -105,7 +119,10 @@ export default function LeadCard({
       )}
 
       {lead.origem && (
-        <p className="mt-2 text-[11px] text-canto-400">Origem: {lead.origem}</p>
+        <p className="mt-2 text-[11px] text-canto-400">
+          Origem: {lead.origem}
+          {lead.indicadoPor ? ` (${lead.indicadoPor})` : ""}
+        </p>
       )}
 
       <div
