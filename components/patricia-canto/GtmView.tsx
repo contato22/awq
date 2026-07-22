@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import type { Channel, Lead } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
+import { computeGtmMetrics } from "@/lib/patricia-canto/metrics";
+import StatTile from "./StatTile";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -17,38 +19,21 @@ export default function GtmView({
   investment: Partial<Record<Channel, number>>;
   onInvestmentChange: (channel: Channel, value: number | null) => void;
 }) {
-  const byChannel = useMemo(() => {
-    return CHANNELS.map((c) => {
-      const channelLeads = leads.filter((l) => l.origem === c.id);
-      const won = channelLeads.filter((l) => l.stage === "ganho");
-      const inv = investment[c.id];
-      return {
-        ...c,
-        total: channelLeads.length,
-        won: won.length,
-        conversao: channelLeads.length > 0 ? (won.length / channelLeads.length) * 100 : null,
-        cac: inv != null && channelLeads.length > 0 ? inv / channelLeads.length : null,
-      };
-    });
-  }, [leads, investment]);
-
-  const semOrigem = leads.filter((l) => !l.origem).length;
-  const pctSemOrigem = leads.length > 0 ? (semOrigem / leads.length) * 100 : 0;
-
-  const slaHoras = useMemo(() => {
-    const pares = leads
-      .filter((l) => l.dataPrimeiroContato)
-      .map((l) => (new Date(l.dataPrimeiroContato!).getTime() - new Date(l.dataEntrada).getTime()) / 3_600_000)
-      .filter((h) => h >= 0);
-    return pares.length > 0 ? pares.reduce((a, b) => a + b, 0) / pares.length : null;
-  }, [leads]);
+  const metrics = useMemo(() => computeGtmMetrics(leads, investment), [leads, investment]);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat label="Leads sem origem preenchida" value={`${semOrigem} (${pctSemOrigem.toFixed(0)}%)`} warn={pctSemOrigem > 20} />
-        <Stat label="SLA médio de 1º contato" value={slaHoras == null ? "— (sem dados)" : `${slaHoras.toFixed(1)}h`} />
-        <Stat label="Meta de SLA" value="< 1h em horário comercial" />
+        <StatTile
+          label="Leads sem origem preenchida"
+          value={`${metrics.semOrigem} (${metrics.pctSemOrigem.toFixed(0)}%)`}
+          variant={metrics.pctSemOrigem > 20 ? "warn" : "default"}
+        />
+        <StatTile
+          label="SLA médio de 1º contato"
+          value={metrics.slaHoras == null ? "— (sem dados)" : `${metrics.slaHoras.toFixed(1)}h`}
+        />
+        <StatTile label="Meta de SLA" value="< 1h em horário comercial" />
       </div>
 
       <div className="rounded-xl border border-canto-200 bg-white p-4">
@@ -70,7 +55,7 @@ export default function GtmView({
               </tr>
             </thead>
             <tbody>
-              {byChannel.map((c) => (
+              {metrics.byChannel.map((c) => (
                 <tr key={c.id} className="border-b border-canto-100 last:border-0">
                   <td className="py-2 pr-3 font-medium text-canto-900">{c.id}</td>
                   <td className="py-2 pr-3 text-canto-500">{c.tipo}</td>
@@ -101,15 +86,6 @@ export default function GtmView({
           ))}
         </ul>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
-  return (
-    <div className={`rounded-lg border px-3 py-2.5 ${warn ? "border-amber-300 bg-amber-50" : "border-canto-200 bg-canto-50"}`}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-canto-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${warn ? "text-amber-700" : "text-canto-900"}`}>{value}</p>
     </div>
   );
 }
