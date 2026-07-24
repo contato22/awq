@@ -2,6 +2,7 @@
 
 import type { Lead, Channel } from "./leads";
 import type { CaseItem } from "./cases";
+import type { Lancamento } from "./financeiro";
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -29,6 +30,14 @@ export const pcApi = {
   updateCase: (item: CaseItem) =>
     req(`/api/patricia-canto/cases/${item.id}`, { method: "PATCH", body: JSON.stringify(item) }),
   deleteCase: (id: string) => req(`/api/patricia-canto/cases/${id}`, { method: "DELETE" }),
+
+  getLancamentos: () =>
+    req<{ lancamentos: Lancamento[] }>("/api/patricia-canto/lancamentos").then((d) => d.lancamentos),
+  createLancamento: (item: Lancamento) =>
+    req("/api/patricia-canto/lancamentos", { method: "POST", body: JSON.stringify(item) }),
+  updateLancamento: (item: Lancamento) =>
+    req(`/api/patricia-canto/lancamentos/${item.id}`, { method: "PATCH", body: JSON.stringify(item) }),
+  deleteLancamento: (id: string) => req(`/api/patricia-canto/lancamentos/${id}`, { method: "DELETE" }),
 
   getInvestment: () =>
     req<{ investment: Partial<Record<Channel, number>> }>("/api/patricia-canto/settings").then((d) => d.investment),
