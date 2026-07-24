@@ -62,17 +62,38 @@ CREATE TABLE IF NOT EXISTS patricia_canto_settings (
   value  JSONB NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_pc_leads_stage   ON patricia_canto_leads(stage);
-CREATE INDEX IF NOT EXISTS idx_pc_cases_stage   ON patricia_canto_cases(stage);
-CREATE INDEX IF NOT EXISTS idx_pc_cases_lead_id ON patricia_canto_cases(lead_id);
+-- Financeiro: um único tipo de lançamento (tipo = 'receita' | 'despesa')
+-- serve tanto contas a receber quanto contas a pagar. DFC usa data_liquidacao
+-- (regime de caixa); DRE usa data_vencimento (regime de competência).
+CREATE TABLE IF NOT EXISTS patricia_canto_lancamentos (
+  id                TEXT PRIMARY KEY,
+  tipo              TEXT NOT NULL,
+  lead_id           TEXT,
+  contraparte       TEXT NOT NULL,
+  descricao         TEXT NOT NULL,
+  categoria         TEXT NOT NULL,
+  valor             NUMERIC NOT NULL,
+  data_vencimento   TEXT NOT NULL,
+  data_liquidacao   TEXT,
+  status            TEXT NOT NULL DEFAULT 'pendente',
+  observacao        TEXT,
+  data_criacao      TEXT NOT NULL
+);
 
--- Dado pessoal de cliente (nome/telefone/caso) — RLS ativado e sem nenhuma
--- policy, ou seja, fechado por padrão. A service role key (única que o app
--- usa para essas tabelas) ignora RLS, então continua funcionando; a anon
--- key (pública, hardcoded no código) não enxerga nada aqui.
-ALTER TABLE patricia_canto_leads     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_cases     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_settings  ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_pc_leads_stage        ON patricia_canto_leads(stage);
+CREATE INDEX IF NOT EXISTS idx_pc_cases_stage        ON patricia_canto_cases(stage);
+CREATE INDEX IF NOT EXISTS idx_pc_cases_lead_id      ON patricia_canto_cases(lead_id);
+CREATE INDEX IF NOT EXISTS idx_pc_lancamentos_tipo   ON patricia_canto_lancamentos(tipo);
+CREATE INDEX IF NOT EXISTS idx_pc_lancamentos_venc   ON patricia_canto_lancamentos(data_vencimento);
+
+-- Dado pessoal de cliente (nome/telefone/caso/financeiro) — RLS ativado e
+-- sem nenhuma policy, ou seja, fechado por padrão. A service role key
+-- (única que o app usa para essas tabelas) ignora RLS, então continua
+-- funcionando; a anon key (pública, hardcoded no código) não enxerga nada aqui.
+ALTER TABLE patricia_canto_leads        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_cases        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_settings     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_lancamentos  ENABLE ROW LEVEL SECURITY;
 `;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

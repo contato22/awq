@@ -5,22 +5,27 @@ import { useRouter } from "next/navigation";
 import type { Channel, Lead, Stage } from "@/lib/patricia-canto/leads";
 import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
 import { createCaseFromLead } from "@/lib/patricia-canto/cases";
+import type { Lancamento } from "@/lib/patricia-canto/financeiro";
+import { createReceitaFromLead } from "@/lib/patricia-canto/financeiro";
 import type { PcRole } from "@/lib/patricia-canto/auth";
 import type { NewLeadInput } from "./AddLeadModal";
+import type { NewLancamentoInput } from "./AddLancamentoModal";
 import { pcApi } from "@/lib/patricia-canto/api-client";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
 import BiOverview from "./BiOverview";
 import GtmView from "./GtmView";
 import ComercialBoard from "./ComercialBoard";
 import CsJuridicoBoard from "./CsJuridicoBoard";
+import FinanceiroView from "./FinanceiroView";
 
-type Tab = "bi" | "gtm" | "comercial" | "cs";
+type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "bi", label: "BI · Visão Geral" },
   { id: "gtm", label: "GTM · Aquisição" },
   { id: "comercial", label: "Pipeline Comercial" },
   { id: "cs", label: "CS / Jurídico" },
+  { id: "financeiro", label: "Financeiro" },
 ];
 
 const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master" };
@@ -30,6 +35,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const [tab, setTab] = useState<Tab>("bi");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -37,11 +43,12 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([pcApi.getLeads(), pcApi.getCases(), pcApi.getInvestment()])
-      .then(([l, c, inv]) => {
+    Promise.all([pcApi.getLeads(), pcApi.getCases(), pcApi.getLancamentos(), pcApi.getInvestment()])
+      .then(([l, c, f, inv]) => {
         if (cancelled) return;
         setLeads(l);
         setCases(c);
+        setLancamentos(f);
         setInvestment(inv);
       })
       .catch((e) => {
@@ -70,6 +77,17 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
+  async function promoteToReceita(lead: Lead) {
+    if (lancamentos.some((l) => l.leadId === lead.id)) return;
+    const receita = createReceitaFromLead(lead);
+    setLancamentos((prev) => [...prev, receita]);
+    try {
+      await pcApi.createLancamento(receita);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
   async function moveLead(id: string, stage: Stage) {
     const lead = leads.find((l) => l.id === id);
     if (!lead || lead.stage === stage) return;
@@ -81,7 +99,10 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     } catch (e) {
       reportSyncError(e);
     }
-    if (stage === "ganho") await promoteToCase(updated);
+    if (stage === "ganho") {
+      await promoteToCase(updated);
+      await promoteToReceita(updated);
+    }
   }
 
   async function saveLead(updated: Lead) {
@@ -96,7 +117,10 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     } catch (e) {
       reportSyncError(e);
     }
-    if (next.stage === "ganho") await promoteToCase(next);
+    if (next.stage === "ganho") {
+      await promoteToCase(next);
+      await promoteToReceita(next);
+    }
   }
 
   async function deleteLead(id: string) {
@@ -157,6 +181,35 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
+  async function addLancamento(data: NewLancamentoInput) {
+    const now = new Date().toISOString();
+    const item: Lancamento = { ...data, id: `lanc-custom-${Date.now()}`, leadId: null, dataCriacao: now };
+    setLancamentos((prev) => [...prev, item]);
+    try {
+      await pcApi.createLancamento(item);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function saveLancamento(updated: Lancamento) {
+    setLancamentos((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+    try {
+      await pcApi.updateLancamento(updated);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function deleteLancamento(id: string) {
+    setLancamentos((prev) => prev.filter((l) => l.id !== id));
+    try {
+      await pcApi.deleteLancamento(id);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
   async function setChannelInvestment(channel: Channel, value: number | null) {
     const next = { ...investment };
     if (value == null) delete next[channel];
@@ -205,7 +258,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
             </div>
           </div>
           <p className="mt-4 text-xs font-medium uppercase tracking-[0.2em] text-canto-400">
-            CRM · Aquisição → Pipeline Comercial → CS/Jurídico
+            CRM · Aquisição → Pipeline Comercial → CS/Jurídico → Financeiro
           </p>
         </div>
 
@@ -265,6 +318,14 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
             )}
             {tab === "cs" && (
               <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
+            )}
+            {tab === "financeiro" && (
+              <FinanceiroView
+                lancamentos={lancamentos}
+                onAdd={addLancamento}
+                onSave={saveLancamento}
+                onDelete={deleteLancamento}
+              />
             )}
           </>
         )}

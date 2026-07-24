@@ -10,6 +10,7 @@
 import { erpAdmin } from "@/lib/supabase";
 import type { Lead, Stage, StageEvent, Channel, Priority } from "./leads";
 import type { CaseItem, CaseStage, Resultado } from "./cases";
+import type { Lancamento, TipoLancamento, StatusLancamento } from "./financeiro";
 
 const db = erpAdmin;
 
@@ -154,6 +155,62 @@ export async function upsertCase(item: CaseItem): Promise<void> {
 export async function deleteCase(id: string): Promise<void> {
   if (!db) throw new Error("Supabase não configurado");
   const { error } = await db.from("patricia_canto_cases").delete().eq("id", id);
+  if (error) throw error;
+}
+
+function rowToLancamento(r: Row): Lancamento {
+  return {
+    id: r.id as string,
+    tipo: r.tipo as TipoLancamento,
+    leadId: (r.lead_id as string) ?? null,
+    contraparte: r.contraparte as string,
+    descricao: r.descricao as string,
+    categoria: r.categoria as string,
+    valor: r.valor as number,
+    dataVencimento: r.data_vencimento as string,
+    dataLiquidacao: (r.data_liquidacao as string) ?? null,
+    status: r.status as StatusLancamento,
+    observacao: (r.observacao as string) ?? null,
+    dataCriacao: r.data_criacao as string,
+  };
+}
+
+function lancamentoToRow(l: Lancamento): Row {
+  return {
+    id: l.id,
+    tipo: l.tipo,
+    lead_id: l.leadId,
+    contraparte: l.contraparte,
+    descricao: l.descricao,
+    categoria: l.categoria,
+    valor: l.valor,
+    data_vencimento: l.dataVencimento,
+    data_liquidacao: l.dataLiquidacao,
+    status: l.status,
+    observacao: l.observacao,
+    data_criacao: l.dataCriacao,
+  };
+}
+
+export async function getLancamentos(): Promise<Lancamento[]> {
+  if (!db) throw new Error("Supabase não configurado");
+  const { data, error } = await db
+    .from("patricia_canto_lancamentos")
+    .select("*")
+    .order("data_vencimento", { ascending: true });
+  if (error) throw error;
+  return (data as Row[]).map(rowToLancamento);
+}
+
+export async function upsertLancamento(item: Lancamento): Promise<void> {
+  if (!db) throw new Error("Supabase não configurado");
+  const { error } = await db.from("patricia_canto_lancamentos").upsert(lancamentoToRow(item));
+  if (error) throw error;
+}
+
+export async function deleteLancamento(id: string): Promise<void> {
+  if (!db) throw new Error("Supabase não configurado");
+  const { error } = await db.from("patricia_canto_lancamentos").delete().eq("id", id);
   if (error) throw error;
 }
 
