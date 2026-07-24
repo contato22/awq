@@ -44,11 +44,35 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   useEffect(() => {
     let cancelled = false;
     Promise.all([pcApi.getLeads(), pcApi.getCases(), pcApi.getLancamentos(), pcApi.getInvestment()])
-      .then(([l, c, f, inv]) => {
+      .then(async ([l, c, f, inv]) => {
+        if (cancelled) return;
+
+        // Backfill: leads que já estavam "Fechado — Ganho" antes de CS/Jurídico
+        // ou Financeiro existirem nunca passaram pelo evento de promoção
+        // (moveLead/saveLead só dispara na transição de estágio). Reconcilia
+        // na carga, comparando por leadId — idempotente, roda toda vez mas só
+        // cria o que ainda falta.
+        const ganhos = l.filter((lead) => lead.stage === "ganho");
+        const missingCases = ganhos.filter((lead) => !c.some((item) => item.leadId === lead.id)).map(createCaseFromLead);
+        const missingReceitas = ganhos
+          .filter((lead) => !f.some((item) => item.leadId === lead.id))
+          .map(createReceitaFromLead);
+
+        if (missingCases.length > 0 || missingReceitas.length > 0) {
+          try {
+            await Promise.all([
+              ...missingCases.map((item) => pcApi.createCase(item)),
+              ...missingReceitas.map((item) => pcApi.createLancamento(item)),
+            ]);
+          } catch (e) {
+            reportSyncError(e);
+          }
+        }
+
         if (cancelled) return;
         setLeads(l);
-        setCases(c);
-        setLancamentos(f);
+        setCases([...c, ...missingCases]);
+        setLancamentos([...f, ...missingReceitas]);
         setInvestment(inv);
       })
       .catch((e) => {
