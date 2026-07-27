@@ -5,7 +5,7 @@ import PatriciaCantoLogo from "./PatriciaCantoLogo";
 
 export type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro";
 
-const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master" };
+const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master", mkt: "Ana (Marketing)" };
 
 function IconChart(props: React.SVGProps<SVGSVGElement>) {
   return (
