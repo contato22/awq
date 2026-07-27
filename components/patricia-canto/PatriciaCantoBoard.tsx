@@ -11,28 +11,25 @@ import type { PcRole } from "@/lib/patricia-canto/auth";
 import type { NewLeadInput } from "./AddLeadModal";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
 import { pcApi } from "@/lib/patricia-canto/api-client";
-import PatriciaCantoLogo from "./PatriciaCantoLogo";
+import PatriciaCantoSidebar, { type Tab } from "./PatriciaCantoSidebar";
 import BiOverview from "./BiOverview";
 import GtmView from "./GtmView";
 import ComercialBoard from "./ComercialBoard";
 import CsJuridicoBoard from "./CsJuridicoBoard";
 import FinanceiroView from "./FinanceiroView";
 
-type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "bi", label: "BI · Visão Geral" },
-  { id: "gtm", label: "GTM · Aquisição" },
-  { id: "comercial", label: "Pipeline Comercial" },
-  { id: "cs", label: "CS / Jurídico" },
-  { id: "financeiro", label: "Financeiro" },
-];
-
-const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master" };
+const TAB_LABEL: Record<Tab, string> = {
+  bi: "BI · Visão Geral",
+  gtm: "GTM · Aquisição",
+  comercial: "Pipeline Comercial",
+  cs: "CS / Jurídico",
+  financeiro: "Financeiro",
+};
 
 export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("bi");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
@@ -256,109 +253,94 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   }
 
   return (
-    <div className="min-h-screen bg-canto-50 text-canto-900">
-      <header className="bg-canto-900">
-        <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <PatriciaCantoLogo className="h-12 w-12 shrink-0" shieldColor="#FFFFFF" markColor="#847455" />
-              <div>
-                <h1 className="font-canto-serif text-2xl font-semibold tracking-wide text-white">
-                  Patrícia Canto
-                </h1>
-                <p className="-mt-0.5 text-[11px] font-medium tracking-[0.25em] text-canto-300">ADVOGADA</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-canto-300">
-              <span>
-                Logado como <span className="font-semibold text-white">{ROLE_LABEL[role]}</span>
-              </span>
-              <button
-                onClick={logout}
-                className="rounded-lg border border-canto-700 px-3 py-1.5 font-semibold text-canto-200 transition hover:bg-canto-800 hover:text-white"
-              >
-                Sair
+    <div className="flex min-h-screen bg-canto-50 text-canto-900">
+      <PatriciaCantoSidebar
+        tab={tab}
+        onSelect={setTab}
+        role={role}
+        onLogout={logout}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between bg-canto-900 px-4 py-3 lg:hidden">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="rounded-lg p-1.5 text-canto-200 hover:bg-canto-800 hover:text-white"
+            aria-label="Abrir menu"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+              <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span className="text-sm font-semibold text-white">{TAB_LABEL[tab]}</span>
+          <div className="w-8" />
+        </div>
+
+        {syncError && (
+          <div className="px-4 pt-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-rose-200">
+              <span>Não foi possível salvar no banco: {syncError}</span>
+              <button onClick={() => setSyncError(null)} className="font-semibold hover:underline">
+                Fechar
               </button>
             </div>
           </div>
-          <p className="mt-4 text-xs font-medium uppercase tracking-[0.2em] text-canto-400">
-            CRM · Aquisição → Pipeline Comercial → CS/Jurídico → Financeiro
-          </p>
-        </div>
-
-        <nav className="mx-auto flex max-w-[1600px] gap-1 px-4 sm:px-6 lg:px-8">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
-                tab === t.id ? "bg-canto-50 text-canto-900" : "text-canto-300 hover:bg-canto-800 hover:text-white"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      {syncError && (
-        <div className="mx-auto max-w-[1600px] px-4 pt-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-rose-200">
-            <span>Não foi possível salvar no banco: {syncError}</span>
-            <button onClick={() => setSyncError(null)} className="font-semibold hover:underline">
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
-
-      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-        {loading ? (
-          <p className="py-16 text-center text-sm text-canto-500">Carregando dados do banco...</p>
-        ) : loadError ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            <p className="font-semibold">Não foi possível carregar os dados.</p>
-            <p className="mt-1">{loadError}</p>
-            <p className="mt-2 text-xs text-rose-600">
-              Se as tabelas ainda não existem, rode a migração em{" "}
-              <code className="rounded bg-rose-100 px-1">/api/patricia-canto/setup/migrate</code> no Supabase SQL
-              Editor.
-            </p>
-          </div>
-        ) : (
-          <>
-            {tab === "bi" && <BiOverview leads={leads} cases={cases} investment={investment} />}
-            {tab === "gtm" && (
-              <GtmView leads={leads} investment={investment} onInvestmentChange={setChannelInvestment} />
-            )}
-            {tab === "comercial" && (
-              <ComercialBoard
-                leads={leads}
-                onMoveLead={moveLead}
-                onSaveLead={saveLead}
-                onDeleteLead={deleteLead}
-                onAddLead={addLead}
-              />
-            )}
-            {tab === "cs" && (
-              <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
-            )}
-            {tab === "financeiro" && (
-              <FinanceiroView
-                lancamentos={lancamentos}
-                onAdd={addLancamento}
-                onSave={saveLancamento}
-                onDelete={deleteLancamento}
-              />
-            )}
-          </>
         )}
-      </main>
 
-      <footer className="mx-auto max-w-[1600px] px-4 pb-8 pt-2 text-center text-[11px] text-canto-500 sm:px-6 lg:px-8">
-        Dados salvos no banco (Supabase) — sincronizados entre qualquer dispositivo. Leads marcados como
-        &quot;Fechado — Ganho&quot; no Comercial criam automaticamente um card em CS/Jurídico.
-      </footer>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <h1 className="mb-6 hidden font-canto-serif text-2xl font-semibold text-canto-900 lg:block">
+            {TAB_LABEL[tab]}
+          </h1>
+          {loading ? (
+            <p className="py-16 text-center text-sm text-canto-500">Carregando dados do banco...</p>
+          ) : loadError ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              <p className="font-semibold">Não foi possível carregar os dados.</p>
+              <p className="mt-1">{loadError}</p>
+              <p className="mt-2 text-xs text-rose-600">
+                Se as tabelas ainda não existem, rode a migração em{" "}
+                <code className="rounded bg-rose-100 px-1">/api/patricia-canto/setup/migrate</code> no Supabase SQL
+                Editor.
+              </p>
+            </div>
+          ) : (
+            <>
+              {tab === "bi" && <BiOverview leads={leads} cases={cases} investment={investment} />}
+              {tab === "gtm" && (
+                <GtmView leads={leads} investment={investment} onInvestmentChange={setChannelInvestment} />
+              )}
+              {tab === "comercial" && (
+                <ComercialBoard
+                  leads={leads}
+                  onMoveLead={moveLead}
+                  onSaveLead={saveLead}
+                  onDeleteLead={deleteLead}
+                  onAddLead={addLead}
+                />
+              )}
+              {tab === "cs" && (
+                <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
+              )}
+              {tab === "financeiro" && (
+                <FinanceiroView
+                  lancamentos={lancamentos}
+                  onAdd={addLancamento}
+                  onSave={saveLancamento}
+                  onDelete={deleteLancamento}
+                />
+              )}
+            </>
+          )}
+        </main>
+
+        <footer className="px-4 pb-8 pt-2 text-center text-[11px] text-canto-500 sm:px-6 lg:px-8">
+          Dados salvos no banco (Supabase) — sincronizados entre qualquer dispositivo. Leads marcados como
+          &quot;Fechado — Ganho&quot; no Comercial criam automaticamente um card em CS/Jurídico e uma receita em
+          Financeiro.
+        </footer>
+      </div>
     </div>
   );
 }
