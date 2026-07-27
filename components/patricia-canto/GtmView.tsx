@@ -1,16 +1,84 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Channel, Lead } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
 import { computeGtmMetrics } from "@/lib/patricia-canto/metrics";
+import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
 import StatTile from "./StatTile";
+import ComunicacaoView from "./ComunicacaoView";
+import MarketSizingView from "./MarketSizingView";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+type SubTab = "canais" | "comunicacao" | "mercado";
+
+const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "canais", label: "Canais" },
+  { id: "comunicacao", label: "Comunicação" },
+  { id: "mercado", label: "TAM / SAM / SOM" },
+];
+
 export default function GtmView({
+  leads,
+  investment,
+  onInvestmentChange,
+  comunicacoes,
+  onAddComunicacao,
+  onSaveComunicacao,
+  onDeleteComunicacao,
+  marketSizing,
+  onSaveMarketSizing,
+}: {
+  leads: Lead[];
+  investment: Partial<Record<Channel, number>>;
+  onInvestmentChange: (channel: Channel, value: number | null) => void;
+  comunicacoes: ComunicacaoItem[];
+  onAddComunicacao: (item: NewComunicacaoInput) => void;
+  onSaveComunicacao: (item: ComunicacaoItem) => void;
+  onDeleteComunicacao: (id: string) => void;
+  marketSizing: MarketSizing;
+  onSaveMarketSizing: (market: MarketSizing) => void;
+}) {
+  const [subTab, setSubTab] = useState<SubTab>("canais");
+
+  return (
+    <div>
+      <div className="flex gap-1 rounded-lg bg-canto-100 p-1">
+        {SUB_TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+              subTab === t.id ? "bg-white text-canto-900 shadow-sm" : "text-canto-600 hover:text-canto-900"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4">
+        {subTab === "canais" && <CanaisView leads={leads} investment={investment} onInvestmentChange={onInvestmentChange} />}
+        {subTab === "comunicacao" && (
+          <ComunicacaoView
+            items={comunicacoes}
+            onAdd={onAddComunicacao}
+            onSave={onSaveComunicacao}
+            onDelete={onDeleteComunicacao}
+          />
+        )}
+        {subTab === "mercado" && (
+          <MarketSizingView leads={leads} marketSizing={marketSizing} onSave={onSaveMarketSizing} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CanaisView({
   leads,
   investment,
   onInvestmentChange,

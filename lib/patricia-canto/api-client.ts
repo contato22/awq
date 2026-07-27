@@ -3,6 +3,7 @@
 import type { Lead, Channel } from "./leads";
 import type { CaseItem } from "./cases";
 import type { Lancamento } from "./financeiro";
+import type { ComunicacaoItem, MarketSizing } from "./gtm-extra";
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -38,6 +39,16 @@ export const pcApi = {
   updateLancamento: (item: Lancamento) =>
     req(`/api/patricia-canto/lancamentos/${item.id}`, { method: "PATCH", body: JSON.stringify(item) }),
   deleteLancamento: (id: string) => req(`/api/patricia-canto/lancamentos/${id}`, { method: "DELETE" }),
+
+  getComunicacoes: () =>
+    req<{ comunicacoes: ComunicacaoItem[] }>("/api/patricia-canto/comunicacoes").then((d) => d.comunicacoes),
+  setComunicacoes: (items: ComunicacaoItem[]) =>
+    req("/api/patricia-canto/comunicacoes", { method: "PUT", body: JSON.stringify(items) }),
+
+  getMarketSizing: () =>
+    req<{ marketSizing: MarketSizing }>("/api/patricia-canto/market-sizing").then((d) => d.marketSizing),
+  setMarketSizing: (marketSizing: MarketSizing) =>
+    req("/api/patricia-canto/market-sizing", { method: "PUT", body: JSON.stringify(marketSizing) }),
 
   getInvestment: () =>
     req<{ investment: Partial<Record<Channel, number>> }>("/api/patricia-canto/settings").then((d) => d.investment),

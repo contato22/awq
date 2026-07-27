@@ -7,6 +7,8 @@ import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
 import { createCaseFromLead } from "@/lib/patricia-canto/cases";
 import type { Lancamento } from "@/lib/patricia-canto/financeiro";
 import { createReceitaFromLead } from "@/lib/patricia-canto/financeiro";
+import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
+import { EMPTY_MARKET_SIZING } from "@/lib/patricia-canto/gtm-extra";
 import type { PcRole } from "@/lib/patricia-canto/auth";
 import type { NewLeadInput } from "./AddLeadModal";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
@@ -33,6 +35,8 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [comunicacoes, setComunicacoes] = useState<ComunicacaoItem[]>([]);
+  const [marketSizing, setMarketSizing] = useState<MarketSizing>(EMPTY_MARKET_SIZING);
   const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -40,8 +44,15 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([pcApi.getLeads(), pcApi.getCases(), pcApi.getLancamentos(), pcApi.getInvestment()])
-      .then(async ([l, c, f, inv]) => {
+    Promise.all([
+      pcApi.getLeads(),
+      pcApi.getCases(),
+      pcApi.getLancamentos(),
+      pcApi.getInvestment(),
+      pcApi.getComunicacoes(),
+      pcApi.getMarketSizing(),
+    ])
+      .then(async ([l, c, f, inv, com, market]) => {
         if (cancelled) return;
 
         // Backfill: leads que já estavam "Fechado — Ganho" antes de CS/Jurídico
@@ -71,6 +82,8 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
         setCases([...c, ...missingCases]);
         setLancamentos([...f, ...missingReceitas]);
         setInvestment(inv);
+        setComunicacoes(com);
+        setMarketSizing(market);
       })
       .catch((e) => {
         if (!cancelled) setLoadError(e.message || "Falha ao carregar dados");
@@ -243,6 +256,46 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
+  async function addComunicacao(data: NewComunicacaoInput) {
+    const item: ComunicacaoItem = { ...data, id: `com-${Date.now()}` };
+    const next = [...comunicacoes, item];
+    setComunicacoes(next);
+    try {
+      await pcApi.setComunicacoes(next);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function saveComunicacao(updated: ComunicacaoItem) {
+    const next = comunicacoes.map((c) => (c.id === updated.id ? updated : c));
+    setComunicacoes(next);
+    try {
+      await pcApi.setComunicacoes(next);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function deleteComunicacao(id: string) {
+    const next = comunicacoes.filter((c) => c.id !== id);
+    setComunicacoes(next);
+    try {
+      await pcApi.setComunicacoes(next);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function saveMarketSizing(market: MarketSizing) {
+    setMarketSizing(market);
+    try {
+      await pcApi.setMarketSizing(market);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
   async function logout() {
     try {
       await pcApi.logout();
@@ -309,7 +362,17 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
             <>
               {tab === "bi" && <BiOverview leads={leads} cases={cases} investment={investment} />}
               {tab === "gtm" && (
-                <GtmView leads={leads} investment={investment} onInvestmentChange={setChannelInvestment} />
+                <GtmView
+                  leads={leads}
+                  investment={investment}
+                  onInvestmentChange={setChannelInvestment}
+                  comunicacoes={comunicacoes}
+                  onAddComunicacao={addComunicacao}
+                  onSaveComunicacao={saveComunicacao}
+                  onDeleteComunicacao={deleteComunicacao}
+                  marketSizing={marketSizing}
+                  onSaveMarketSizing={saveMarketSizing}
+                />
               )}
               {tab === "comercial" && (
                 <ComercialBoard
