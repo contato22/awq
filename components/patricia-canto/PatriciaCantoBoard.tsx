@@ -317,103 +317,107 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-canto-50 text-canto-900">
-      <PatriciaCantoSidebar
-        tab={tab}
-        onSelect={setTab}
-        role={role}
-        onLogout={logout}
-        mobileOpen={mobileNavOpen}
-        onMobileClose={() => setMobileNavOpen(false)}
-      />
+    <div className="min-h-screen bg-canto-tan text-canto-900 lg:p-5">
+      <div className="flex min-h-screen lg:min-h-0 lg:h-[calc(100vh-2.5rem)] lg:gap-5">
+        <PatriciaCantoSidebar
+          tab={tab}
+          onSelect={setTab}
+          role={role}
+          onLogout={logout}
+          mobileOpen={mobileNavOpen}
+          onMobileClose={() => setMobileNavOpen(false)}
+        />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between bg-canto-900 px-4 py-3 lg:hidden">
-          <button
-            onClick={() => setMobileNavOpen(true)}
-            className="rounded-lg p-1.5 text-canto-200 hover:bg-canto-800 hover:text-white"
-            aria-label="Abrir menu"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
-              <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
-            </svg>
-          </button>
-          <span className="text-sm font-semibold text-white">{TAB_LABEL[tab]}</span>
-          <div className="w-8" />
-        </div>
-
-        {syncError && (
-          <div className="px-4 pt-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-rose-200">
-              <span>Não foi possível salvar no banco: {syncError}</span>
-              <button onClick={() => setSyncError(null)} className="font-semibold hover:underline">
-                Fechar
-              </button>
-            </div>
+        <div className="flex min-w-0 flex-1 flex-col bg-canto-50 lg:overflow-y-auto lg:rounded-3xl lg:bg-white lg:shadow-executive">
+          <div className="flex items-center justify-between bg-canto-900 px-4 py-3 lg:hidden">
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="rounded-lg p-1.5 text-canto-200 hover:bg-canto-800 hover:text-white"
+              aria-label="Abrir menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+                <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+              </svg>
+            </button>
+            <span className="text-sm font-semibold text-white">{TAB_LABEL[tab]}</span>
+            <div className="w-8" />
           </div>
-        )}
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="mb-6 hidden font-canto-serif text-2xl font-semibold text-canto-900 lg:block">
-            {TAB_LABEL[tab]}
-          </h1>
-          {loading ? (
-            <p className="py-16 text-center text-sm text-canto-500">Carregando dados do banco...</p>
-          ) : loadError ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-              <p className="font-semibold">Não foi possível carregar os dados.</p>
-              <p className="mt-1">{loadError}</p>
-              <p className="mt-2 text-xs text-rose-600">
-                Se as tabelas ainda não existem, rode a migração em{" "}
-                <code className="rounded bg-rose-100 px-1">/api/patricia-canto/setup/migrate</code> no Supabase SQL
-                Editor.
-              </p>
+          {syncError && (
+            <div className="px-4 pt-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-rose-200">
+                <span>Não foi possível salvar no banco: {syncError}</span>
+                <button onClick={() => setSyncError(null)} className="font-semibold hover:underline">
+                  Fechar
+                </button>
+              </div>
             </div>
-          ) : (
-            <>
-              {tab === "bi" && <BiOverview leads={leads} cases={cases} investment={investment} />}
-              {tab === "gtm" && (
-                <GtmView
-                  leads={leads}
-                  investment={investment}
-                  onInvestmentChange={setChannelInvestment}
-                  comunicacoes={comunicacoes}
-                  onAddComunicacao={addComunicacao}
-                  onSaveComunicacao={saveComunicacao}
-                  onDeleteComunicacao={deleteComunicacao}
-                  marketSizing={marketSizing}
-                  onSaveMarketSizing={saveMarketSizing}
-                />
-              )}
-              {tab === "comercial" && (
-                <ComercialBoard
-                  leads={leads}
-                  onMoveLead={moveLead}
-                  onSaveLead={saveLead}
-                  onDeleteLead={deleteLead}
-                  onAddLead={addLead}
-                />
-              )}
-              {tab === "cs" && (
-                <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
-              )}
-              {tab === "financeiro" && (
-                <FinanceiroView
-                  lancamentos={lancamentos}
-                  onAdd={addLancamento}
-                  onSave={saveLancamento}
-                  onDelete={deleteLancamento}
-                />
-              )}
-            </>
           )}
-        </main>
 
-        <footer className="px-4 pb-8 pt-2 text-center text-[11px] text-canto-500 sm:px-6 lg:px-8">
-          Dados salvos no banco (Supabase) — sincronizados entre qualquer dispositivo. Leads marcados como
-          &quot;Fechado — Ganho&quot; no Comercial criam automaticamente um card em CS/Jurídico e uma receita em
-          Financeiro.
-        </footer>
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            <h1 className="mb-6 hidden font-canto-serif text-2xl font-semibold text-canto-900 lg:block">
+              {TAB_LABEL[tab]}
+            </h1>
+            {loading ? (
+              <p className="py-16 text-center text-sm text-canto-500">Carregando dados do banco...</p>
+            ) : loadError ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                <p className="font-semibold">Não foi possível carregar os dados.</p>
+                <p className="mt-1">{loadError}</p>
+                <p className="mt-2 text-xs text-rose-600">
+                  Se as tabelas ainda não existem, rode a migração em{" "}
+                  <code className="rounded bg-rose-100 px-1">/api/patricia-canto/setup/migrate</code> no Supabase SQL
+                  Editor.
+                </p>
+              </div>
+            ) : (
+              <>
+                {tab === "bi" && (
+                  <BiOverview leads={leads} cases={cases} investment={investment} comunicacoes={comunicacoes} />
+                )}
+                {tab === "gtm" && (
+                  <GtmView
+                    leads={leads}
+                    investment={investment}
+                    onInvestmentChange={setChannelInvestment}
+                    comunicacoes={comunicacoes}
+                    onAddComunicacao={addComunicacao}
+                    onSaveComunicacao={saveComunicacao}
+                    onDeleteComunicacao={deleteComunicacao}
+                    marketSizing={marketSizing}
+                    onSaveMarketSizing={saveMarketSizing}
+                  />
+                )}
+                {tab === "comercial" && (
+                  <ComercialBoard
+                    leads={leads}
+                    onMoveLead={moveLead}
+                    onSaveLead={saveLead}
+                    onDeleteLead={deleteLead}
+                    onAddLead={addLead}
+                  />
+                )}
+                {tab === "cs" && (
+                  <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
+                )}
+                {tab === "financeiro" && (
+                  <FinanceiroView
+                    lancamentos={lancamentos}
+                    onAdd={addLancamento}
+                    onSave={saveLancamento}
+                    onDelete={deleteLancamento}
+                  />
+                )}
+              </>
+            )}
+          </main>
+
+          <footer className="px-4 pb-8 pt-2 text-center text-[11px] text-canto-500 sm:px-6 lg:px-8">
+            Dados salvos no banco (Supabase) — sincronizados entre qualquer dispositivo. Leads marcados como
+            &quot;Fechado — Ganho&quot; no Comercial criam automaticamente um card em CS/Jurídico e uma receita em
+            Financeiro.
+          </footer>
+        </div>
       </div>
     </div>
   );

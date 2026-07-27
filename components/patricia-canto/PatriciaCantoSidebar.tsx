@@ -61,7 +61,7 @@ const NAV: { id: Tab; label: string; icon: (props: React.SVGProps<SVGSVGElement>
 function NavList({ tab, onSelect, role }: { tab: Tab; onSelect: (t: Tab) => void; role: PcRole }) {
   const allowed = ROLE_TABS[role];
   return (
-    <nav className="flex-1 space-y-1 px-3">
+    <nav className="flex-1 space-y-1.5 px-4">
       {NAV.filter((item) => allowed.includes(item.id)).map((item) => {
         const Icon = item.icon;
         const active = tab === item.id;
@@ -69,11 +69,11 @@ function NavList({ tab, onSelect, role }: { tab: Tab; onSelect: (t: Tab) => void
           <button
             key={item.id}
             onClick={() => onSelect(item.id)}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
-              active ? "bg-canto-50 text-canto-900" : "text-canto-300 hover:bg-canto-800 hover:text-white"
+            className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left text-sm font-semibold transition ${
+              active ? "bg-canto-tan text-canto-900 shadow-card" : "text-canto-300 hover:bg-canto-800 hover:text-white"
             }`}
           >
-            <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-canto-700" : "text-canto-400"}`} />
+            <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-canto-900" : "text-canto-400"}`} />
             {item.label}
           </button>
         );
@@ -84,8 +84,8 @@ function NavList({ tab, onSelect, role }: { tab: Tab; onSelect: (t: Tab) => void
 
 function Brand() {
   return (
-    <div className="flex items-center gap-3 px-4 py-6">
-      <PatriciaCantoLogo className="h-10 w-10 shrink-0" shieldColor="#FFFFFF" markColor="#847455" />
+    <div className="flex items-center gap-3 px-5 py-7">
+      <PatriciaCantoLogo className="h-9 w-9 shrink-0" shieldColor="#FFFFFF" markColor="#847455" />
       <div>
         <p className="font-canto-serif text-lg font-semibold leading-tight text-white">Patrícia Canto</p>
         <p className="text-[10px] font-medium tracking-[0.25em] text-canto-300">ADVOGADA</p>
@@ -96,16 +96,23 @@ function Brand() {
 
 function RoleFooter({ role, onLogout }: { role: PcRole; onLogout: () => void }) {
   return (
-    <div className="border-t border-canto-800 px-4 py-4">
-      <p className="text-[11px] text-canto-400">
-        Logado como <span className="font-semibold text-white">{ROLE_LABEL[role]}</span>
-      </p>
-      <button
-        onClick={onLogout}
-        className="mt-2 w-full rounded-lg border border-canto-700 px-3 py-1.5 text-xs font-semibold text-canto-200 transition hover:bg-canto-800 hover:text-white"
-      >
-        Sair
-      </button>
+    <div className="px-4 pb-5 pt-3">
+      <div className="rounded-2xl bg-canto-800/60 px-3.5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          <p className="truncate text-xs font-semibold text-white">{ROLE_LABEL[role]}</p>
+        </div>
+        <p className="mt-0.5 text-[10px] text-canto-400">Sessão ativa</p>
+        <button
+          onClick={onLogout}
+          className="mt-2.5 w-full rounded-xl border border-canto-700 px-3 py-1.5 text-xs font-semibold text-canto-200 transition hover:bg-canto-700 hover:text-white"
+        >
+          Sair
+        </button>
+      </div>
     </div>
   );
 }
@@ -128,7 +135,7 @@ export default function PatriciaCantoSidebar({
   return (
     <>
       {/* Desktop — sidebar fixa */}
-      <aside className="hidden w-64 shrink-0 flex-col bg-canto-900 lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col bg-canto-900 lg:flex lg:rounded-3xl lg:shadow-executive">
         <Brand />
         <NavList tab={tab} onSelect={onSelect} role={role} />
         <RoleFooter role={role} onLogout={onLogout} />
@@ -138,7 +145,7 @@ export default function PatriciaCantoSidebar({
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={onMobileClose} />
-          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col bg-canto-900 shadow-2xl">
+          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col rounded-r-3xl bg-canto-900 shadow-2xl">
             <div className="flex items-center justify-between pr-3">
               <Brand />
               <button
