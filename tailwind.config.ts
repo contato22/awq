@@ -49,6 +49,9 @@ const config: Config = {
           700: "#665845",
           800: "#473F34",
           900: "#2B2620",
+          // Fundo externo do shell (fora do card de conteúdo) — tom dourado
+          // mais saturado, inspirado na referência de UI/UX aprovada.
+          tan: "#D8B978",
         },
       },
       fontFamily: {
