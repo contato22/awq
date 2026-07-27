@@ -9,11 +9,12 @@ import type { Lancamento } from "@/lib/patricia-canto/financeiro";
 import { createReceitaFromLead } from "@/lib/patricia-canto/financeiro";
 import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
 import { EMPTY_MARKET_SIZING } from "@/lib/patricia-canto/gtm-extra";
-import type { PcRole } from "@/lib/patricia-canto/auth";
+import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
+import { ROLE_TABS } from "@/lib/patricia-canto/auth";
 import type { NewLeadInput } from "./AddLeadModal";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
 import { pcApi } from "@/lib/patricia-canto/api-client";
-import PatriciaCantoSidebar, { type Tab } from "./PatriciaCantoSidebar";
+import PatriciaCantoSidebar from "./PatriciaCantoSidebar";
 import BiOverview from "./BiOverview";
 import GtmView from "./GtmView";
 import ComercialBoard from "./ComercialBoard";
@@ -30,7 +31,7 @@ const TAB_LABEL: Record<Tab, string> = {
 
 export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("bi");
+  const [tab, setTab] = useState<Tab>(ROLE_TABS[role][0]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
@@ -44,14 +45,24 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      pcApi.getLeads(),
-      pcApi.getCases(),
-      pcApi.getLancamentos(),
-      pcApi.getInvestment(),
-      pcApi.getComunicacoes(),
-      pcApi.getMarketSizing(),
-    ])
+    // Ana (mkt) só enxerga GTM — a API bloqueia cases/lançamentos pra essa
+    // role, então nem pede (evitaria 403) nem roda o backfill de CS/Financeiro.
+    const fullAccess = ROLE_TABS[role].length > 1;
+
+    const load = fullAccess
+      ? Promise.all([
+          pcApi.getLeads(),
+          pcApi.getCases(),
+          pcApi.getLancamentos(),
+          pcApi.getInvestment(),
+          pcApi.getComunicacoes(),
+          pcApi.getMarketSizing(),
+        ])
+      : Promise.all([pcApi.getLeads(), pcApi.getInvestment(), pcApi.getComunicacoes(), pcApi.getMarketSizing()]).then(
+          ([l, inv, com, market]) => [l, [] as CaseItem[], [] as Lancamento[], inv, com, market] as const,
+        );
+
+    load
       .then(async ([l, c, f, inv, com, market]) => {
         if (cancelled) return;
 
@@ -60,7 +71,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
         // (moveLead/saveLead só dispara na transição de estágio). Reconcilia
         // na carga, comparando por leadId — idempotente, roda toda vez mas só
         // cria o que ainda falta.
-        const ganhos = l.filter((lead) => lead.stage === "ganho");
+        const ganhos = fullAccess ? l.filter((lead) => lead.stage === "ganho") : [];
         const missingCases = ganhos.filter((lead) => !c.some((item) => item.leadId === lead.id)).map(createCaseFromLead);
         const missingReceitas = ganhos
           .filter((lead) => !f.some((item) => item.leadId === lead.id))
@@ -94,7 +105,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [role]);
 
   function reportSyncError(e: unknown) {
     setSyncError(e instanceof Error ? e.message : "Falha ao salvar — tente novamente");

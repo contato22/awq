@@ -1,9 +1,10 @@
 "use client";
 
-import type { PcRole } from "@/lib/patricia-canto/auth";
+import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
+import { ROLE_TABS } from "@/lib/patricia-canto/auth";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
 
-export type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro";
+export type { Tab };
 
 const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master", mkt: "Ana (Marketing)" };
 
@@ -57,10 +58,11 @@ const NAV: { id: Tab; label: string; icon: (props: React.SVGProps<SVGSVGElement>
   { id: "financeiro", label: "Financeiro", icon: IconCash },
 ];
 
-function NavList({ tab, onSelect }: { tab: Tab; onSelect: (t: Tab) => void }) {
+function NavList({ tab, onSelect, role }: { tab: Tab; onSelect: (t: Tab) => void; role: PcRole }) {
+  const allowed = ROLE_TABS[role];
   return (
     <nav className="flex-1 space-y-1 px-3">
-      {NAV.map((item) => {
+      {NAV.filter((item) => allowed.includes(item.id)).map((item) => {
         const Icon = item.icon;
         const active = tab === item.id;
         return (
@@ -128,7 +130,7 @@ export default function PatriciaCantoSidebar({
       {/* Desktop — sidebar fixa */}
       <aside className="hidden w-64 shrink-0 flex-col bg-canto-900 lg:flex">
         <Brand />
-        <NavList tab={tab} onSelect={onSelect} />
+        <NavList tab={tab} onSelect={onSelect} role={role} />
         <RoleFooter role={role} onLogout={onLogout} />
       </aside>
 
@@ -149,6 +151,7 @@ export default function PatriciaCantoSidebar({
             </div>
             <NavList
               tab={tab}
+              role={role}
               onSelect={(t) => {
                 onSelect(t);
                 onMobileClose();
