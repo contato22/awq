@@ -1,11 +1,12 @@
 // Autenticação própria e independente do NextAuth do AWQ — só vale para as
 // rotas /patricia-canto e /api/patricia-canto (ambas fora do middleware
-// principal). Duas contas fixas, credenciais em env vars (Vercel):
+// principal). Contas fixas, credenciais em env vars (Vercel):
 //   PATRICIA_CANTO_ADMIN_USER / PATRICIA_CANTO_ADMIN_PASSWORD
 //   PATRICIA_CANTO_MASTER_USER / PATRICIA_CANTO_MASTER_PASSWORD
+//   PATRICIA_CANTO_MKT_USER / PATRICIA_CANTO_MKT_PASSWORD
 import { createHmac, timingSafeEqual } from "crypto";
 
-export type PcRole = "admin" | "master";
+export type PcRole = "admin" | "master" | "mkt";
 
 export const PC_SESSION_COOKIE = "pc_session";
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 dias
@@ -32,9 +33,12 @@ export function checkCredentials(username: string, password: string): PcRole | n
   const adminPass = process.env.PATRICIA_CANTO_ADMIN_PASSWORD;
   const masterUser = process.env.PATRICIA_CANTO_MASTER_USER;
   const masterPass = process.env.PATRICIA_CANTO_MASTER_PASSWORD;
+  const mktUser = process.env.PATRICIA_CANTO_MKT_USER;
+  const mktPass = process.env.PATRICIA_CANTO_MKT_PASSWORD;
 
   if (adminUser && adminPass && username === adminUser && password === adminPass) return "admin";
   if (masterUser && masterPass && username === masterUser && password === masterPass) return "master";
+  if (mktUser && mktPass && username === mktUser && password === mktPass) return "mkt";
   return null;
 }
 
@@ -49,7 +53,7 @@ export function verifySessionToken(token: string | undefined | null): PcRole | n
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [role, expiresStr, sig] = parts;
-  if (role !== "admin" && role !== "master") return null;
+  if (role !== "admin" && role !== "master" && role !== "mkt") return null;
   const expires = Number(expiresStr);
   if (!Number.isFinite(expires) || expires < Math.floor(Date.now() / 1000)) return null;
   const expected = sign(`${role}.${expiresStr}`);
