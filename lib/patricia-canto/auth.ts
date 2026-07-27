@@ -8,6 +8,15 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 export type PcRole = "admin" | "master" | "mkt";
 
+export type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro";
+
+// Ana (mkt) só enxerga GTM — as outras duas roles têm acesso total.
+export const ROLE_TABS: Record<PcRole, Tab[]> = {
+  admin: ["bi", "gtm", "comercial", "cs", "financeiro"],
+  master: ["bi", "gtm", "comercial", "cs", "financeiro"],
+  mkt: ["gtm"],
+};
+
 export const PC_SESSION_COOKIE = "pc_session";
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 dias
 

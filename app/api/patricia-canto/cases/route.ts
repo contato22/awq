@@ -7,7 +7,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  if (!requireSession(req)) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const role = requireSession(req);
+  if (!role) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (role === "mkt") return NextResponse.json({ error: "Sem acesso" }, { status: 403 });
   try {
     const cases = await getCases();
     return NextResponse.json({ cases });
@@ -17,7 +19,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  if (!requireSession(req)) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const role = requireSession(req);
+  if (!role) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (role === "mkt") return NextResponse.json({ error: "Sem acesso" }, { status: 403 });
   try {
     const item = (await req.json()) as CaseItem;
     await upsertCase(item);
