@@ -230,6 +230,41 @@ export default function LeadModal({
             />
           </label>
 
+          <label className="text-xs text-canto-500">
+            Próxima atividade
+            <input
+              value={draft.proximaAtividade?.descricao ?? ""}
+              onChange={(e) =>
+                field(
+                  "proximaAtividade",
+                  e.target.value
+                    ? { descricao: e.target.value, data: draft.proximaAtividade?.data || toDateInput(new Date().toISOString()) }
+                    : null,
+                )
+              }
+              placeholder="Ex.: Ligar para confirmar documentos"
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            />
+          </label>
+
+          <label className="text-xs text-canto-500">
+            Data da próxima atividade
+            <input
+              type="date"
+              value={draft.proximaAtividade?.data ?? ""}
+              onChange={(e) =>
+                field(
+                  "proximaAtividade",
+                  e.target.value && draft.proximaAtividade
+                    ? { ...draft.proximaAtividade, data: e.target.value }
+                    : draft.proximaAtividade,
+                )
+              }
+              disabled={!draft.proximaAtividade}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500 disabled:bg-canto-50 disabled:text-canto-400"
+            />
+          </label>
+
           <label className="col-span-2 text-xs text-canto-500">
             Descrição / notas
             <textarea

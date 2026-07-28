@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS patricia_canto_leads (
   descricao               TEXT,
   data_entrada            TEXT NOT NULL,
   data_primeiro_contato   TEXT,
-  stage_history           JSONB NOT NULL DEFAULT '[]'::jsonb
+  stage_history           JSONB NOT NULL DEFAULT '[]'::jsonb,
+  proxima_atividade       JSONB
 );
 
 CREATE TABLE IF NOT EXISTS patricia_canto_cases (
@@ -54,7 +55,8 @@ CREATE TABLE IF NOT EXISTS patricia_canto_cases (
   pedido_indicacao_enviado    BOOLEAN NOT NULL DEFAULT false,
   depoimento_coletado         BOOLEAN NOT NULL DEFAULT false,
   data_ultima_atualizacao     TEXT NOT NULL,
-  data_criacao                TEXT NOT NULL
+  data_criacao                TEXT NOT NULL,
+  proxima_atividade           JSONB
 );
 
 CREATE TABLE IF NOT EXISTS patricia_canto_settings (
@@ -79,6 +81,12 @@ CREATE TABLE IF NOT EXISTS patricia_canto_lancamentos (
   observacao        TEXT,
   data_criacao      TEXT NOT NULL
 );
+
+-- Próxima atividade obrigatória por card (lead/caso) — coluna adicionada
+-- depois da criação inicial das tabelas; ADD COLUMN IF NOT EXISTS garante
+-- que rodar essa migração de novo em bancos já existentes não falhe.
+ALTER TABLE patricia_canto_leads ADD COLUMN IF NOT EXISTS proxima_atividade JSONB;
+ALTER TABLE patricia_canto_cases ADD COLUMN IF NOT EXISTS proxima_atividade JSONB;
 
 CREATE INDEX IF NOT EXISTS idx_pc_leads_stage        ON patricia_canto_leads(stage);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_stage        ON patricia_canto_cases(stage);

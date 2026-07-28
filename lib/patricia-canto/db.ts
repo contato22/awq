@@ -11,6 +11,7 @@ import { erpAdmin } from "@/lib/supabase";
 import type { Lead, Stage, StageEvent, Channel, Priority } from "./leads";
 import type { CaseItem, CaseStage, Resultado } from "./cases";
 import type { Lancamento, TipoLancamento, StatusLancamento } from "./financeiro";
+import type { NextActivity } from "./activity";
 
 const db = erpAdmin;
 
@@ -41,6 +42,7 @@ function rowToLead(r: Row): Lead {
     dataEntrada: r.data_entrada as string,
     dataPrimeiroContato: (r.data_primeiro_contato as string) ?? null,
     stageHistory: (r.stage_history as StageEvent[]) ?? [],
+    proximaAtividade: (r.proxima_atividade as NextActivity) ?? null,
   };
 }
 
@@ -65,6 +67,7 @@ function leadToRow(l: Lead): Row {
     data_entrada: l.dataEntrada,
     data_primeiro_contato: l.dataPrimeiroContato,
     stage_history: l.stageHistory,
+    proxima_atividade: l.proximaAtividade,
   };
 }
 
@@ -91,6 +94,7 @@ function rowToCase(r: Row): CaseItem {
     depoimentoColetado: !!r.depoimento_coletado,
     dataUltimaAtualizacao: r.data_ultima_atualizacao as string,
     dataCriacao: r.data_criacao as string,
+    proximaAtividade: (r.proxima_atividade as NextActivity) ?? null,
   };
 }
 
@@ -117,6 +121,7 @@ function caseToRow(c: CaseItem): Row {
     depoimento_coletado: c.depoimentoColetado,
     data_ultima_atualizacao: c.dataUltimaAtualizacao,
     data_criacao: c.dataCriacao,
+    proxima_atividade: c.proximaAtividade,
   };
 }
 

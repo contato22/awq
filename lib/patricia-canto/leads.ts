@@ -1,5 +1,6 @@
 // Dados extraídos da planilha "CRM - PATRICIA CANTO" (Google Sheets, aba "Oportunidades").
 // Fonte: https://docs.google.com/spreadsheets/d/11Xc9yCvtE7GYOkQCXsXCytuAdYS1ol0OEuUu5_ka3bc
+import type { NextActivity } from "./activity";
 
 export type Stage =
   | "novo"
@@ -45,6 +46,7 @@ export interface Lead {
   dataEntrada: string;
   dataPrimeiroContato: string | null;
   stageHistory: StageEvent[];
+  proximaAtividade: NextActivity | null;
 }
 
 export const STAGES: { id: Stage; label: string; hint: string }[] = [
@@ -90,7 +92,10 @@ export function missingGateFields(lead: Lead, stage: Stage): string[] {
 }
 
 export const RAW_LEADS: Array<
-  Omit<Lead, "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory" | "indicadoPor"> & {
+  Omit<
+    Lead,
+    "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory" | "indicadoPor" | "proximaAtividade"
+  > & {
     stage?: Stage;
   }
 > = [
@@ -157,6 +162,7 @@ export function buildInitialLeads(): Lead[] {
       dataPrimeiroContato: null,
       indicadoPor: null,
       stageHistory: [{ stage, enteredAt: now }],
+      proximaAtividade: null,
       ...raw,
     };
   });

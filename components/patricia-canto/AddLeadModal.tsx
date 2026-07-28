@@ -6,7 +6,7 @@ import { CHANNELS } from "@/lib/patricia-canto/leads";
 
 export type NewLeadInput = Omit<
   Lead,
-  "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory"
+  "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory" | "proximaAtividade"
 >;
 
 export default function AddLeadModal({

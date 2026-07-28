@@ -2,6 +2,11 @@
 
 import type { Lead, Stage } from "@/lib/patricia-canto/leads";
 import { STAGES, STAGE_SLA_DAYS, daysInCurrentStage } from "@/lib/patricia-canto/leads";
+import { isActivityOverdue } from "@/lib/patricia-canto/activity";
+
+function formatActivityDate(iso: string) {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
 
 const PRIORITY_STYLES: Record<string, string> = {
   Alta: "bg-orange-50 text-orange-800 ring-1 ring-orange-200",
@@ -122,6 +127,16 @@ export default function LeadCard({
         <p className="mt-2 text-[11px] text-canto-400">
           Origem: {lead.origem}
           {lead.indicadoPor ? ` (${lead.indicadoPor})` : ""}
+        </p>
+      )}
+
+      {lead.proximaAtividade && (
+        <p
+          className={`mt-2 rounded-lg px-2 py-1 text-[11px] font-medium ${
+            isActivityOverdue(lead.proximaAtividade) ? "bg-rose-50 text-rose-700" : "bg-canto-50 text-canto-600"
+          }`}
+        >
+          Próxima atividade: {lead.proximaAtividade.descricao} · {formatActivityDate(lead.proximaAtividade.data)}
         </p>
       )}
 

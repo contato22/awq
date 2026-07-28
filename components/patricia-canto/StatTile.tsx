@@ -22,7 +22,7 @@ export default function StatTile({
     <div className={`rounded-2xl border px-3.5 py-3 ${styles.box}`}>
       <div className="flex items-center gap-2">
         {icon && (
-          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${styles.chip}`}>{icon}</span>
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${styles.chip}`}>{icon}</span>
         )}
         <p className="text-[11px] font-medium uppercase tracking-wide text-canto-500">{label}</p>
       </div>

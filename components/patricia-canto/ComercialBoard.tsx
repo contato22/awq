@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react";
 import type { Lead, Stage } from "@/lib/patricia-canto/leads";
 import { STAGES, missingGateFields } from "@/lib/patricia-canto/leads";
+import type { NextActivity } from "@/lib/patricia-canto/activity";
 import { computeComercialMetrics } from "@/lib/patricia-canto/metrics";
 import LeadCard from "./LeadCard";
 import LeadModal from "./LeadModal";
 import AddLeadModal, { type NewLeadInput } from "./AddLeadModal";
+import NextActivityModal from "./NextActivityModal";
 import StatTile from "./StatTile";
 
 function currency(v: number) {
@@ -21,7 +23,7 @@ export default function ComercialBoard({
   onAddLead,
 }: {
   leads: Lead[];
-  onMoveLead: (id: string, stage: Stage) => void;
+  onMoveLead: (id: string, stage: Stage, activity: NextActivity) => void;
   onSaveLead: (lead: Lead) => void;
   onDeleteLead: (id: string) => void;
   onAddLead: (data: NewLeadInput) => void;
@@ -31,6 +33,7 @@ export default function ComercialBoard({
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{ id: string; stage: Stage } | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -56,17 +59,18 @@ export default function ComercialBoard({
 
   function handleMoveStage(id: string, stage: Stage) {
     const lead = leads.find((l) => l.id === id);
-    if (lead) {
-      const missing = missingGateFields({ ...lead, stage }, stage);
-      if (missing.length > 0) {
-        const ok = confirm(
-          `Faltam campos obrigatórios para o gate de "${STAGES.find((s) => s.id === stage)?.label}": ${missing.join(", ")}.\n\nMover mesmo assim?`,
-        );
-        if (!ok) return;
-      }
+    if (!lead || lead.stage === stage) return;
+    const missing = missingGateFields({ ...lead, stage }, stage);
+    if (missing.length > 0) {
+      const ok = confirm(
+        `Faltam campos obrigatórios para o gate de "${STAGES.find((s) => s.id === stage)?.label}": ${missing.join(", ")}.\n\nMover mesmo assim?`,
+      );
+      if (!ok) return;
     }
-    onMoveLead(id, stage);
+    setPendingMove({ id, stage });
   }
+
+  const pendingLead = pendingMove ? leads.find((l) => l.id === pendingMove.id) : null;
 
   return (
     <div>
@@ -207,6 +211,17 @@ export default function ComercialBoard({
         />
       )}
       {addOpen && <AddLeadModal onClose={() => setAddOpen(false)} onAdd={onAddLead} />}
+      {pendingMove && pendingLead && (
+        <NextActivityModal
+          clientName={pendingLead.nomeCliente || "Lead"}
+          stageLabel={STAGES.find((s) => s.id === pendingMove.stage)?.label ?? pendingMove.stage}
+          onConfirm={(activity) => {
+            onMoveLead(pendingMove.id, pendingMove.stage, activity);
+            setPendingMove(null);
+          }}
+          onCancel={() => setPendingMove(null)}
+        />
+      )}
     </div>
   );
 }
