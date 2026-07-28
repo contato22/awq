@@ -10,7 +10,9 @@ import type { Lancamento } from "@/lib/patricia-canto/financeiro";
 import type { SalesGoals } from "@/lib/patricia-canto/goals";
 import { computeGoalProgress } from "@/lib/patricia-canto/goals";
 import { computeComercialMetrics, computeCsMetrics, computeGtmMetrics } from "@/lib/patricia-canto/metrics";
+import { computeAdminTasks } from "@/lib/patricia-canto/my-tasks";
 import type { Tab } from "@/lib/patricia-canto/auth";
+import MyTasksPanel from "./MyTasksPanel";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
 import StatTile from "./StatTile";
 
@@ -134,6 +136,7 @@ export default function BiOverview({
   const cs = useMemo(() => computeCsMetrics(cases), [cases]);
   const gtm = useMemo(() => computeGtmMetrics(leads, investment), [leads, investment]);
   const goalProgress = useMemo(() => computeGoalProgress(lancamentos, salesGoals), [lancamentos, salesGoals]);
+  const adminTasks = useMemo(() => computeAdminTasks(leads, cases, lancamentos), [leads, cases, lancamentos]);
 
   const stageBreakdown = useMemo(
     () =>
@@ -190,6 +193,8 @@ export default function BiOverview({
             </div>
           </div>
         </div>
+
+        <MyTasksPanel title="Suas tarefas" subtitle="Atividades atrasadas ou que vencem hoje" tasks={adminTasks} />
 
         <GoalsPanel goals={salesGoals} progress={goalProgress} onSave={onSaveSalesGoals} />
 
