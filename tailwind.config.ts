@@ -50,8 +50,23 @@ const config: Config = {
           800: "#473F34",
           900: "#2B2620",
           // Fundo externo do shell (fora do card de conteúdo) — tom dourado
-          // mais saturado, inspirado na referência de UI/UX aprovada.
+          // mais saturado, inspirado na 1ª referência de UI/UX aprovada.
           tan: "#D8B978",
+          // Base neutra creme/branco da 2ª referência de UI/UX (editorial,
+          // linhas finas) — o dourado acima continua sendo usado como cor
+          // de destaque (logo, item ativo, botões primários).
+          cream: "#EDE8DE",
+          // Borda fina neutra ("linhas de UI" da referência).
+          line: "#E4DFD3",
+        },
+        // Paleta pastel só para visualização de dados (gráficos/legendas),
+        // inspirada na 2ª referência de UI/UX — nunca usada em texto/UI base.
+        chart: {
+          mauve: "#9B7C93",
+          rose: "#C79098",
+          terracotta: "#C1936A",
+          sage: "#8FA890",
+          teal: "#6E9C93",
         },
       },
       fontFamily: {

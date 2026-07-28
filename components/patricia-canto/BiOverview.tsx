@@ -26,8 +26,8 @@ function dateParts(iso: string) {
 function DateBadge({ iso }: { iso: string }) {
   const { day, month } = dateParts(iso);
   return (
-    <span className="flex w-9 shrink-0 flex-col items-center rounded-xl bg-canto-100 py-1 leading-none text-canto-700">
-      <span className="text-sm font-bold">{day}</span>
+    <span className="flex w-9 shrink-0 flex-col items-center rounded-md bg-canto-100 py-1 leading-none text-canto-700">
+      <span className="text-sm font-semibold">{day}</span>
       <span className="mt-0.5 text-[8px] font-semibold tracking-wide">{month}</span>
     </span>
   );
@@ -41,13 +41,15 @@ function ViewAll({ onClick }: { onClick: () => void }) {
   );
 }
 
+// Paleta pastel da referência de UI/UX, reservando o dourado da marca
+// (canto-600) para o estágio de sucesso ("ganho").
 const STAGE_COLOR: Record<string, string> = {
-  novo: "#60A5FA",
-  qualificado: "#FBBF24",
-  proposta: "#A78BFA",
-  negociacao: "#FB923C",
-  ganho: "#34D399",
-  perdido: "#F87171",
+  novo: "#9B7C93", // chart.mauve
+  qualificado: "#C1936A", // chart.terracotta
+  proposta: "#8FA890", // chart.sage
+  negociacao: "#6E9C93", // chart.teal
+  ganho: "#847455", // canto-600 (dourado da marca)
+  perdido: "#C79098", // chart.rose
 };
 
 function IconUsers(props: React.SVGProps<SVGSVGElement>) {
@@ -159,22 +161,22 @@ export default function BiOverview({
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div className="space-y-5">
         {/* Banner de boas-vindas */}
-        <div className="flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-canto-700 to-canto-tan p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-canto-line bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-center gap-4">
-            <PatriciaCantoLogo className="h-12 w-12 shrink-0" shieldColor="#FFFFFF" markColor="#665845" />
+            <PatriciaCantoLogo className="h-12 w-12 shrink-0" shieldColor="#FBF9F5" markColor="#847455" />
             <div>
-              <p className="font-canto-serif text-xl font-semibold sm:text-2xl">Bem-vinda de volta, Patrícia</p>
-              <p className="mt-1 text-sm text-white/80">Aqui está o resumo do escritório hoje.</p>
+              <p className="font-canto-serif text-2xl text-canto-900 sm:text-3xl">Bem-vinda de volta, Patrícia</p>
+              <p className="mt-1 text-sm text-canto-500">Aqui está o resumo do escritório hoje.</p>
             </div>
           </div>
           <div className="flex gap-2.5">
-            <div className="rounded-2xl bg-white/15 px-4 py-2.5 backdrop-blur-sm">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/70">Pipeline ativo</p>
-              <p className="text-base font-bold">{comercial.totalLeads - comercial.ganhos - comercial.perdidos}</p>
+            <div className="rounded-lg border border-canto-line bg-canto-50 px-4 py-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-canto-500">Pipeline ativo</p>
+              <p className="text-base font-semibold text-canto-900">{comercial.totalLeads - comercial.ganhos - comercial.perdidos}</p>
             </div>
-            <div className="rounded-2xl bg-white/15 px-4 py-2.5 backdrop-blur-sm">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/70">Honorários fechados</p>
-              <p className="text-base font-bold">{currency(comercial.honorariosGanho)}</p>
+            <div className="rounded-lg border border-canto-line bg-canto-50 px-4 py-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-canto-500">Honorários fechados</p>
+              <p className="text-base font-semibold text-canto-700">{currency(comercial.honorariosGanho)}</p>
             </div>
           </div>
         </div>
@@ -197,8 +199,8 @@ export default function BiOverview({
         </div>
 
         {/* Donut de distribuição do funil */}
-        <div className="rounded-3xl border border-canto-200 bg-white p-5">
-          <h3 className="font-canto-serif text-base font-semibold text-canto-900">Pipeline por estágio</h3>
+        <div className="rounded-xl border border-canto-line bg-white p-5">
+          <h3 className="font-canto-serif text-lg text-canto-900">Pipeline por estágio</h3>
           <p className="mt-0.5 text-xs text-canto-500">Distribuição atual de todos os leads no funil comercial</p>
           <div className="mt-4 flex flex-col items-center gap-5 sm:flex-row">
             <DonutChart segments={stageBreakdown} total={leads.length} />
@@ -297,7 +299,7 @@ export default function BiOverview({
       <div className="space-y-5">
         <p className="font-canto-serif text-lg font-semibold text-canto-900">Atividade</p>
 
-        <div className="rounded-3xl border border-canto-200 bg-white p-5">
+        <div className="rounded-xl border border-canto-line bg-white p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-canto-900">Comunicações planejadas</h3>
             <ViewAll onClick={() => onNavigate("gtm")} />
@@ -322,7 +324,7 @@ export default function BiOverview({
           )}
         </div>
 
-        <div className="rounded-3xl border border-canto-200 bg-white p-5">
+        <div className="rounded-xl border border-canto-line bg-white p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-canto-900">Leads recentes</h3>
             <ViewAll onClick={() => onNavigate("comercial")} />
@@ -347,7 +349,7 @@ export default function BiOverview({
           )}
         </div>
 
-        <div className="rounded-3xl border border-canto-200 bg-white p-5">
+        <div className="rounded-xl border border-canto-line bg-white p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-canto-900">Casos atualizados</h3>
             <ViewAll onClick={() => onNavigate("cs")} />
@@ -377,8 +379,8 @@ export default function BiOverview({
 
 function Section({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-3xl border border-canto-200 bg-white p-5">
-      <h3 className="font-canto-serif text-base font-semibold text-canto-900">{title}</h3>
+    <div className="rounded-xl border border-canto-line bg-white p-5">
+      <h3 className="font-canto-serif text-lg text-canto-900">{title}</h3>
       <p className="mt-0.5 text-xs text-canto-500">{subtitle}</p>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{children}</div>
     </div>

@@ -324,7 +324,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   }
 
   return (
-    <div className="min-h-screen bg-canto-tan text-canto-900 lg:p-5">
+    <div className="min-h-screen bg-canto-cream text-canto-900 lg:p-5">
       <div className="flex min-h-screen lg:min-h-0 lg:h-[calc(100vh-2.5rem)] lg:gap-5">
         <PatriciaCantoSidebar
           tab={tab}
@@ -335,18 +335,18 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
           onMobileClose={() => setMobileNavOpen(false)}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col bg-canto-50 lg:overflow-y-auto lg:rounded-3xl lg:bg-white lg:shadow-executive">
-          <div className="flex items-center justify-between bg-canto-900 px-4 py-3 lg:hidden">
+        <div className="flex min-w-0 flex-1 flex-col border border-canto-line bg-white lg:overflow-y-auto lg:rounded-2xl">
+          <div className="flex items-center justify-between border-b border-canto-line bg-white px-4 py-3 lg:hidden">
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="rounded-lg p-1.5 text-canto-200 hover:bg-canto-800 hover:text-white"
+              className="rounded-lg p-1.5 text-canto-500 hover:bg-canto-50 hover:text-canto-900"
               aria-label="Abrir menu"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-6 w-6">
                 <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
               </svg>
             </button>
-            <span className="text-sm font-semibold text-white">{TAB_LABEL[tab]}</span>
+            <span className="text-sm font-semibold text-canto-900">{TAB_LABEL[tab]}</span>
             <div className="w-8" />
           </div>
 
