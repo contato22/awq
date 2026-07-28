@@ -437,6 +437,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
                     onAdd={addLancamento}
                     onSave={saveLancamento}
                     onDelete={deleteLancamento}
+                    salesGoals={salesGoals}
                   />
                 )}
               </>
