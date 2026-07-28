@@ -36,15 +36,15 @@ export default function PatriciaCantoLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canto-900 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canto-cream px-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl"
+        className="w-full max-w-sm rounded-xl border border-canto-line bg-white p-8"
       >
         <div className="flex flex-col items-center text-center">
-          <PatriciaCantoLogo className="h-14 w-14" shieldColor="#847455" markColor="#FFFFFF" />
-          <h1 className="font-canto-serif mt-3 text-xl font-semibold text-canto-900">Patrícia Canto</h1>
-          <p className="text-[11px] font-medium tracking-[0.25em] text-canto-500">ADVOGADA</p>
+          <PatriciaCantoLogo className="h-14 w-14" shieldColor="#FBF9F5" markColor="#847455" />
+          <h1 className="font-canto-serif mt-4 text-2xl text-canto-900">Patrícia Canto</h1>
+          <p className="text-[11px] font-medium tracking-[0.25em] text-canto-400">ADVOGADA</p>
           <p className="mt-3 text-xs text-canto-500">CRM — acesso restrito</p>
         </div>
 

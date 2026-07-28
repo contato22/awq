@@ -5,7 +5,9 @@ import type { Channel, Lead } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
 import { computeGtmMetrics } from "@/lib/patricia-canto/metrics";
 import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
+import { computeAnaTasks } from "@/lib/patricia-canto/my-tasks";
 import StatTile from "./StatTile";
+import MyTasksPanel from "./MyTasksPanel";
 import ComunicacaoView from "./ComunicacaoView";
 import MarketSizingView from "./MarketSizingView";
 
@@ -43,9 +45,18 @@ export default function GtmView({
   onSaveMarketSizing: (market: MarketSizing) => void;
 }) {
   const [subTab, setSubTab] = useState<SubTab>("canais");
+  const anaTasks = useMemo(() => computeAnaTasks(comunicacoes), [comunicacoes]);
 
   return (
     <div>
+      <div className="mb-4">
+        <MyTasksPanel
+          title="Tarefas de conteúdo — Ana"
+          subtitle="Metas de entrega e ações de comunicação pendentes"
+          tasks={anaTasks}
+        />
+      </div>
+
       <div className="flex gap-1 rounded-lg bg-canto-100 p-1">
         {SUB_TABS.map((t) => (
           <button
