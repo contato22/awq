@@ -12,17 +12,67 @@ export const STATUS_COMUNICACAO_LABEL: Record<StatusComunicacao, string> = {
   pausado: "Pausado",
 };
 
+// Formato do conteúdo — usado para bater com as metas recorrentes de entrega
+// (ver comunicacao-quotas.ts). "outro" cobre ações que não entram em meta
+// (e-mail, anúncio pago avulso, etc.).
+export type ComunicacaoFormato = "video" | "arte" | "planejamento" | "outro";
+
+export const COMUNICACAO_FORMATO_LABEL: Record<ComunicacaoFormato, string> = {
+  video: "Vídeo",
+  arte: "Arte",
+  planejamento: "Planejamento de conteúdos",
+  outro: "Outro",
+};
+
+// Plataforma social onde o conteúdo é publicado — separado do "canal" de
+// aquisição (Anúncio/Indicação/Orgânico/Boca a boca) usado no funil de GTM.
+export type Plataforma = "Instagram" | "TikTok" | "Outro";
+
+export const PLATAFORMAS: Plataforma[] = ["Instagram", "TikTok", "Outro"];
+
+// Resultados de uma publicação — hoje preenchidos manualmente (sem
+// integração automática com Instagram/TikTok configurada). Estrutura pronta
+// para, no futuro, ser sincronizada via API quando houver credenciais.
+export interface ComunicacaoResultados {
+  visualizacoes: number | null;
+  curtidas: number | null;
+  comentarios: number | null;
+  alcance: number | null;
+}
+
 export interface ComunicacaoItem {
   id: string;
   titulo: string;
   tipo: string;
+  formato: ComunicacaoFormato;
+  plataforma: Plataforma | null;
+  responsavel: string | null;
   canal: Channel | null;
   dataPlanejada: string;
   status: StatusComunicacao;
   notas: string | null;
+  resultados: ComunicacaoResultados | null;
 }
 
 export type NewComunicacaoInput = Omit<ComunicacaoItem, "id">;
+
+// Registros salvos antes desses campos existirem não os têm — normaliza ao
+// ler para que o resto do app possa tratar os campos como sempre presentes.
+export function normalizeComunicacao(raw: Partial<ComunicacaoItem> & { id: string }): ComunicacaoItem {
+  return {
+    id: raw.id,
+    titulo: raw.titulo ?? "",
+    tipo: raw.tipo ?? "Outro",
+    formato: raw.formato ?? "outro",
+    plataforma: raw.plataforma ?? null,
+    responsavel: raw.responsavel ?? null,
+    canal: raw.canal ?? null,
+    dataPlanejada: raw.dataPlanejada ?? new Date().toISOString(),
+    status: raw.status ?? "planejado",
+    notas: raw.notas ?? null,
+    resultados: raw.resultados ?? null,
+  };
+}
 
 export type MarketUnit = "R$" | "processos";
 

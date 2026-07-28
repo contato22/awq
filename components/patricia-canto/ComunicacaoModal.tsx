@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import type { Channel } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
-import type { ComunicacaoItem, StatusComunicacao } from "@/lib/patricia-canto/gtm-extra";
+import type { ComunicacaoFormato, ComunicacaoItem, ComunicacaoResultados, Plataforma, StatusComunicacao } from "@/lib/patricia-canto/gtm-extra";
+import { COMUNICACAO_FORMATO_LABEL, PLATAFORMAS } from "@/lib/patricia-canto/gtm-extra";
+
+const EMPTY_RESULTADOS: ComunicacaoResultados = {
+  visualizacoes: null,
+  curtidas: null,
+  comentarios: null,
+  alcance: null,
+};
 
 function toDateInput(iso: string): string {
   return iso.slice(0, 10);
@@ -62,7 +70,38 @@ export default function ComunicacaoModal({
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <label className="text-xs text-canto-500">
-            Tipo
+            Formato
+            <select
+              value={draft.formato}
+              onChange={(e) => field("formato", e.target.value as ComunicacaoFormato)}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            >
+              {(Object.keys(COMUNICACAO_FORMATO_LABEL) as ComunicacaoFormato[]).map((f) => (
+                <option key={f} value={f}>
+                  {COMUNICACAO_FORMATO_LABEL[f]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs text-canto-500">
+            Plataforma
+            <select
+              value={draft.plataforma ?? ""}
+              onChange={(e) => field("plataforma", (e.target.value || null) as Plataforma | null)}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            >
+              <option value="">—</option>
+              {PLATAFORMAS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs text-canto-500">
+            Tipo (detalhe livre)
             <input
               value={draft.tipo}
               onChange={(e) => field("tipo", e.target.value)}
@@ -71,7 +110,16 @@ export default function ComunicacaoModal({
           </label>
 
           <label className="text-xs text-canto-500">
-            Canal
+            Responsável
+            <input
+              value={draft.responsavel ?? ""}
+              onChange={(e) => field("responsavel", e.target.value || null)}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            />
+          </label>
+
+          <label className="text-xs text-canto-500">
+            Canal de aquisição associado
             <select
               value={draft.canal ?? ""}
               onChange={(e) => field("canal", (e.target.value || null) as Channel | null)}
@@ -120,6 +168,41 @@ export default function ComunicacaoModal({
             />
           </label>
         </div>
+
+        {draft.status === "publicado" && (
+          <div className="mt-4 rounded-xl border border-canto-200 bg-canto-50 p-3">
+            <p className="text-xs font-semibold text-canto-700">
+              Resultados <span className="font-normal text-canto-400">(preenchido manualmente — sem integração automática configurada)</span>
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(
+                [
+                  ["visualizacoes", "Visualizações"],
+                  ["curtidas", "Curtidas"],
+                  ["comentarios", "Comentários"],
+                  ["alcance", "Alcance"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="text-xs text-canto-500">
+                  {label}
+                  <input
+                    type="number"
+                    min={0}
+                    value={draft.resultados?.[key] ?? ""}
+                    onChange={(e) =>
+                      field("resultados", {
+                        ...EMPTY_RESULTADOS,
+                        ...draft.resultados,
+                        [key]: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-md border border-canto-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex items-center justify-between">
           <button
