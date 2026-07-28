@@ -10,6 +10,8 @@ import { createReceitaFromLead } from "@/lib/patricia-canto/financeiro";
 import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
 import type { NextActivity } from "@/lib/patricia-canto/activity";
 import { EMPTY_MARKET_SIZING } from "@/lib/patricia-canto/gtm-extra";
+import type { SalesGoals } from "@/lib/patricia-canto/goals";
+import { DEFAULT_SALES_GOALS } from "@/lib/patricia-canto/goals";
 import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
 import { ROLE_TABS } from "@/lib/patricia-canto/auth";
 import type { NewLeadInput } from "./AddLeadModal";
@@ -40,6 +42,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const [comunicacoes, setComunicacoes] = useState<ComunicacaoItem[]>([]);
   const [marketSizing, setMarketSizing] = useState<MarketSizing>(EMPTY_MARKET_SIZING);
   const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
+  const [salesGoals, setSalesGoalsState] = useState<SalesGoals>(DEFAULT_SALES_GOALS);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -58,13 +61,15 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
           pcApi.getInvestment(),
           pcApi.getComunicacoes(),
           pcApi.getMarketSizing(),
+          pcApi.getGoals(),
         ])
       : Promise.all([pcApi.getLeads(), pcApi.getInvestment(), pcApi.getComunicacoes(), pcApi.getMarketSizing()]).then(
-          ([l, inv, com, market]) => [l, [] as CaseItem[], [] as Lancamento[], inv, com, market] as const,
+          ([l, inv, com, market]) =>
+            [l, [] as CaseItem[], [] as Lancamento[], inv, com, market, DEFAULT_SALES_GOALS] as const,
         );
 
     load
-      .then(async ([l, c, f, inv, com, market]) => {
+      .then(async ([l, c, f, inv, com, market, goals]) => {
         if (cancelled) return;
 
         // Backfill: leads que já estavam "Fechado — Ganho" antes de CS/Jurídico
@@ -96,6 +101,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
         setInvestment(inv);
         setComunicacoes(com);
         setMarketSizing(market);
+        setSalesGoalsState(goals);
       })
       .catch((e) => {
         if (!cancelled) setLoadError(e.message || "Falha ao carregar dados");
@@ -274,6 +280,15 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
+  async function saveSalesGoals(goals: SalesGoals) {
+    setSalesGoalsState(goals);
+    try {
+      await pcApi.setGoals(goals);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
   async function addComunicacao(data: NewComunicacaoInput) {
     const item: ComunicacaoItem = { ...data, id: `com-${Date.now()}` };
     const next = [...comunicacoes, item];
@@ -385,6 +400,9 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
                     cases={cases}
                     investment={investment}
                     comunicacoes={comunicacoes}
+                    lancamentos={lancamentos}
+                    salesGoals={salesGoals}
+                    onSaveSalesGoals={saveSalesGoals}
                     onNavigate={setTab}
                   />
                 )}

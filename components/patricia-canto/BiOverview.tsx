@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Channel, Lead } from "@/lib/patricia-canto/leads";
 import { STAGES } from "@/lib/patricia-canto/leads";
 import type { CaseItem } from "@/lib/patricia-canto/cases";
 import { CASE_STAGES } from "@/lib/patricia-canto/cases";
 import type { ComunicacaoItem } from "@/lib/patricia-canto/gtm-extra";
+import type { Lancamento } from "@/lib/patricia-canto/financeiro";
+import type { SalesGoals } from "@/lib/patricia-canto/goals";
+import { computeGoalProgress } from "@/lib/patricia-canto/goals";
 import { computeComercialMetrics, computeCsMetrics, computeGtmMetrics } from "@/lib/patricia-canto/metrics";
 import type { Tab } from "@/lib/patricia-canto/auth";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
@@ -113,17 +116,24 @@ export default function BiOverview({
   cases,
   investment,
   comunicacoes,
+  lancamentos,
+  salesGoals,
+  onSaveSalesGoals,
   onNavigate,
 }: {
   leads: Lead[];
   cases: CaseItem[];
   investment: Partial<Record<Channel, number>>;
   comunicacoes: ComunicacaoItem[];
+  lancamentos: Lancamento[];
+  salesGoals: SalesGoals;
+  onSaveSalesGoals: (goals: SalesGoals) => void;
   onNavigate: (tab: Tab) => void;
 }) {
   const comercial = useMemo(() => computeComercialMetrics(leads), [leads]);
   const cs = useMemo(() => computeCsMetrics(cases), [cases]);
   const gtm = useMemo(() => computeGtmMetrics(leads, investment), [leads, investment]);
+  const goalProgress = useMemo(() => computeGoalProgress(lancamentos, salesGoals), [lancamentos, salesGoals]);
 
   const stageBreakdown = useMemo(
     () =>
@@ -180,6 +190,8 @@ export default function BiOverview({
             </div>
           </div>
         </div>
+
+        <GoalsPanel goals={salesGoals} progress={goalProgress} onSave={onSaveSalesGoals} />
 
         {/* Stat tiles principais */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -373,6 +385,132 @@ export default function BiOverview({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function GoalCard({
+  label,
+  atual,
+  meta,
+  pct,
+}: {
+  label: string;
+  atual: number;
+  meta: number;
+  pct: number;
+}) {
+  const met = pct >= 100;
+  return (
+    <div className="rounded-lg border border-canto-line bg-canto-50 px-4 py-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-canto-500">{label}</p>
+        <span className={`text-[11px] font-semibold ${met ? "text-canto-700" : "text-canto-500"}`}>
+          {pct.toFixed(0)}%
+        </span>
+      </div>
+      <p className="mt-1 text-lg font-semibold text-canto-900">
+        {currency(atual)} <span className="text-sm font-normal text-canto-400">/ {currency(meta)}</span>
+      </p>
+      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-canto-200">
+        <div
+          className={`h-full rounded-full ${met ? "bg-canto-600" : "bg-canto-400"}`}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function GoalsPanel({
+  goals,
+  progress,
+  onSave,
+}: {
+  goals: SalesGoals;
+  progress: ReturnType<typeof computeGoalProgress>;
+  onSave: (goals: SalesGoals) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [vendasInput, setVendasInput] = useState(String(goals.metaVendasMensal));
+  const [recebimentoInput, setRecebimentoInput] = useState(String(goals.metaRecebimentoMensal));
+
+  function startEdit() {
+    setVendasInput(String(goals.metaVendasMensal));
+    setRecebimentoInput(String(goals.metaRecebimentoMensal));
+    setEditing(true);
+  }
+
+  function save() {
+    const metaVendasMensal = Number(vendasInput);
+    const metaRecebimentoMensal = Number(recebimentoInput);
+    if (!Number.isFinite(metaVendasMensal) || !Number.isFinite(metaRecebimentoMensal)) return;
+    onSave({ metaVendasMensal, metaRecebimentoMensal });
+    setEditing(false);
+  }
+
+  return (
+    <div className="rounded-xl border border-canto-line bg-white p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-canto-serif text-lg text-canto-900">Metas do mês</h3>
+          <p className="mt-0.5 text-xs text-canto-500">Vendas (competência) e recebimento (caixa) do mês atual</p>
+        </div>
+        {!editing && (
+          <button onClick={startEdit} className="text-[11px] font-semibold text-canto-500 transition hover:text-canto-800">
+            Editar metas
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="text-xs text-canto-500">
+            Meta de vendas (R$)
+            <input
+              type="number"
+              min={0}
+              value={vendasInput}
+              onChange={(e) => setVendasInput(e.target.value)}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            />
+          </label>
+          <label className="text-xs text-canto-500">
+            Meta de recebimento (R$)
+            <input
+              type="number"
+              min={0}
+              value={recebimentoInput}
+              onChange={(e) => setRecebimentoInput(e.target.value)}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            />
+          </label>
+          <div className="flex gap-2 sm:col-span-2">
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg border border-canto-200 px-3 py-1.5 text-xs font-medium text-canto-600 hover:bg-canto-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={save}
+              className="rounded-lg bg-canto-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-canto-800"
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <GoalCard label="Vendas do mês" atual={progress.vendasDoMes} meta={goals.metaVendasMensal} pct={progress.pctVendas} />
+          <GoalCard
+            label="Recebimento do mês"
+            atual={progress.recebidoDoMes}
+            meta={goals.metaRecebimentoMensal}
+            pct={progress.pctRecebimento}
+          />
+        </div>
+      )}
     </div>
   );
 }
