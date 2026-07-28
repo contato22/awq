@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { Channel } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
-import type { NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
+import type { ComunicacaoFormato, NewComunicacaoInput, Plataforma } from "@/lib/patricia-canto/gtm-extra";
+import { COMUNICACAO_FORMATO_LABEL, PLATAFORMAS } from "@/lib/patricia-canto/gtm-extra";
 
 export default function AddComunicacaoModal({
   onClose,
@@ -14,6 +15,9 @@ export default function AddComunicacaoModal({
 }) {
   const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState("");
+  const [formato, setFormato] = useState<ComunicacaoFormato>("outro");
+  const [plataforma, setPlataforma] = useState<Plataforma | "">("");
+  const [responsavel, setResponsavel] = useState("Ana");
   const [canal, setCanal] = useState<Channel | "">("");
   const [dataPlanejada, setDataPlanejada] = useState(new Date().toISOString().slice(0, 10));
 
@@ -21,11 +25,15 @@ export default function AddComunicacaoModal({
     if (!titulo.trim()) return;
     onAdd({
       titulo: titulo.trim(),
-      tipo: tipo.trim() || "Outro",
+      tipo: tipo.trim() || COMUNICACAO_FORMATO_LABEL[formato],
+      formato,
+      plataforma: plataforma || null,
+      responsavel: responsavel.trim() || null,
       canal: canal || null,
       dataPlanejada: new Date(`${dataPlanejada}T12:00:00`).toISOString(),
       status: "planejado",
       notas: null,
+      resultados: null,
     });
     onClose();
   }
@@ -48,30 +56,71 @@ export default function AddComunicacaoModal({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-canto-500">
-              Tipo
-              <input
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value)}
-                placeholder="Post, Anúncio, E-mail..."
+              Formato
+              <select
+                value={formato}
+                onChange={(e) => setFormato(e.target.value as ComunicacaoFormato)}
                 className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
-              />
+              >
+                {(Object.keys(COMUNICACAO_FORMATO_LABEL) as ComunicacaoFormato[]).map((f) => (
+                  <option key={f} value={f}>
+                    {COMUNICACAO_FORMATO_LABEL[f]}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block text-xs text-canto-500">
-              Canal
+              Plataforma
               <select
-                value={canal}
-                onChange={(e) => setCanal(e.target.value as Channel | "")}
+                value={plataforma}
+                onChange={(e) => setPlataforma(e.target.value as Plataforma | "")}
                 className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               >
                 <option value="">—</option>
-                {CHANNELS.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.id}
+                {PLATAFORMAS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
                   </option>
                 ))}
               </select>
             </label>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs text-canto-500">
+              Tipo (detalhe livre)
+              <input
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                placeholder="Reels, Carrossel, E-mail..."
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              />
+            </label>
+            <label className="block text-xs text-canto-500">
+              Responsável
+              <input
+                value={responsavel}
+                onChange={(e) => setResponsavel(e.target.value)}
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              />
+            </label>
+          </div>
+
+          <label className="block text-xs text-canto-500">
+            Canal de aquisição associado (opcional)
+            <select
+              value={canal}
+              onChange={(e) => setCanal(e.target.value as Channel | "")}
+              className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+            >
+              <option value="">—</option>
+              {CHANNELS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.id}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label className="block text-xs text-canto-500">
             Data planejada
