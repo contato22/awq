@@ -1,5 +1,6 @@
 // Board de CS / Acompanhamento Jurídico — pós-fechamento do Comercial.
 import type { Lead } from "./leads";
+import type { NextActivity } from "./activity";
 
 export type CaseStage = "onboarding" | "administrativo" | "judicial" | "decisao" | "pos_caso";
 
@@ -67,6 +68,7 @@ export interface CaseItem {
   depoimentoColetado: boolean;
   dataUltimaAtualizacao: string;
   dataCriacao: string;
+  proximaAtividade: NextActivity | null;
 }
 
 export function createCaseFromLead(lead: Lead): CaseItem {
@@ -93,6 +95,7 @@ export function createCaseFromLead(lead: Lead): CaseItem {
     depoimentoColetado: false,
     dataUltimaAtualizacao: now,
     dataCriacao: now,
+    proximaAtividade: null,
   };
 }
 

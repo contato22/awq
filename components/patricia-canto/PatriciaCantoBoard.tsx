@@ -8,6 +8,7 @@ import { createCaseFromLead } from "@/lib/patricia-canto/cases";
 import type { Lancamento } from "@/lib/patricia-canto/financeiro";
 import { createReceitaFromLead } from "@/lib/patricia-canto/financeiro";
 import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
+import type { NextActivity } from "@/lib/patricia-canto/activity";
 import { EMPTY_MARKET_SIZING } from "@/lib/patricia-canto/gtm-extra";
 import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
 import { ROLE_TABS } from "@/lib/patricia-canto/auth";
@@ -133,11 +134,16 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
-  async function moveLead(id: string, stage: Stage) {
+  async function moveLead(id: string, stage: Stage, activity: NextActivity) {
     const lead = leads.find((l) => l.id === id);
     if (!lead || lead.stage === stage) return;
     const now = new Date().toISOString();
-    const updated = { ...lead, stage, stageHistory: [...lead.stageHistory, { stage, enteredAt: now }] };
+    const updated = {
+      ...lead,
+      stage,
+      proximaAtividade: activity,
+      stageHistory: [...lead.stageHistory, { stage, enteredAt: now }],
+    };
     setLeads((prev) => prev.map((l) => (l.id === id ? updated : l)));
     try {
       await pcApi.updateLead(updated);
@@ -186,6 +192,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
       stage: "novo",
       dataEntrada: now,
       dataPrimeiroContato: null,
+      proximaAtividade: null,
       stageHistory: [{ stage: "novo", enteredAt: now }],
     };
     setLeads((prev) => [...prev, lead]);
@@ -196,10 +203,10 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
-  async function moveCase(id: string, stage: CaseStage) {
+  async function moveCase(id: string, stage: CaseStage, activity: NextActivity) {
     const item = cases.find((c) => c.id === id);
     if (!item) return;
-    const updated = { ...item, stage, dataUltimaAtualizacao: new Date().toISOString() };
+    const updated = { ...item, stage, proximaAtividade: activity, dataUltimaAtualizacao: new Date().toISOString() };
     setCases((prev) => prev.map((c) => (c.id === id ? updated : c)));
     try {
       await pcApi.updateCase(updated);
@@ -373,7 +380,13 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
             ) : (
               <>
                 {tab === "bi" && (
-                  <BiOverview leads={leads} cases={cases} investment={investment} comunicacoes={comunicacoes} />
+                  <BiOverview
+                    leads={leads}
+                    cases={cases}
+                    investment={investment}
+                    comunicacoes={comunicacoes}
+                    onNavigate={setTab}
+                  />
                 )}
                 {tab === "gtm" && (
                   <GtmView

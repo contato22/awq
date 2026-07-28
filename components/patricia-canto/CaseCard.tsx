@@ -2,6 +2,11 @@
 
 import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
 import { CASE_STAGES, daysSinceUpdate, isCommunicationLate } from "@/lib/patricia-canto/cases";
+import { isActivityOverdue } from "@/lib/patricia-canto/activity";
+
+function formatActivityDate(iso: string) {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
 
 export default function CaseCard({
   item,
@@ -73,6 +78,16 @@ export default function CaseCard({
       <p className={`mt-2 text-[11px] font-medium ${late ? "text-rose-600" : "text-canto-400"}`}>
         Última atualização: {days === 0 ? "hoje" : `há ${days}d`}
       </p>
+
+      {item.proximaAtividade && (
+        <p
+          className={`mt-2 rounded-lg px-2 py-1 text-[11px] font-medium ${
+            isActivityOverdue(item.proximaAtividade) ? "bg-rose-50 text-rose-700" : "bg-canto-50 text-canto-600"
+          }`}
+        >
+          Próxima atividade: {item.proximaAtividade.descricao} · {formatActivityDate(item.proximaAtividade.data)}
+        </p>
+      )}
 
       <div className="mt-3 border-t border-canto-100 pt-2" onClick={(e) => e.stopPropagation()}>
         <select

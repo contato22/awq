@@ -4,8 +4,10 @@ import { useMemo } from "react";
 import type { Channel, Lead } from "@/lib/patricia-canto/leads";
 import { STAGES } from "@/lib/patricia-canto/leads";
 import type { CaseItem } from "@/lib/patricia-canto/cases";
+import { CASE_STAGES } from "@/lib/patricia-canto/cases";
 import type { ComunicacaoItem } from "@/lib/patricia-canto/gtm-extra";
 import { computeComercialMetrics, computeCsMetrics, computeGtmMetrics } from "@/lib/patricia-canto/metrics";
+import type { Tab } from "@/lib/patricia-canto/auth";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
 import StatTile from "./StatTile";
 
@@ -13,9 +15,30 @@ function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function shortDate(iso: string) {
+function dateParts(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "");
+  return {
+    day: d.toLocaleDateString("pt-BR", { day: "2-digit" }),
+    month: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toUpperCase(),
+  };
+}
+
+function DateBadge({ iso }: { iso: string }) {
+  const { day, month } = dateParts(iso);
+  return (
+    <span className="flex w-9 shrink-0 flex-col items-center rounded-xl bg-canto-100 py-1 leading-none text-canto-700">
+      <span className="text-sm font-bold">{day}</span>
+      <span className="mt-0.5 text-[8px] font-semibold tracking-wide">{month}</span>
+    </span>
+  );
+}
+
+function ViewAll({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="text-[11px] font-semibold text-canto-500 transition hover:text-canto-800">
+      Ver tudo
+    </button>
+  );
 }
 
 const STAGE_COLOR: Record<string, string> = {
@@ -88,11 +111,13 @@ export default function BiOverview({
   cases,
   investment,
   comunicacoes,
+  onNavigate,
 }: {
   leads: Lead[];
   cases: CaseItem[];
   investment: Partial<Record<Channel, number>>;
   comunicacoes: ComunicacaoItem[];
+  onNavigate: (tab: Tab) => void;
 }) {
   const comercial = useMemo(() => computeComercialMetrics(leads), [leads]);
   const cs = useMemo(() => computeCsMetrics(cases), [cases]);
@@ -120,6 +145,14 @@ export default function BiOverview({
         .sort((a, b) => new Date(a.dataPlanejada).getTime() - new Date(b.dataPlanejada).getTime())
         .slice(0, 4),
     [comunicacoes],
+  );
+
+  const recentCases = useMemo(
+    () =>
+      [...cases]
+        .sort((a, b) => new Date(b.dataUltimaAtualizacao).getTime() - new Date(a.dataUltimaAtualizacao).getTime())
+        .slice(0, 4),
+    [cases],
   );
 
   return (
@@ -169,14 +202,25 @@ export default function BiOverview({
           <p className="mt-0.5 text-xs text-canto-500">Distribuição atual de todos os leads no funil comercial</p>
           <div className="mt-4 flex flex-col items-center gap-5 sm:flex-row">
             <DonutChart segments={stageBreakdown} total={leads.length} />
-            <div className="w-full flex-1 space-y-2">
+            <div className="w-full flex-1 space-y-2.5">
               {stageBreakdown.map((s) => (
-                <div key={s.label} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="flex items-center gap-2 text-canto-700">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                    {s.label}
-                  </span>
-                  <span className="font-semibold text-canto-900">{s.value}</span>
+                <div key={s.label}>
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-2 text-canto-700">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      {s.label}
+                    </span>
+                    <span className="font-semibold text-canto-900">{s.value}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-canto-100">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${leads.length > 0 ? (s.value / leads.length) * 100 : 0}%`,
+                        backgroundColor: s.color,
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -251,17 +295,20 @@ export default function BiOverview({
 
       {/* Painel lateral de atividade */}
       <div className="space-y-5">
+        <p className="font-canto-serif text-lg font-semibold text-canto-900">Atividade</p>
+
         <div className="rounded-3xl border border-canto-200 bg-white p-5">
-          <h3 className="font-canto-serif text-base font-semibold text-canto-900">Comunicações planejadas</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-canto-900">Comunicações planejadas</h3>
+            <ViewAll onClick={() => onNavigate("gtm")} />
+          </div>
           {upcomingComunicacoes.length === 0 ? (
             <p className="mt-3 text-xs text-canto-500">Nenhuma ação planejada no momento.</p>
           ) : (
             <ul className="mt-3 space-y-3">
               {upcomingComunicacoes.map((c) => (
                 <li key={c.id} className="flex items-start gap-3">
-                  <span className="mt-0.5 shrink-0 rounded-lg bg-canto-100 px-2 py-1 text-[10px] font-semibold uppercase text-canto-700">
-                    {shortDate(c.dataPlanejada)}
-                  </span>
+                  <DateBadge iso={c.dataPlanejada} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-canto-900">{c.titulo}</p>
                     <p className="text-xs text-canto-500">
@@ -276,7 +323,10 @@ export default function BiOverview({
         </div>
 
         <div className="rounded-3xl border border-canto-200 bg-white p-5">
-          <h3 className="font-canto-serif text-base font-semibold text-canto-900">Leads recentes</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-canto-900">Leads recentes</h3>
+            <ViewAll onClick={() => onNavigate("comercial")} />
+          </div>
           {recentLeads.length === 0 ? (
             <p className="mt-3 text-xs text-canto-500">Nenhum lead cadastrado ainda.</p>
           ) : (
@@ -290,6 +340,30 @@ export default function BiOverview({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-canto-900">{l.nomeCliente || "Sem nome"}</p>
                     <p className="truncate text-xs text-canto-500">{l.tipoProcesso}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-3xl border border-canto-200 bg-white p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-canto-900">Casos atualizados</h3>
+            <ViewAll onClick={() => onNavigate("cs")} />
+          </div>
+          {recentCases.length === 0 ? (
+            <p className="mt-3 text-xs text-canto-500">Nenhum caso em acompanhamento ainda.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {recentCases.map((c) => (
+                <li key={c.id} className="flex items-start gap-3">
+                  <DateBadge iso={c.dataUltimaAtualizacao} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-canto-900">{c.nomeCliente}</p>
+                    <p className="truncate text-xs text-canto-500">
+                      {CASE_STAGES.find((s) => s.id === c.stage)?.label ?? c.stage}
+                    </p>
                   </div>
                 </li>
               ))}

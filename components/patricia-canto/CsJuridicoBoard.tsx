@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
 import { CASE_STAGES } from "@/lib/patricia-canto/cases";
+import type { NextActivity } from "@/lib/patricia-canto/activity";
 import { computeCsMetrics } from "@/lib/patricia-canto/metrics";
 import CaseCard from "./CaseCard";
 import CaseModal from "./CaseModal";
+import NextActivityModal from "./NextActivityModal";
 import StatTile from "./StatTile";
 
 export default function CsJuridicoBoard({
@@ -15,13 +17,14 @@ export default function CsJuridicoBoard({
   onDeleteCase,
 }: {
   cases: CaseItem[];
-  onMoveCase: (id: string, stage: CaseStage) => void;
+  onMoveCase: (id: string, stage: CaseStage, activity: NextActivity) => void;
   onSaveCase: (item: CaseItem) => void;
   onDeleteCase: (id: string) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<CaseStage | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pendingMove, setPendingMove] = useState<{ id: string; stage: CaseStage } | null>(null);
 
   const byStage = useMemo(() => {
     const map = new Map<CaseStage, CaseItem[]>();
@@ -35,8 +38,12 @@ export default function CsJuridicoBoard({
   const metrics = useMemo(() => computeCsMetrics(cases), [cases]);
 
   function handleMove(id: string, stage: CaseStage) {
-    onMoveCase(id, stage);
+    const item = cases.find((c) => c.id === id);
+    if (!item || item.stage === stage) return;
+    setPendingMove({ id, stage });
   }
+
+  const pendingCase = pendingMove ? cases.find((c) => c.id === pendingMove.id) : null;
 
   return (
     <div>
@@ -152,6 +159,17 @@ export default function CsJuridicoBoard({
             onDeleteCase(id);
             setOpenId(null);
           }}
+        />
+      )}
+      {pendingMove && pendingCase && (
+        <NextActivityModal
+          clientName={pendingCase.nomeCliente}
+          stageLabel={CASE_STAGES.find((s) => s.id === pendingMove.stage)?.label ?? pendingMove.stage}
+          onConfirm={(activity) => {
+            onMoveCase(pendingMove.id, pendingMove.stage, activity);
+            setPendingMove(null);
+          }}
+          onCancel={() => setPendingMove(null)}
         />
       )}
     </div>
