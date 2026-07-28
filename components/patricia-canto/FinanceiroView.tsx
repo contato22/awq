@@ -3,10 +3,14 @@
 import { useMemo, useState } from "react";
 import type { Lancamento, TipoLancamento } from "@/lib/patricia-canto/financeiro";
 import { computeDfc, computeDre, isOverdue } from "@/lib/patricia-canto/financeiro";
+import type { SalesGoals } from "@/lib/patricia-canto/goals";
+import { computeGoalProgress } from "@/lib/patricia-canto/goals";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
 import AddLancamentoModal from "./AddLancamentoModal";
 import LancamentoModal from "./LancamentoModal";
 import StatTile from "./StatTile";
+import GaugeChart from "./GaugeChart";
+import HorizontalBarChart from "./HorizontalBarChart";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -29,11 +33,13 @@ export default function FinanceiroView({
   onAdd,
   onSave,
   onDelete,
+  salesGoals,
 }: {
   lancamentos: Lancamento[];
   onAdd: (item: NewLancamentoInput) => void;
   onSave: (item: Lancamento) => void;
   onDelete: (id: string) => void;
+  salesGoals: SalesGoals;
 }) {
   const [subTab, setSubTab] = useState<SubTab>("receber");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -69,7 +75,10 @@ export default function FinanceiroView({
 
       <div className="mt-4">
         {subTab === "receber" && (
-          <LancamentosTable tipo="receita" lancamentos={lancamentos} onOpen={setOpenId} />
+          <>
+            <LancamentosTable tipo="receita" lancamentos={lancamentos} onOpen={setOpenId} />
+            <RecebimentoDetalhamento lancamentos={lancamentos} salesGoals={salesGoals} />
+          </>
         )}
         {subTab === "pagar" && <LancamentosTable tipo="despesa" lancamentos={lancamentos} onOpen={setOpenId} />}
         {subTab === "dfc" && <DfcTable lancamentos={lancamentos} />}
@@ -193,6 +202,99 @@ function LancamentosTable({
             )}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function RecebimentoDetalhamento({ lancamentos, salesGoals }: { lancamentos: Lancamento[]; salesGoals: SalesGoals }) {
+  const receitas = useMemo(() => lancamentos.filter((l) => l.tipo === "receita"), [lancamentos]);
+  const goalProgress = useMemo(() => computeGoalProgress(lancamentos, salesGoals), [lancamentos, salesGoals]);
+  const dfcRows = useMemo(() => computeDfc(lancamentos).slice(-6), [lancamentos]);
+
+  const porCliente = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of receitas.filter((l) => l.status === "liquidado")) {
+      map.set(l.contraparte, (map.get(l.contraparte) ?? 0) + l.valor);
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [receitas]);
+
+  const proximos = useMemo(
+    () =>
+      receitas
+        .filter((l) => l.status === "pendente" && !isOverdue(l))
+        .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento))
+        .slice(0, 5),
+    [receitas],
+  );
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div>
+        <h3 className="font-canto-serif text-lg text-canto-900">Detalhamento de Recebimentos</h3>
+        <p className="mt-0.5 text-xs text-canto-500">Meta do mês, histórico de caixa e previsão dos próximos recebimentos</p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-canto-line bg-white p-5">
+          <GaugeChart
+            label="Recebido no mês"
+            value={currency(goalProgress.recebidoDoMes)}
+            pct={goalProgress.pctRecebimento}
+            color="#847455"
+            size={160}
+          />
+          <p className="mt-2 text-center text-xs text-canto-500">
+            Meta: {currency(salesGoals.metaRecebimentoMensal)} ({goalProgress.pctRecebimento.toFixed(0)}%)
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-canto-line bg-white p-5">
+          <p className="text-sm font-semibold text-canto-900">Recebido por mês</p>
+          <p className="mt-0.5 text-xs text-canto-500">Regime de caixa — últimos meses com liquidação</p>
+          <div className="mt-3">
+            <HorizontalBarChart
+              data={dfcRows.map((r) => ({
+                label: r.label,
+                value: r.entradas,
+                displayValue: currency(r.entradas),
+                color: "#8FA890",
+              }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-canto-line bg-white p-5">
+          <p className="text-sm font-semibold text-canto-900">Top clientes (recebido)</p>
+          <ul className="mt-3 space-y-2">
+            {porCliente.map(([cliente, valor]) => (
+              <li key={cliente} className="flex items-center justify-between text-sm">
+                <span className="text-canto-700">{cliente}</span>
+                <span className="font-semibold text-canto-900">{currency(valor)}</span>
+              </li>
+            ))}
+            {porCliente.length === 0 && <p className="text-xs text-canto-500">Nenhum recebimento ainda.</p>}
+          </ul>
+        </div>
+
+        <div className="rounded-xl border border-canto-line bg-white p-5">
+          <p className="text-sm font-semibold text-canto-900">Próximos recebimentos esperados</p>
+          <ul className="mt-3 space-y-2">
+            {proximos.map((l) => (
+              <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate text-canto-900">{l.contraparte}</p>
+                  <p className="text-xs text-canto-500">{formatDate(l.dataVencimento)}</p>
+                </div>
+                <span className="shrink-0 font-semibold text-canto-700">{currency(l.valor)}</span>
+              </li>
+            ))}
+            {proximos.length === 0 && <p className="text-xs text-canto-500">Nenhum recebimento previsto.</p>}
+          </ul>
+        </div>
       </div>
     </div>
   );

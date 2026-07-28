@@ -15,6 +15,8 @@ import type { Tab } from "@/lib/patricia-canto/auth";
 import MyTasksPanel from "./MyTasksPanel";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
 import StatTile from "./StatTile";
+import GaugeChart from "./GaugeChart";
+import HorizontalBarChart from "./HorizontalBarChart";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -246,6 +248,32 @@ export default function BiOverview({
           </div>
         </div>
 
+        {/* Gauges de desempenho */}
+        <div className="rounded-xl border border-canto-line bg-white p-5">
+          <h3 className="font-canto-serif text-lg text-canto-900">Desempenho</h3>
+          <p className="mt-0.5 text-xs text-canto-500">Principais taxas do funil, de ponta a ponta</p>
+          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <GaugeChart
+              label="Conversão geral"
+              value={comercial.taxaConversaoGeral == null ? "—" : `${comercial.taxaConversaoGeral.toFixed(0)}%`}
+              pct={comercial.taxaConversaoGeral ?? 0}
+              color="#847455"
+            />
+            <GaugeChart
+              label="Taxa de sucesso (CS)"
+              value={cs.taxaSucesso == null ? "—" : `${cs.taxaSucesso.toFixed(0)}%`}
+              pct={cs.taxaSucesso ?? 0}
+              color="#8FA890"
+            />
+            <GaugeChart
+              label="Indicação pós-caso"
+              value={cs.taxaIndicacao == null ? "—" : `${cs.taxaIndicacao.toFixed(0)}%`}
+              pct={cs.taxaIndicacao ?? 0}
+              color="#6E9C93"
+            />
+          </div>
+        </div>
+
         <Section title="Indicadores de Vendas" subtitle="Pipeline Comercial — leads, conversão e receita">
           <StatTile label="Total de leads" value={comercial.totalLeads.toString()} />
           <StatTile label="Qualificados" value={comercial.qualificados.toString()} />
@@ -292,24 +320,30 @@ export default function BiOverview({
           />
         </Section>
 
-        <Section title="Indicadores de Aquisição" subtitle="GTM — origem dos leads e eficiência de canal">
-          <StatTile
-            label="Leads sem origem"
-            value={`${gtm.semOrigem} (${gtm.pctSemOrigem.toFixed(0)}%)`}
-            variant={gtm.pctSemOrigem > 20 ? "warn" : "default"}
+        <div className="rounded-xl border border-canto-line bg-white p-5">
+          <h3 className="font-canto-serif text-lg text-canto-900">Indicadores de Aquisição</h3>
+          <p className="mt-0.5 text-xs text-canto-500">GTM — origem dos leads e eficiência de canal</p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile
+              label="Leads sem origem"
+              value={`${gtm.semOrigem} (${gtm.pctSemOrigem.toFixed(0)}%)`}
+              variant={gtm.pctSemOrigem > 20 ? "warn" : "default"}
+            />
+            <StatTile label="SLA médio de 1º contato" value={gtm.slaHoras == null ? "—" : `${gtm.slaHoras.toFixed(1)}h`} />
+            <StatTile label="Canal com mais leads" value={gtm.melhorCanal ? `${gtm.melhorCanal.id} (${gtm.melhorCanal.total})` : "—"} />
+          </div>
+          <p className="mb-2 mt-4 text-[11px] font-medium uppercase tracking-wide text-canto-500">Conversão por canal</p>
+          <HorizontalBarChart
+            data={gtm.byChannel
+              .filter((c) => c.total > 0)
+              .map((c) => ({
+                label: c.id,
+                value: c.conversao ?? 0,
+                displayValue: c.conversao == null ? "—" : `${c.conversao.toFixed(0)}%`,
+                color: "#C1936A",
+              }))}
           />
-          <StatTile label="SLA médio de 1º contato" value={gtm.slaHoras == null ? "—" : `${gtm.slaHoras.toFixed(1)}h`} />
-          <StatTile label="Canal com mais leads" value={gtm.melhorCanal ? `${gtm.melhorCanal.id} (${gtm.melhorCanal.total})` : "—"} />
-          {gtm.byChannel
-            .filter((c) => c.total > 0)
-            .map((c) => (
-              <StatTile
-                key={c.id}
-                label={`Conversão — ${c.id}`}
-                value={c.conversao == null ? "—" : `${c.conversao.toFixed(0)}%`}
-              />
-            ))}
-        </Section>
+        </div>
       </div>
 
       {/* Painel lateral de atividade */}
