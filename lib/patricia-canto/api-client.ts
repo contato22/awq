@@ -4,6 +4,7 @@ import type { Lead, Channel } from "./leads";
 import type { CaseItem } from "./cases";
 import type { Lancamento } from "./financeiro";
 import type { ComunicacaoItem, MarketSizing } from "./gtm-extra";
+import type { SalesGoals } from "./goals";
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -54,6 +55,9 @@ export const pcApi = {
     req<{ investment: Partial<Record<Channel, number>> }>("/api/patricia-canto/settings").then((d) => d.investment),
   setInvestment: (investment: Partial<Record<Channel, number>>) =>
     req("/api/patricia-canto/settings", { method: "PUT", body: JSON.stringify(investment) }),
+
+  getGoals: () => req<{ goals: SalesGoals }>("/api/patricia-canto/goals").then((d) => d.goals),
+  setGoals: (goals: SalesGoals) => req("/api/patricia-canto/goals", { method: "PUT", body: JSON.stringify(goals) }),
 
   logout: () => req("/api/patricia-canto/auth/logout", { method: "POST" }),
 };
