@@ -14,6 +14,7 @@ import type { SalesGoals } from "@/lib/patricia-canto/goals";
 import { DEFAULT_SALES_GOALS } from "@/lib/patricia-canto/goals";
 import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
 import { ROLE_TABS } from "@/lib/patricia-canto/auth";
+import type { ActivityLogEntry } from "@/lib/patricia-canto/activity-log";
 import type { NewLeadInput } from "./AddLeadModal";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
 import { pcApi } from "@/lib/patricia-canto/api-client";
@@ -23,6 +24,7 @@ import GtmView from "./GtmView";
 import ComercialBoard from "./ComercialBoard";
 import CsJuridicoBoard from "./CsJuridicoBoard";
 import FinanceiroView from "./FinanceiroView";
+import EquipeView from "./EquipeView";
 
 const TAB_LABEL: Record<Tab, string> = {
   bi: "BI · Visão Geral",
@@ -30,6 +32,7 @@ const TAB_LABEL: Record<Tab, string> = {
   comercial: "Pipeline Comercial",
   cs: "CS / Jurídico",
   financeiro: "Financeiro",
+  equipe: "Equipe",
 };
 
 export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
@@ -43,6 +46,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const [marketSizing, setMarketSizing] = useState<MarketSizing>(EMPTY_MARKET_SIZING);
   const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
   const [salesGoals, setSalesGoalsState] = useState<SalesGoals>(DEFAULT_SALES_GOALS);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -108,6 +112,22 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
+
+  useEffect(() => {
+    if (role !== "master") return;
+    let cancelled = false;
+    pcApi
+      .getActivityLog()
+      .then((log) => {
+        if (!cancelled) setActivityLog(log);
+      })
+      .catch((e) => {
+        if (!cancelled) reportSyncError(e);
       });
     return () => {
       cancelled = true;
@@ -440,6 +460,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
                     salesGoals={salesGoals}
                   />
                 )}
+                {tab === "equipe" && <EquipeView activityLog={activityLog} comunicacoes={comunicacoes} />}
               </>
             )}
           </main>

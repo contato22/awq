@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/patricia-canto/auth";
-import { getCases, upsertCase } from "@/lib/patricia-canto/db";
+import { getCases, upsertCase, logActivity } from "@/lib/patricia-canto/db";
 import type { CaseItem } from "@/lib/patricia-canto/cases";
 
 export const runtime = "nodejs";
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const item = (await req.json()) as CaseItem;
     await upsertCase(item);
+    await logActivity(role, `Criou caso: ${item.nomeCliente}`);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

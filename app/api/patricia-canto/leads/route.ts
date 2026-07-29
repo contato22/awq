@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/patricia-canto/auth";
-import { getLeads, upsertLead } from "@/lib/patricia-canto/db";
+import { getLeads, upsertLead, logActivity } from "@/lib/patricia-canto/db";
 import { buildInitialLeads, type Lead } from "@/lib/patricia-canto/leads";
 
 export const runtime = "nodejs";
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const lead = (await req.json()) as Lead;
     await upsertLead(lead);
+    await logActivity(role, `Criou lead: ${lead.nomeCliente}`);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

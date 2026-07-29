@@ -5,6 +5,7 @@ import type { CaseItem } from "./cases";
 import type { Lancamento } from "./financeiro";
 import type { ComunicacaoItem, MarketSizing } from "./gtm-extra";
 import type { SalesGoals } from "./goals";
+import type { ActivityLogEntry } from "./activity-log";
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -58,6 +59,9 @@ export const pcApi = {
 
   getGoals: () => req<{ goals: SalesGoals }>("/api/patricia-canto/goals").then((d) => d.goals),
   setGoals: (goals: SalesGoals) => req("/api/patricia-canto/goals", { method: "PUT", body: JSON.stringify(goals) }),
+
+  getActivityLog: () =>
+    req<{ activityLog: ActivityLogEntry[] }>("/api/patricia-canto/activity-log").then((d) => d.activityLog),
 
   logout: () => req("/api/patricia-canto/auth/logout", { method: "POST" }),
 };
