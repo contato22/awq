@@ -52,6 +52,29 @@ CREATE TABLE IF NOT EXISTS enrd_montagem_cliente (
   synced_at         timestamptz NOT NULL DEFAULT now()
 );
 
+-- ── Relatórios de limpeza (agenda de reativação) ─────────────────────────────
+-- Adicionada depois da migração original (código já referenciava a tabela em
+-- lib/enrd-montagem-db.ts / CLEANING_TABLE, mas a criação nunca tinha sido
+-- escrita aqui — por isso "upsert enrd_montagem_cleaning_report" sempre falhava
+-- com "Could not find the table" mesmo depois de rodar esta migração uma vez).
+CREATE TABLE IF NOT EXISTS enrd_montagem_cleaning_report (
+  id                 text PRIMARY KEY,
+  installation_id    text,
+  cliente_id         text,
+  cliente_nome       text,
+  local_instalacao   text,
+  data_limpeza       date,
+  proxima_limpeza    date,
+  equipe             text,
+  capacidade_kwp     numeric,
+  nivel_sujeira      text,
+  tem_anomalias      boolean,
+  raw                jsonb,
+  synced_at          timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_enrd_mont_clean_proxima ON enrd_montagem_cleaning_report (proxima_limpeza);
+
 -- ── Log de sincronização (auditável) ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS enrd_montagem_sync_log (
   id            bigserial PRIMARY KEY,
@@ -64,6 +87,7 @@ CREATE TABLE IF NOT EXISTS enrd_montagem_sync_log (
 );
 
 -- RLS desabilitado (convenção do projeto — anon key opera nessas tabelas).
-ALTER TABLE enrd_montagem_installation DISABLE ROW LEVEL SECURITY;
-ALTER TABLE enrd_montagem_cliente      DISABLE ROW LEVEL SECURITY;
-ALTER TABLE enrd_montagem_sync_log     DISABLE ROW LEVEL SECURITY;
+ALTER TABLE enrd_montagem_installation     DISABLE ROW LEVEL SECURITY;
+ALTER TABLE enrd_montagem_cliente          DISABLE ROW LEVEL SECURITY;
+ALTER TABLE enrd_montagem_cleaning_report  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE enrd_montagem_sync_log         DISABLE ROW LEVEL SECURITY;

@@ -134,6 +134,16 @@ export async function readEnerdyPortal(): Promise<PortalSnapshot> {
     ]);
     return { installations, clientes, cleaningReports };
   } finally {
-    await supabase.auth.signOut();
+    // scope:"local" é CRÍTICO — signOut() sem parâmetro usa scope:"global" por
+    // padrão no supabase-js, que revoga TODOS os refresh tokens do usuário no
+    // servidor GoTrue (não só esta sessão). Como a conta ENERDY_USER é
+    // compartilhada por várias chamadas concorrentes (montagem, relatório,
+    // posvenda, BI diário — cada uma faz seu próprio login+logout), um logout
+    // global podia invalidar a sessão de OUTRA chamada em andamento no meio do
+    // caminho: a query dela então rodava como anônimo e o RLS devolvia 0
+    // linhas — exatamente o sintoma "conectado, mas nenhuma instalação
+    // retornou". persistSession:false já garante que não há nada local para
+    // limpar; "local" evita esse blast radius sem perder a semântica.
+    await supabase.auth.signOut({ scope: "local" });
   }
 }

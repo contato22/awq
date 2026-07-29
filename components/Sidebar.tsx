@@ -567,6 +567,7 @@ const ENRD_MODULES: BUModule[] = [
     ]},
     { id: "crm", label: "CRM", description: "Clientes & Relacionamento", icon: Users,      items: [
         { label: "Dashboard CRM", href: "/crm",                icon: Target   },
+        { label: "Matriz RFM",    href: "/enrd/crm",           icon: PieChart, badge: "Novo", badgeVariant: "gold" },
         { label: "Leads",         href: "/crm/leads?bu=ENRD",  icon: UserPlus },
         { label: "Pipeline",      href: "/crm/pipeline",       icon: Activity },
     ]},
@@ -577,6 +578,9 @@ const ENRD_MODULES: BUModule[] = [
         { label: "Tarefas",        href: "/awq/ppm/tasks",        icon: ClipboardList },
         { label: "Novo Projeto",   href: "/awq/ppm/add?bu=ENRD",  icon: FolderOpen    },
     ]},
+    { id: "ma", label: "M&A", description: "Vesting & Deal Enerdy",       icon: TrendingUp, items: [
+        { label: "Vesting",  href: "/enrd/ma", icon: TrendingUp, badge: "Novo", badgeVariant: "gold" },
+    ]},
     { id: "bpm", label: "BPM", description: "Workflows & Aprovações",     icon: Activity,   items: [
         { label: "Minha Fila",     href: "/awq/bpm/tasks",                 icon: ClipboardList },
         { label: "Processos",      href: "/awq/bpm/processes",             icon: Activity      },
@@ -585,7 +589,7 @@ const ENRD_MODULES: BUModule[] = [
     { id: "bi", label: "BI", description: "Analytics & Relatórios",       icon: PieChart,   items: [
         { label: "Analytics", href: "/crm/analytics", icon: BarChart3 },
         { label: "Pipeline",  href: "/crm/pipeline",  icon: Activity  },
-        { label: "RFM",       href: "/crm/rfm",       icon: PieChart  },
+        { label: "RFM",       href: "/enrd/crm",      icon: PieChart  },
     ]},
 ];
 
