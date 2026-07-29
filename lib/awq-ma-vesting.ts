@@ -18,7 +18,7 @@
 // RLS desabilitado) — ver migração combinada em /api/enrd/setup/migrate.
 
 import { erpAdmin, erpAnon } from "@/lib/supabase";
-import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
+import { getHistoricoOM } from "@/lib/enrd-historico";
 
 const CONFIG_TABLE = "awq_ma_vesting_config";
 
@@ -99,26 +99,23 @@ function monthsBetween(inicio: Date, hoje: Date): number {
   return Math.max(0, ms / (1000 * 60 * 60 * 24 * 30.4375));
 }
 
-// Soma o RECEBIDO REAL (Cora, perímetro O&M) de cada mês desde o início do
-// vesting até hoje — a mesma reconciliação que ancora relatório/posvenda/BI,
-// não um número separado. É a fonte de verdade do "valorAcumulado".
+// Soma a receita REAL do perímetro O&M/pós-venda desde o início do vesting até
+// hoje — reusa getHistoricoOM (mesma fonte que ancora /enrd/historico e o BI):
+// Cora real (recebidoCora) nos meses em que já existe conta bancária
+// classificada; CSV histórico (Notion, filtrado por classificarDono===
+// pos_venda) nos meses anteriores a maio/2026, quando a Cora da ENERDY ainda
+// não tinha transações. Não é um número separado — bug corrigido em
+// 29/07/2026: a versão anterior somava só recebidoCora e ficava muda pros
+// meses pré-Cora (Cora só existe desde mai/2026; o histórico do O&M começa em
+// set/2025), subestimando o acumulado em ~R$72k.
 export async function getValorAcumuladoDesde(dataInicio: string): Promise<number> {
-  const inicio = new Date(dataInicio + "T00:00:00Z");
-  const hoje = new Date();
-  let total = 0;
-  const cursor = new Date(Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth(), 1));
-  const limite = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
-  while (cursor.getTime() <= limite.getTime()) {
-    const mes = cursor.toISOString().slice(0, 7);
-    try {
-      const recon = await getReconciliacaoMes(mes);
-      total += recon.recebidoCora;
-    } catch {
-      /* mês sem dado — segue */
-    }
-    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  const desde = dataInicio.slice(0, 7); // AAAA-MM
+  try {
+    const hist = await getHistoricoOM(desde);
+    return hist.totalValor;
+  } catch {
+    return 0;
   }
-  return total;
 }
 
 // Progresso "estático" (sem tocar no banco) — usado só pro componente de
