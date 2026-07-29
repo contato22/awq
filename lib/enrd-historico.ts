@@ -42,7 +42,7 @@ export type HistoricoOM = {
   totalValor: number;
   totalOS: number;
   desde: string;
-  nMontagemExcluida: number; // quantas OS do backfill eram montagem, não O&M (excluídas)
+  nMontagemExcluida: number; // quantas OS do backfill eram montagem OU híbrida, não O&M puro (excluídas)
 };
 
 export type HistoricoIntegracao = {
@@ -73,12 +73,15 @@ function monthsSince(desde: string): string[] {
   return out;
 }
 
-// Fato transacional real: foi cobrado (valor>0) OU status indica conclusão.
-// Exclui fila de follow-up ("entrar_contato"/"Entrar em contato") e ruído sem
-// valor — mesma disciplina usada pra "isRealizado" no resto do módulo O&M.
+// Fato transacional real: status precisa indicar CONCLUSÃO (concluido/fechado).
+// "valor_fechado" preenchido sozinho NÃO basta — auditoria encontrou serviços
+// em "em_negociacao" (cliente ainda não confirmou; ex.: "sem retorno do
+// cliente") já com valor pré-lançado no CRM, o que inflava "vendido" com
+// pipeline ainda não fechado. Exclui também "entrar_contato" (fila de
+// follow-up) e qualquer outro status intermediário.
 function ehRealPosVenda(valor: number, status: string | null): boolean {
   const st = (status ?? "").toLowerCase();
-  return valor > 0 || st.includes("conclu") || st === "fechado";
+  return valor > 0 && (st.includes("conclu") || st === "fechado");
 }
 
 // ── Pós-venda/O&M executado: backfill CSV (filtrado por perímetro) × Cora ────
@@ -90,9 +93,11 @@ export async function getHistoricoOM(desde: string = "2025-09"): Promise<Histori
     if (!o.data) continue;
     const mes = o.data.slice(0, 7);
     if (mes < desde) continue;
-    // Perímetro: só O&M (Miguel). "Instalação de placa"/"Reinstalar"/etc. são
-    // montagem (Felipe) — mesmo quando vieram junto no backfill do CSV.
-    if (classificarDono(o.tipoServico) === "montagem") {
+    // Perímetro: só O&M puro (Miguel). "Instalação de placa"/"Reinstalar"/etc.
+    // são montagem (Felipe) — mesmo quando vieram junto no backfill do CSV.
+    // "Híbrido" (ambíguo — bate as duas regex) também fica de fora: não é
+    // "apenas Pós-venda/O&M" se a descrição também soa a instalação.
+    if (classificarDono(o.tipoServico) !== "pos_venda") {
       nMontagemExcluida++;
       continue;
     }
@@ -135,8 +140,8 @@ export async function getHistoricoPosVendaVendido(): Promise<HistoricoPosVendaVe
   } catch {
     servicos = [];
   }
-  // Perímetro: só O&M (exclui híbrido/montagem, mesmo padrão do resto do BI).
-  const pos = servicos.filter((s) => classificarDono(s.tipoServico) !== "montagem");
+  // Perímetro: só O&M puro (exclui híbrido e montagem).
+  const pos = servicos.filter((s) => classificarDono(s.tipoServico) === "pos_venda");
   const reais = pos.filter((s) => ehRealPosVenda(s.valor, s.status));
 
   const porStatusMap = new Map<string, { n: number; valor: number }>();

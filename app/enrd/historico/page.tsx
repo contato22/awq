@@ -123,7 +123,7 @@ export default async function EnrdHistoricoPage() {
             <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-3.5">
               <div className="text-[11px] uppercase tracking-wide text-orange-600">Total vendido (ao vivo)</div>
               <div className="text-2xl font-bold text-orange-700 mt-1">{BRL(pvVendido.totalVendido)}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{pvVendido.nServicos} serviços com valor lançado</div>
+              <div className="text-xs text-gray-500 mt-0.5">{pvVendido.nServicos} serviços concluídos/fechados</div>
             </div>
             <div className="rounded-xl border border-gray-100 p-3.5">
               <div className="text-[11px] uppercase tracking-wide text-gray-400">Por status</div>
