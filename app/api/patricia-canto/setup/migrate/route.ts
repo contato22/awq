@@ -88,20 +88,32 @@ CREATE TABLE IF NOT EXISTS patricia_canto_lancamentos (
 ALTER TABLE patricia_canto_leads ADD COLUMN IF NOT EXISTS proxima_atividade JSONB;
 ALTER TABLE patricia_canto_cases ADD COLUMN IF NOT EXISTS proxima_atividade JSONB;
 
+-- Log de atividades por role (aba "Equipe", exclusiva do master) — cada
+-- mutação relevante (criar/mover/editar/remover lead, caso, lançamento,
+-- comunicações) grava uma linha aqui.
+CREATE TABLE IF NOT EXISTS patricia_canto_activity_log (
+  id          TEXT PRIMARY KEY,
+  role        TEXT NOT NULL,
+  action      TEXT NOT NULL,
+  created_at  TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_pc_leads_stage        ON patricia_canto_leads(stage);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_stage        ON patricia_canto_cases(stage);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_lead_id      ON patricia_canto_cases(lead_id);
 CREATE INDEX IF NOT EXISTS idx_pc_lancamentos_tipo   ON patricia_canto_lancamentos(tipo);
 CREATE INDEX IF NOT EXISTS idx_pc_lancamentos_venc   ON patricia_canto_lancamentos(data_vencimento);
+CREATE INDEX IF NOT EXISTS idx_pc_activity_created    ON patricia_canto_activity_log(created_at);
 
 -- Dado pessoal de cliente (nome/telefone/caso/financeiro) — RLS ativado e
 -- sem nenhuma policy, ou seja, fechado por padrão. A service role key
 -- (única que o app usa para essas tabelas) ignora RLS, então continua
 -- funcionando; a anon key (pública, hardcoded no código) não enxerga nada aqui.
-ALTER TABLE patricia_canto_leads        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_cases        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_settings     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_lancamentos  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_leads          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_cases          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_settings       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_lancamentos    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_activity_log   ENABLE ROW LEVEL SECURITY;
 `;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

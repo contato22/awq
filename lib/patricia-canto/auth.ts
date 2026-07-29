@@ -8,13 +8,20 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 export type PcRole = "admin" | "master" | "mkt";
 
-export type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro";
+export type Tab = "bi" | "gtm" | "comercial" | "cs" | "financeiro" | "equipe";
 
-// Ana (mkt) só enxerga GTM — as outras duas roles têm acesso total.
+// Ana (mkt) só enxerga GTM. "Equipe" (atividades e performance por pessoa de
+// acesso) é exclusiva do master — nem admin nem mkt enxergam essa aba.
 export const ROLE_TABS: Record<PcRole, Tab[]> = {
   admin: ["bi", "gtm", "comercial", "cs", "financeiro"],
-  master: ["bi", "gtm", "comercial", "cs", "financeiro"],
+  master: ["bi", "gtm", "comercial", "cs", "financeiro", "equipe"],
   mkt: ["gtm"],
+};
+
+export const ROLE_LABEL: Record<PcRole, string> = {
+  admin: "Administrador",
+  master: "Master",
+  mkt: "Ana (Marketing)",
 };
 
 export const PC_SESSION_COOKIE = "pc_session";
