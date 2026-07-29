@@ -182,7 +182,14 @@ async function fetchLive(): Promise<ProjetosFull> {
   const email = deriveEmail();
   const password = process.env.ENERDY_PASS || "";
   if (!email || !password) throw new Error("Credenciais do projetos ausentes.");
-  const sb = createClient(PROJ_URL, PROJ_ANON, { auth: { persistSession: false, autoRefreshToken: false } });
+  // cache:"no-store" obrigatório — sem isso o Next.js cacheia o fetch em Server
+  // Components (Data Cache) e páginas como /enrd/posvenda e /enrd/relatorio
+  // passam a servir dados vazios/stale indefinidamente (mesma classe de bug já
+  // documentada no CLAUDE.md pros clientes de lib/supabase.ts).
+  const sb = createClient(PROJ_URL, PROJ_ANON, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }) },
+  });
   const { error: authError } = await sb.auth.signInWithPassword({ email, password });
   if (authError) throw new Error(`Login projetos falhou: ${authError.message}`);
   try {

@@ -118,8 +118,16 @@ export async function readEnerdyPortal(): Promise<PortalSnapshot> {
     throw new Error("Credenciais do portal ausentes (ENERDY_USER/ENERDY_PASS).");
   }
 
+  // global.fetch com cache:"no-store" é OBRIGATÓRIO aqui — sem isso, o Next.js
+  // cacheia o fetch em Server Components (Data Cache) e Server Components como
+  // /enrd/montagem passam a servir instalações vazias/stale indefinidamente,
+  // mesmo com "force-dynamic" no segmento e mesmo a API route (que não sofre
+  // esse cache) devolvendo os dados reais corretamente. Mesmo padrão de
+  // lib/supabase.ts (noStoreFetch) — CLAUDE.md já documentava essa classe de
+  // bug pros clientes de lib/supabase.ts; este cliente tinha ficado de fora.
   const supabase = createClient(ENERDY_URL, ENERDY_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }) },
   });
 
   const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
