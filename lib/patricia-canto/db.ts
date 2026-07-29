@@ -12,6 +12,8 @@ import type { Lead, Stage, StageEvent, Channel, Priority } from "./leads";
 import type { CaseItem, CaseStage, Resultado } from "./cases";
 import type { Lancamento, TipoLancamento, StatusLancamento } from "./financeiro";
 import type { NextActivity } from "./activity";
+import type { PcRole } from "./auth";
+import type { ActivityLogEntry } from "./activity-log";
 
 const db = erpAdmin;
 
@@ -230,4 +232,37 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
   if (!db) throw new Error("Supabase não configurado");
   const { error } = await db.from("patricia_canto_settings").upsert({ key, value });
   if (error) throw error;
+}
+
+function rowToActivity(r: Row): ActivityLogEntry {
+  return {
+    id: r.id as string,
+    role: r.role as PcRole,
+    action: r.action as string,
+    createdAt: r.created_at as string,
+  };
+}
+
+export async function getActivityLog(limit = 200): Promise<ActivityLogEntry[]> {
+  if (!db) return [];
+  const { data, error } = await db
+    .from("patricia_canto_activity_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data as Row[]).map(rowToActivity);
+}
+
+// Best-effort: usada dentro de outras rotas depois de uma mutação bem
+// sucedida. Nunca deve derrubar a operação principal se o log falhar (ex:
+// tabela ainda não migrada) — só registra e segue.
+export async function logActivity(role: PcRole, action: string): Promise<void> {
+  if (!db) return;
+  try {
+    const id = `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await db.from("patricia_canto_activity_log").insert({ id, role, action, created_at: new Date().toISOString() });
+  } catch {
+    // silencioso — logging não pode quebrar a mutação que o chamou
+  }
 }

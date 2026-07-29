@@ -1,12 +1,10 @@
 "use client";
 
 import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
-import { ROLE_TABS } from "@/lib/patricia-canto/auth";
+import { ROLE_TABS, ROLE_LABEL } from "@/lib/patricia-canto/auth";
 import PatriciaCantoLogo from "./PatriciaCantoLogo";
 
 export type { Tab };
-
-const ROLE_LABEL: Record<PcRole, string> = { admin: "Administrador", master: "Master", mkt: "Ana (Marketing)" };
 
 function IconChart(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -49,6 +47,16 @@ function IconCash(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+function IconUsers(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" strokeLinecap="round" />
+      <path d="M16 4.5c1.4.4 2.4 1.7 2.4 3.2S17.4 10.5 16 11" strokeLinecap="round" />
+      <path d="M18.5 14.3c1.9.7 3.3 2.7 3.3 5.7" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 const NAV: { id: Tab; label: string; icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element }[] = [
   { id: "bi", label: "BI · Visão Geral", icon: IconChart },
@@ -56,6 +64,7 @@ const NAV: { id: Tab; label: string; icon: (props: React.SVGProps<SVGSVGElement>
   { id: "comercial", label: "Pipeline Comercial", icon: IconKanban },
   { id: "cs", label: "CS / Jurídico", icon: IconScale },
   { id: "financeiro", label: "Financeiro", icon: IconCash },
+  { id: "equipe", label: "Equipe", icon: IconUsers },
 ];
 
 function NavList({ tab, onSelect, role }: { tab: Tab; onSelect: (t: Tab) => void; role: PcRole }) {
