@@ -1,20 +1,30 @@
 // ─── ENRD · Histórico desde o início da BU (dez/2025) ────────────────────────
-// Combina DUAS linhas do tempo, cada uma com sua própria fonte de verdade:
+// Duas PERÍMETROS distintos, nunca misturados (mesma regra de negócio de todo
+// o resto do BI): INTEGRAÇÃO (Felipe — vendas de instalações novas, kWp) e
+// PÓS-VENDA/O&M (Miguel — serviços recorrentes: limpeza, manutenção, disjuntor).
 //
-//   VENDAS (comercial) — fechamentos (closed_won) do CRM (crm_opportunities,
-//   bu=ENRD), bucketizados por actual_close_date. Funil aberto é um SNAPSHOT
-//   (não tem data de origem confiável pra bucketizar por mês).
+//   INTEGRAÇÃO — crm_opportunities (bu=ENRD), que vêm da tabela `negocios` do
+//   projetos.enerdy (tem kwp/kit_fornecedor — é venda de sistema novo, não
+//   O&M). Fechamentos (closed_won) bucketizados por actual_close_date.
 //
-//   PÓS-VENDA/O&M — o backfill do CSV histórico (Notion, importado em
-//   enrd_posvenda_os) cobre set/2025 em diante; onde já existe dado REAL da
-//   Cora (recebidoCora, via lib/enrd-reconciliacao.ts) para o mesmo mês, a
-//   Cora é a fonte de verdade — o CSV é só CRM (não bate caixa). Nunca soma os
-//   dois pro mesmo mês (dado duplicaria); usa Cora quando disponível, CSV como
-//   fallback só pros meses sem dado bancário ainda.
+//   PÓS-VENDA/O&M — DUAS visões complementares, NUNCA somadas uma na outra:
+//     (1) "vendido no CRM" — pos_venda_servicos (ao vivo, getLiveProjetosFull)
+//         com valor_fechado>0 ou status concluido/fechado. É o que está
+//         LANÇADO no sistema — quase sempre subnotificado (poucas semanas de
+//         histórico no CRM novo).
+//     (2) "executado desde o início" — o backfill do CSV histórico (Notion,
+//         em enrd_posvenda_os, FILTRADO pelo mesmo classificarDono() que o
+//         resto do BI usa — 3 das 99 OS importadas eram de MONTAGEM
+//         ("Instalação de placa"/"Retirar placa"/"Reinstalar"), não O&M, e
+//         ficam fora daqui) × Cora real quando existe pro mês (âncora — a
+//         mesma reconciliação do relatório/BI diário). Nunca soma CSV+Cora no
+//         mesmo mês.
 
 import { erpAdmin, erpAnon } from "@/lib/supabase";
 import { getOS } from "@/lib/enrd-posvenda-db";
 import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
+import { classificarDono } from "@/lib/enrd-posvenda-costing";
+import { getLiveProjetosFull, type ServicoOS } from "@/lib/enerdy-projetos";
 
 function db() {
   return erpAdmin ?? erpAnon;
@@ -32,15 +42,22 @@ export type HistoricoOM = {
   totalValor: number;
   totalOS: number;
   desde: string;
+  nMontagemExcluida: number; // quantas OS do backfill eram montagem, não O&M (excluídas)
 };
 
-export type HistoricoVendas = {
+export type HistoricoIntegracao = {
   vendidoPorMes: { mes: string; nDeals: number; valor: number }[];
   totalVendido: number;
   nVendasFechadas: number;
   funilAberto: { stage: string; nDeals: number; valor: number }[];
   totalFunilAberto: number;
   taxaConversao: number; // fechados / (fechados + perdidos)
+};
+
+export type HistoricoPosVendaVendido = {
+  totalVendido: number;
+  nServicos: number;
+  porStatus: { status: string; n: number; valor: number }[];
 };
 
 function monthsSince(desde: string): string[] {
@@ -56,14 +73,29 @@ function monthsSince(desde: string): string[] {
   return out;
 }
 
-// ── Pós-venda/O&M: backfill CSV × Cora real, mês a mês ───────────────────────
+// Fato transacional real: foi cobrado (valor>0) OU status indica conclusão.
+// Exclui fila de follow-up ("entrar_contato"/"Entrar em contato") e ruído sem
+// valor — mesma disciplina usada pra "isRealizado" no resto do módulo O&M.
+function ehRealPosVenda(valor: number, status: string | null): boolean {
+  const st = (status ?? "").toLowerCase();
+  return valor > 0 || st.includes("conclu") || st === "fechado";
+}
+
+// ── Pós-venda/O&M executado: backfill CSV (filtrado por perímetro) × Cora ────
 export async function getHistoricoOM(desde: string = "2025-09"): Promise<HistoricoOM> {
   const os = await getOS(); // [] se enrd_posvenda_os ainda não existir — nunca lança
   const porMes = new Map<string, { nOS: number; valor: number }>();
+  let nMontagemExcluida = 0;
   for (const o of os) {
     if (!o.data) continue;
     const mes = o.data.slice(0, 7);
     if (mes < desde) continue;
+    // Perímetro: só O&M (Miguel). "Instalação de placa"/"Reinstalar"/etc. são
+    // montagem (Felipe) — mesmo quando vieram junto no backfill do CSV.
+    if (classificarDono(o.tipoServico) === "montagem") {
+      nMontagemExcluida++;
+      continue;
+    }
     const cur = porMes.get(mes) ?? { nOS: 0, valor: 0 };
     cur.nOS += 1;
     cur.valor += o.valor;
@@ -91,11 +123,40 @@ export async function getHistoricoOM(desde: string = "2025-09"): Promise<Histori
 
   const totalValor = meses.reduce((s, m) => s + m.valor, 0);
   const totalOS = meses.reduce((s, m) => s + m.nOS, 0);
-  return { meses, totalValor, totalOS, desde };
+  return { meses, totalValor, totalOS, desde, nMontagemExcluida };
 }
 
-// ── Vendas (comercial): fechamentos + funil aberto ───────────────────────────
-export async function getHistoricoVendas(desde: string = "2025-12-01"): Promise<HistoricoVendas> {
+// ── Pós-venda "vendido no CRM" (ao vivo, pos_venda_servicos) ─────────────────
+export async function getHistoricoPosVendaVendido(): Promise<HistoricoPosVendaVendido> {
+  let servicos: ServicoOS[] = [];
+  try {
+    const full = await getLiveProjetosFull();
+    servicos = full?.servicos ?? [];
+  } catch {
+    servicos = [];
+  }
+  // Perímetro: só O&M (exclui híbrido/montagem, mesmo padrão do resto do BI).
+  const pos = servicos.filter((s) => classificarDono(s.tipoServico) !== "montagem");
+  const reais = pos.filter((s) => ehRealPosVenda(s.valor, s.status));
+
+  const porStatusMap = new Map<string, { n: number; valor: number }>();
+  for (const s of reais) {
+    const st = s.status || "(sem status)";
+    const cur = porStatusMap.get(st) ?? { n: 0, valor: 0 };
+    cur.n += 1;
+    cur.valor += s.valor;
+    porStatusMap.set(st, cur);
+  }
+
+  return {
+    totalVendido: reais.reduce((sum, s) => sum + s.valor, 0),
+    nServicos: reais.length,
+    porStatus: [...porStatusMap.entries()].map(([status, v]) => ({ status, ...v })).sort((a, b) => b.valor - a.valor),
+  };
+}
+
+// ── Integração (Felipe): vendas de instalações novas — fechamentos + funil ───
+export async function getHistoricoIntegracao(desde: string = "2025-12-01"): Promise<HistoricoIntegracao> {
   const client = db();
   if (!client) {
     return { vendidoPorMes: [], totalVendido: 0, nVendasFechadas: 0, funilAberto: [], totalFunilAberto: 0, taxaConversao: 0 };
