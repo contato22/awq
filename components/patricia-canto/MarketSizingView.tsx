@@ -6,6 +6,14 @@ import type { MarketSizing, MarketUnit } from "@/lib/patricia-canto/gtm-extra";
 import { computeSomCapture } from "@/lib/patricia-canto/gtm-extra";
 import StatTile from "./StatTile";
 
+// Coordenadas de Teresópolis-RJ com uma caixa cobrindo a região serrana ao
+// redor (Sumidouro, Guapimirim, Cachoeiras de Macacu etc.) — embed público
+// do OpenStreetMap, sem chave de API e totalmente interativo (arrastar/zoom).
+const MAP_CENTER = { lat: -22.4139, lon: -42.9656 };
+const MAP_BBOX = "-43.3156%2C-22.6639%2C-42.6156%2C-22.1639";
+const MAP_EMBED_SRC = `https://www.openstreetmap.org/export/embed.html?bbox=${MAP_BBOX}&layer=mapnik&marker=${MAP_CENTER.lat}%2C${MAP_CENTER.lon}`;
+const MAP_LINK = `https://www.openstreetmap.org/?mlat=${MAP_CENTER.lat}&mlon=${MAP_CENTER.lon}#map=11/${MAP_CENTER.lat}/${MAP_CENTER.lon}`;
+
 function formatValue(v: number | null, unidade: MarketUnit): string {
   if (v == null) return "—";
   if (unidade === "R$") return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -41,8 +49,10 @@ export default function MarketSizingView({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-canto-200 bg-white p-4">
-        <h3 className="font-canto-serif text-base font-semibold text-canto-900">Dimensionamento de mercado</h3>
+      <TamSamSomDiagram draft={draft} />
+
+      <div className="rounded-xl border border-canto-line bg-white p-4">
+        <h3 className="font-canto-serif text-lg text-canto-900">Dimensionamento de mercado</h3>
         <p className="mt-1 text-xs text-canto-500">
           Entrada manual — TAM (mercado total), SAM (mercado que dá pra atender) e SOM (o que é realista capturar).
           Escolha a unidade e preencha; não estimamos valor nenhum automaticamente.
@@ -124,6 +134,81 @@ export default function MarketSizingView({
           />
         </div>
       )}
+
+      <div className="rounded-xl border border-canto-line bg-white p-5">
+        <h3 className="font-canto-serif text-lg text-canto-900">Área de atuação — Teresópolis e região</h3>
+        <p className="mt-0.5 text-xs text-canto-500">Mapa interativo — arraste para navegar e use scroll/pinça para dar zoom</p>
+        <div className="mt-3 overflow-hidden rounded-lg border border-canto-line">
+          <iframe
+            title="Mapa de Teresópolis e região"
+            src={MAP_EMBED_SRC}
+            className="h-[420px] w-full"
+            loading="lazy"
+          />
+        </div>
+        <a
+          href={MAP_LINK}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block text-xs font-medium text-canto-600 hover:text-canto-900"
+        >
+          Ver mapa maior ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// Diagrama de círculos concêntricos (TAM > SAM > SOM), no mesmo estilo de
+// apresentação de referência aprovado pela usuária — paleta azul própria
+// desse diagrama, separada da identidade dourada da marca (mesmo
+// tratamento já usado nos gráficos de dados da plataforma).
+const TAM_SAM_SOM_COLORS = { tam: "#1B3A5C", sam: "#2C5F8A", som: "#4A90C2" };
+
+function TamSamSomDiagram({ draft }: { draft: MarketSizing }) {
+  const rows: { key: "tam" | "sam" | "som"; label: string; en: string; pt: string; value: number | null }[] = [
+    { key: "tam", label: "TAM", en: "Total Available Market", pt: "Mercado Disponível Total", value: draft.tam },
+    { key: "sam", label: "SAM", en: "Serviceable Available Market", pt: "Mercado Útil Disponível", value: draft.sam },
+    { key: "som", label: "SOM", en: "Serviceable Obtainable Market", pt: "Mercado Útil Acessível", value: draft.som },
+  ];
+
+  return (
+    <div className="rounded-xl border border-canto-line bg-canto-cream p-6 sm:p-8">
+      <div className="flex flex-col items-center gap-8 sm:flex-row sm:justify-center sm:gap-12">
+        <div
+          className="relative flex h-56 w-56 shrink-0 items-start justify-center rounded-full pt-6 sm:h-64 sm:w-64"
+          style={{ backgroundColor: TAM_SAM_SOM_COLORS.tam }}
+        >
+          <span className="text-base font-bold tracking-wide text-white">TAM</span>
+          <div
+            className="absolute top-16 flex h-40 w-40 items-start justify-center rounded-full pt-5 sm:top-[4.5rem] sm:h-44 sm:w-44"
+            style={{ backgroundColor: TAM_SAM_SOM_COLORS.sam }}
+          >
+            <span className="text-sm font-bold tracking-wide text-white">SAM</span>
+            <div
+              className="absolute top-9 flex h-20 w-20 items-center justify-center rounded-full sm:top-10 sm:h-24 sm:w-24"
+              style={{ backgroundColor: TAM_SAM_SOM_COLORS.som }}
+            >
+              <span className="text-xs font-bold tracking-wide text-white">SOM</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full max-w-xs space-y-4 sm:w-auto">
+          {rows.map((r) => (
+            <div key={r.key}>
+              <p className="text-lg font-bold" style={{ color: TAM_SAM_SOM_COLORS[r.key] }}>
+                {r.label}
+              </p>
+              <p className="text-sm font-medium text-canto-700">{r.en}</p>
+              <p className="text-sm text-canto-500">{r.pt}</p>
+              {r.value != null && (
+                <p className="mt-0.5 text-sm font-semibold text-canto-900">{formatValue(r.value, draft.unidade)}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
