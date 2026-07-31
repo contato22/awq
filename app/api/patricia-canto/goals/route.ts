@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/patricia-canto/auth";
-import { getSetting, setSetting } from "@/lib/patricia-canto/db";
+import { getSetting, setSetting, logActivity } from "@/lib/patricia-canto/db";
 import { DEFAULT_SALES_GOALS } from "@/lib/patricia-canto/goals";
 
 export const runtime = "nodejs";
@@ -27,6 +27,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
     const goals = await req.json();
     await setSetting(KEY, goals);
+    await logActivity(role, "Atualizou metas do mês (vendas/recebimento)");
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
