@@ -224,7 +224,12 @@ export async function deleteLancamento(id: string): Promise<void> {
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   if (!db) return fallback;
   const { data, error } = await db.from("patricia_canto_settings").select("value").eq("key", key).limit(1).maybeSingle();
-  if (error || !data) return fallback;
+  // .maybeSingle() já retorna {data: null, error: null} pra "linha não existe
+  // ainda" — só cai no fallback nesse caso. Um erro real (tabela não migrada,
+  // rede, permissão) precisa propagar como erro, não virar silenciosamente
+  // "sem dado" — senão a leitura falha sem avisar ninguém.
+  if (error) throw error;
+  if (!data) return fallback;
   return (data.value as T) ?? fallback;
 }
 
