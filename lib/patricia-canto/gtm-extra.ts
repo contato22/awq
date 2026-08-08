@@ -52,6 +52,7 @@ export interface ComunicacaoItem {
   status: StatusComunicacao;
   notas: string | null;
   resultados: ComunicacaoResultados | null;
+  unidadeId: string | null;
 }
 
 export type NewComunicacaoInput = Omit<ComunicacaoItem, "id">;
@@ -71,6 +72,7 @@ export function normalizeComunicacao(raw: Partial<ComunicacaoItem> & { id: strin
     status: raw.status ?? "planejado",
     notas: raw.notas ?? null,
     resultados: raw.resultados ?? null,
+    unidadeId: raw.unidadeId ?? null,
   };
 }
 

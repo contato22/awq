@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Lead, Stage } from "@/lib/patricia-canto/leads";
 import { STAGES, missingGateFields } from "@/lib/patricia-canto/leads";
 import type { NextActivity } from "@/lib/patricia-canto/activity";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 import { computeComercialMetrics } from "@/lib/patricia-canto/metrics";
 import LeadCard from "./LeadCard";
 import LeadModal from "./LeadModal";
@@ -21,12 +22,14 @@ export default function ComercialBoard({
   onSaveLead,
   onDeleteLead,
   onAddLead,
+  businessUnits,
 }: {
   leads: Lead[];
   onMoveLead: (id: string, stage: Stage, activity: NextActivity) => void;
   onSaveLead: (lead: Lead) => void;
   onDeleteLead: (id: string) => void;
   onAddLead: (data: NewLeadInput) => void;
+  businessUnits: BusinessUnit[];
 }) {
   const [search, setSearch] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -199,6 +202,7 @@ export default function ComercialBoard({
       {openLead && (
         <LeadModal
           lead={openLead}
+          businessUnits={businessUnits}
           onClose={() => setOpenLeadId(null)}
           onSave={(lead) => {
             onSaveLead(lead);
@@ -210,7 +214,7 @@ export default function ComercialBoard({
           }}
         />
       )}
-      {addOpen && <AddLeadModal onClose={() => setAddOpen(false)} onAdd={onAddLead} />}
+      {addOpen && <AddLeadModal businessUnits={businessUnits} onClose={() => setAddOpen(false)} onAdd={onAddLead} />}
       {pendingMove && pendingLead && (
         <NextActivityModal
           clientName={pendingLead.nomeCliente || "Lead"}

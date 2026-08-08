@@ -5,11 +5,14 @@ import type { Channel } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
 import type { ComunicacaoFormato, NewComunicacaoInput, Plataforma } from "@/lib/patricia-canto/gtm-extra";
 import { COMUNICACAO_FORMATO_LABEL, PLATAFORMAS } from "@/lib/patricia-canto/gtm-extra";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 
 export default function AddComunicacaoModal({
+  businessUnits,
   onClose,
   onAdd,
 }: {
+  businessUnits: BusinessUnit[];
   onClose: () => void;
   onAdd: (item: NewComunicacaoInput) => void;
 }) {
@@ -20,6 +23,7 @@ export default function AddComunicacaoModal({
   const [responsavel, setResponsavel] = useState("Ana");
   const [canal, setCanal] = useState<Channel | "">("");
   const [dataPlanejada, setDataPlanejada] = useState(new Date().toISOString().slice(0, 10));
+  const [unidadeId, setUnidadeId] = useState("");
 
   function submit() {
     if (!titulo.trim()) return;
@@ -34,6 +38,7 @@ export default function AddComunicacaoModal({
       status: "planejado",
       notas: null,
       resultados: null,
+      unidadeId: unidadeId || null,
     });
     onClose();
   }
@@ -131,6 +136,24 @@ export default function AddComunicacaoModal({
               className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
             />
           </label>
+
+          {businessUnits.length > 0 && (
+            <label className="block text-xs text-canto-500">
+              Unidade de negócio
+              <select
+                value={unidadeId}
+                onChange={(e) => setUnidadeId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              >
+                <option value="">Patrícia Canto (principal)</option>
+                {businessUnits.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">

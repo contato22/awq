@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Channel, Lead, Priority, Stage } from "@/lib/patricia-canto/leads";
 import { CHANNELS, STAGES, missingGateFields } from "@/lib/patricia-canto/leads";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 
 const PRIORITIES: Priority[] = ["Alta", "Média", "Baixa"];
 
@@ -16,11 +17,13 @@ function fromDateInput(value: string): string | null {
 
 export default function LeadModal({
   lead,
+  businessUnits,
   onClose,
   onSave,
   onDelete,
 }: {
   lead: Lead;
+  businessUnits: BusinessUnit[];
   onClose: () => void;
   onSave: (lead: Lead) => void;
   onDelete: (id: string) => void;
@@ -220,6 +223,24 @@ export default function LeadModal({
               className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
             />
           </label>
+
+          {businessUnits.length > 0 && (
+            <label className="text-xs text-canto-500">
+              Unidade de negócio
+              <select
+                value={draft.unidadeId ?? ""}
+                onChange={(e) => field("unidadeId", e.target.value || null)}
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              >
+                <option value="">Patrícia Canto (principal)</option>
+                {businessUnits.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <label className="col-span-2 text-xs text-canto-500">
             Motivo da perda

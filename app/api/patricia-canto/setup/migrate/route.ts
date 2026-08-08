@@ -98,7 +98,27 @@ CREATE TABLE IF NOT EXISTS patricia_canto_activity_log (
   created_at  TEXT NOT NULL
 );
 
+-- Unidades de negócio: parcerias com outros advogados em segmentos
+-- diferentes (trabalhista, tributário, empresarial etc.), controladas da
+-- aquisição ao financeiro dentro do mesmo CRM. Leads/casos/lançamentos sem
+-- unidade_id (NULL) pertencem à prática principal da Patrícia Canto.
+CREATE TABLE IF NOT EXISTS patricia_canto_business_units (
+  id                     TEXT PRIMARY KEY,
+  nome                   TEXT NOT NULL,
+  advogado_responsavel   TEXT NOT NULL,
+  segmento               TEXT NOT NULL,
+  telefone               TEXT,
+  email                  TEXT,
+  ativo                  BOOLEAN NOT NULL DEFAULT true,
+  data_criacao           TEXT NOT NULL
+);
+
+ALTER TABLE patricia_canto_leads       ADD COLUMN IF NOT EXISTS unidade_id TEXT;
+ALTER TABLE patricia_canto_cases       ADD COLUMN IF NOT EXISTS unidade_id TEXT;
+ALTER TABLE patricia_canto_lancamentos ADD COLUMN IF NOT EXISTS unidade_id TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_pc_leads_stage        ON patricia_canto_leads(stage);
+CREATE INDEX IF NOT EXISTS idx_pc_leads_unidade       ON patricia_canto_leads(unidade_id);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_stage        ON patricia_canto_cases(stage);
 CREATE INDEX IF NOT EXISTS idx_pc_cases_lead_id      ON patricia_canto_cases(lead_id);
 CREATE INDEX IF NOT EXISTS idx_pc_lancamentos_tipo   ON patricia_canto_lancamentos(tipo);
@@ -109,11 +129,12 @@ CREATE INDEX IF NOT EXISTS idx_pc_activity_created    ON patricia_canto_activity
 -- sem nenhuma policy, ou seja, fechado por padrão. A service role key
 -- (única que o app usa para essas tabelas) ignora RLS, então continua
 -- funcionando; a anon key (pública, hardcoded no código) não enxerga nada aqui.
-ALTER TABLE patricia_canto_leads          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_cases          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_settings       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_lancamentos    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patricia_canto_activity_log   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_leads            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_cases            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_settings         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_lancamentos      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_activity_log     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patricia_canto_business_units   ENABLE ROW LEVEL SECURITY;
 `;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

@@ -14,6 +14,7 @@ import type { Lancamento, TipoLancamento, StatusLancamento } from "./financeiro"
 import type { NextActivity } from "./activity";
 import type { PcRole } from "./auth";
 import type { ActivityLogEntry } from "./activity-log";
+import type { BusinessUnit } from "./business-units";
 
 const db = erpAdmin;
 
@@ -45,6 +46,7 @@ function rowToLead(r: Row): Lead {
     dataPrimeiroContato: (r.data_primeiro_contato as string) ?? null,
     stageHistory: (r.stage_history as StageEvent[]) ?? [],
     proximaAtividade: (r.proxima_atividade as NextActivity) ?? null,
+    unidadeId: (r.unidade_id as string) ?? null,
   };
 }
 
@@ -70,6 +72,7 @@ function leadToRow(l: Lead): Row {
     data_primeiro_contato: l.dataPrimeiroContato,
     stage_history: l.stageHistory,
     proxima_atividade: l.proximaAtividade,
+    unidade_id: l.unidadeId,
   };
 }
 
@@ -97,6 +100,7 @@ function rowToCase(r: Row): CaseItem {
     dataUltimaAtualizacao: r.data_ultima_atualizacao as string,
     dataCriacao: r.data_criacao as string,
     proximaAtividade: (r.proxima_atividade as NextActivity) ?? null,
+    unidadeId: (r.unidade_id as string) ?? null,
   };
 }
 
@@ -124,6 +128,7 @@ function caseToRow(c: CaseItem): Row {
     data_ultima_atualizacao: c.dataUltimaAtualizacao,
     data_criacao: c.dataCriacao,
     proxima_atividade: c.proximaAtividade,
+    unidade_id: c.unidadeId,
   };
 }
 
@@ -179,6 +184,7 @@ function rowToLancamento(r: Row): Lancamento {
     status: r.status as StatusLancamento,
     observacao: (r.observacao as string) ?? null,
     dataCriacao: r.data_criacao as string,
+    unidadeId: (r.unidade_id as string) ?? null,
   };
 }
 
@@ -196,6 +202,7 @@ function lancamentoToRow(l: Lancamento): Row {
     status: l.status,
     observacao: l.observacao,
     data_criacao: l.dataCriacao,
+    unidade_id: l.unidadeId,
   };
 }
 
@@ -270,4 +277,52 @@ export async function logActivity(role: PcRole, action: string): Promise<void> {
   } catch {
     // silencioso — logging não pode quebrar a mutação que o chamou
   }
+}
+
+function rowToBusinessUnit(r: Row): BusinessUnit {
+  return {
+    id: r.id as string,
+    nome: r.nome as string,
+    advogadoResponsavel: r.advogado_responsavel as string,
+    segmento: r.segmento as string,
+    telefone: (r.telefone as string) ?? null,
+    email: (r.email as string) ?? null,
+    ativo: r.ativo !== false,
+    dataCriacao: r.data_criacao as string,
+  };
+}
+
+function businessUnitToRow(u: BusinessUnit): Row {
+  return {
+    id: u.id,
+    nome: u.nome,
+    advogado_responsavel: u.advogadoResponsavel,
+    segmento: u.segmento,
+    telefone: u.telefone,
+    email: u.email,
+    ativo: u.ativo,
+    data_criacao: u.dataCriacao,
+  };
+}
+
+export async function getBusinessUnits(): Promise<BusinessUnit[]> {
+  if (!db) return [];
+  const { data, error } = await db
+    .from("patricia_canto_business_units")
+    .select("*")
+    .order("data_criacao", { ascending: true });
+  if (error) throw error;
+  return (data as Row[]).map(rowToBusinessUnit);
+}
+
+export async function upsertBusinessUnit(unit: BusinessUnit): Promise<void> {
+  if (!db) throw new Error("Supabase não configurado");
+  const { error } = await db.from("patricia_canto_business_units").upsert(businessUnitToRow(unit));
+  if (error) throw error;
+}
+
+export async function deleteBusinessUnit(id: string): Promise<void> {
+  if (!db) throw new Error("Supabase não configurado");
+  const { error } = await db.from("patricia_canto_business_units").delete().eq("id", id);
+  if (error) throw error;
 }

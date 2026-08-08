@@ -57,6 +57,15 @@ function IconUsers(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+function IconBuilding(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+      <rect x="4" y="3" width="10" height="18" rx="1" />
+      <rect x="14" y="9" width="6" height="12" rx="1" />
+      <path d="M7 7h1M11 7h1M7 11h1M11 11h1M7 15h1M11 15h1" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 const NAV: { id: Tab; label: string; icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element }[] = [
   { id: "bi", label: "BI · Visão Geral", icon: IconChart },
@@ -64,6 +73,7 @@ const NAV: { id: Tab; label: string; icon: (props: React.SVGProps<SVGSVGElement>
   { id: "comercial", label: "Pipeline Comercial", icon: IconKanban },
   { id: "cs", label: "CS / Jurídico", icon: IconScale },
   { id: "financeiro", label: "Financeiro", icon: IconCash },
+  { id: "unidades", label: "Unidades de Negócio", icon: IconBuilding },
   { id: "equipe", label: "Equipe", icon: IconUsers },
 ];
 

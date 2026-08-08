@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Lancamento, TipoLancamento, StatusLancamento } from "@/lib/patricia-canto/financeiro";
 import { CATEGORIAS_RECEITA, CATEGORIAS_DESPESA } from "@/lib/patricia-canto/financeiro";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 
 function toDateInput(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "";
@@ -13,11 +14,13 @@ function fromDateInput(value: string): string | null {
 
 export default function LancamentoModal({
   item,
+  businessUnits,
   onClose,
   onSave,
   onDelete,
 }: {
   item: Lancamento;
+  businessUnits: BusinessUnit[];
   onClose: () => void;
   onSave: (item: Lancamento) => void;
   onDelete: (id: string) => void;
@@ -159,6 +162,24 @@ export default function LancamentoModal({
                 onChange={(e) => field("dataLiquidacao", fromDateInput(e.target.value))}
                 className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               />
+            </label>
+          )}
+
+          {businessUnits.length > 0 && (
+            <label className="text-xs text-canto-500">
+              Unidade de negócio
+              <select
+                value={draft.unidadeId ?? ""}
+                onChange={(e) => field("unidadeId", e.target.value || null)}
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              >
+                <option value="">Patrícia Canto (principal)</option>
+                {businessUnits.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome}
+                  </option>
+                ))}
+              </select>
             </label>
           )}
 

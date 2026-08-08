@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Channel, Lead, Stage } from "@/lib/patricia-canto/leads";
 import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
@@ -15,6 +15,7 @@ import { DEFAULT_SALES_GOALS } from "@/lib/patricia-canto/goals";
 import type { PcRole, Tab } from "@/lib/patricia-canto/auth";
 import { ROLE_TABS } from "@/lib/patricia-canto/auth";
 import type { ActivityLogEntry } from "@/lib/patricia-canto/activity-log";
+import type { BusinessUnit, NewBusinessUnitInput } from "@/lib/patricia-canto/business-units";
 import type { NewLeadInput } from "./AddLeadModal";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
 import { pcApi } from "@/lib/patricia-canto/api-client";
@@ -25,6 +26,7 @@ import ComercialBoard from "./ComercialBoard";
 import CsJuridicoBoard from "./CsJuridicoBoard";
 import FinanceiroView from "./FinanceiroView";
 import EquipeView from "./EquipeView";
+import BusinessUnitsView from "./BusinessUnitsView";
 
 const TAB_LABEL: Record<Tab, string> = {
   bi: "BI · Visão Geral",
@@ -33,7 +35,10 @@ const TAB_LABEL: Record<Tab, string> = {
   cs: "CS / Jurídico",
   financeiro: "Financeiro",
   equipe: "Equipe",
+  unidades: "Unidades de Negócio",
 };
+
+const UNIT_FILTERED_TABS: Tab[] = ["bi", "gtm", "comercial", "cs", "financeiro"];
 
 export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const router = useRouter();
@@ -47,6 +52,8 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
   const [investment, setInvestment] = useState<Partial<Record<Channel, number>>>({});
   const [salesGoals, setSalesGoalsState] = useState<SalesGoals>(DEFAULT_SALES_GOALS);
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<string | "all">("all");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -125,6 +132,21 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
       .getActivityLog()
       .then((log) => {
         if (!cancelled) setActivityLog(log);
+      })
+      .catch((e) => {
+        if (!cancelled) reportSyncError(e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
+
+  useEffect(() => {
+    let cancelled = false;
+    pcApi
+      .getBusinessUnits()
+      .then((units) => {
+        if (!cancelled) setBusinessUnits(units);
       })
       .catch((e) => {
         if (!cancelled) reportSyncError(e);
@@ -349,6 +371,35 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
     }
   }
 
+  async function addBusinessUnit(data: NewBusinessUnitInput) {
+    const unit: BusinessUnit = { ...data, id: `unit-${Date.now()}`, ativo: true, dataCriacao: new Date().toISOString() };
+    setBusinessUnits((prev) => [...prev, unit]);
+    try {
+      await pcApi.createBusinessUnit(unit);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function saveBusinessUnit(updated: BusinessUnit) {
+    setBusinessUnits((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+    try {
+      await pcApi.updateBusinessUnit(updated);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
+  async function deleteBusinessUnit(id: string) {
+    setBusinessUnits((prev) => prev.filter((u) => u.id !== id));
+    if (selectedUnit === id) setSelectedUnit("all");
+    try {
+      await pcApi.deleteBusinessUnit(id);
+    } catch (e) {
+      reportSyncError(e);
+    }
+  }
+
   async function logout() {
     try {
       await pcApi.logout();
@@ -357,6 +408,27 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
       router.refresh();
     }
   }
+
+  // Filtro por unidade de negócio — aplicado antes de passar os dados pras
+  // telas existentes (BI/Comercial/CS/Financeiro/GTM), que não precisam
+  // saber que o filtro existe. Leads/casos/lançamentos/comunicações sem
+  // unidadeId (null) pertencem à prática principal da Patrícia Canto — o
+  // seletor usa "" pra representar esse caso, já que <select> não tem null.
+  function matchesUnit(unidadeId: string | null): boolean {
+    if (selectedUnit === "all") return true;
+    if (selectedUnit === "") return unidadeId === null;
+    return unidadeId === selectedUnit;
+  }
+  const filteredLeads = useMemo(() => leads.filter((l) => matchesUnit(l.unidadeId)), [leads, selectedUnit]);
+  const filteredCases = useMemo(() => cases.filter((c) => matchesUnit(c.unidadeId)), [cases, selectedUnit]);
+  const filteredLancamentos = useMemo(
+    () => lancamentos.filter((l) => matchesUnit(l.unidadeId)),
+    [lancamentos, selectedUnit],
+  );
+  const filteredComunicacoes = useMemo(
+    () => comunicacoes.filter((c) => matchesUnit(c.unidadeId)),
+    [comunicacoes, selectedUnit],
+  );
 
   return (
     <div className="min-h-screen bg-canto-cream text-canto-900 lg:p-5">
@@ -397,9 +469,27 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
           )}
 
           <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-            <h1 className="mb-6 hidden font-canto-serif text-2xl font-semibold text-canto-900 lg:block">
-              {TAB_LABEL[tab]}
-            </h1>
+            <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
+              <h1 className="font-canto-serif text-2xl font-semibold text-canto-900">{TAB_LABEL[tab]}</h1>
+              {UNIT_FILTERED_TABS.includes(tab) && businessUnits.length > 0 && (
+                <label className="flex items-center gap-2 text-xs text-canto-500">
+                  Unidade
+                  <select
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    className="rounded-md border border-canto-200 bg-white px-2 py-1.5 text-sm text-canto-900 outline-none focus:border-canto-500"
+                  >
+                    <option value="all">Todas as unidades</option>
+                    <option value="">Patrícia Canto (principal)</option>
+                    {businessUnits.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
             {loading ? (
               <p className="py-16 text-center text-sm text-canto-500">Carregando dados do banco...</p>
             ) : loadError ? (
@@ -416,11 +506,11 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
               <>
                 {tab === "bi" && (
                   <BiOverview
-                    leads={leads}
-                    cases={cases}
+                    leads={filteredLeads}
+                    cases={filteredCases}
                     investment={investment}
-                    comunicacoes={comunicacoes}
-                    lancamentos={lancamentos}
+                    comunicacoes={filteredComunicacoes}
+                    lancamentos={filteredLancamentos}
                     salesGoals={salesGoals}
                     onSaveSalesGoals={saveSalesGoals}
                     onNavigate={setTab}
@@ -428,39 +518,56 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
                 )}
                 {tab === "gtm" && (
                   <GtmView
-                    leads={leads}
+                    leads={filteredLeads}
                     investment={investment}
                     onInvestmentChange={setChannelInvestment}
-                    comunicacoes={comunicacoes}
+                    comunicacoes={filteredComunicacoes}
                     onAddComunicacao={addComunicacao}
                     onSaveComunicacao={saveComunicacao}
                     onDeleteComunicacao={deleteComunicacao}
                     marketSizing={marketSizing}
                     onSaveMarketSizing={saveMarketSizing}
+                    businessUnits={businessUnits}
                   />
                 )}
                 {tab === "comercial" && (
                   <ComercialBoard
-                    leads={leads}
+                    leads={filteredLeads}
                     onMoveLead={moveLead}
                     onSaveLead={saveLead}
                     onDeleteLead={deleteLead}
                     onAddLead={addLead}
+                    businessUnits={businessUnits}
                   />
                 )}
                 {tab === "cs" && (
-                  <CsJuridicoBoard cases={cases} onMoveCase={moveCase} onSaveCase={saveCase} onDeleteCase={deleteCase} />
+                  <CsJuridicoBoard
+                    cases={filteredCases}
+                    onMoveCase={moveCase}
+                    onSaveCase={saveCase}
+                    onDeleteCase={deleteCase}
+                  />
                 )}
                 {tab === "financeiro" && (
                   <FinanceiroView
-                    lancamentos={lancamentos}
+                    lancamentos={filteredLancamentos}
                     onAdd={addLancamento}
                     onSave={saveLancamento}
                     onDelete={deleteLancamento}
                     salesGoals={salesGoals}
+                    businessUnits={businessUnits}
                   />
                 )}
                 {tab === "equipe" && <EquipeView activityLog={activityLog} comunicacoes={comunicacoes} />}
+                {tab === "unidades" && (
+                  <BusinessUnitsView
+                    businessUnits={businessUnits}
+                    leads={leads}
+                    onAdd={addBusinessUnit}
+                    onSave={saveBusinessUnit}
+                    onDelete={deleteBusinessUnit}
+                  />
+                )}
               </>
             )}
           </main>

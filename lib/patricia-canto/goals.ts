@@ -12,7 +12,7 @@ export const DEFAULT_SALES_GOALS: SalesGoals = {
   metaRecebimentoMensal: 90_000,
 };
 
-function monthKey(iso: string): string {
+export function monthKey(iso: string): string {
   return iso.slice(0, 7); // YYYY-MM
 }
 

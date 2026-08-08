@@ -47,6 +47,9 @@ export interface Lead {
   dataPrimeiroContato: string | null;
   stageHistory: StageEvent[];
   proximaAtividade: NextActivity | null;
+  // null = prática principal da Patrícia Canto; string = id de uma unidade
+  // de negócio parceira (ver lib/patricia-canto/business-units.ts).
+  unidadeId: string | null;
 }
 
 export const STAGES: { id: Stage; label: string; hint: string }[] = [
@@ -94,7 +97,14 @@ export function missingGateFields(lead: Lead, stage: Stage): string[] {
 export const RAW_LEADS: Array<
   Omit<
     Lead,
-    "id" | "stage" | "dataEntrada" | "dataPrimeiroContato" | "stageHistory" | "indicadoPor" | "proximaAtividade"
+    | "id"
+    | "stage"
+    | "dataEntrada"
+    | "dataPrimeiroContato"
+    | "stageHistory"
+    | "indicadoPor"
+    | "proximaAtividade"
+    | "unidadeId"
   > & {
     stage?: Stage;
   }
@@ -163,6 +173,7 @@ export function buildInitialLeads(): Lead[] {
       indicadoPor: null,
       stageHistory: [{ stage, enteredAt: now }],
       proximaAtividade: null,
+      unidadeId: null,
       ...raw,
     };
   });
