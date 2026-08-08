@@ -492,8 +492,12 @@ function GoalsPanel({
     <div className="rounded-xl border border-canto-line bg-white p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-canto-serif text-lg text-canto-900">Metas do mês</h3>
-          <p className="mt-0.5 text-xs text-canto-500">Vendas (competência) e recebimento (caixa) do mês atual</p>
+          <h3 className="font-canto-serif text-lg text-canto-900">
+            Metas de {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+          </h3>
+          <p className="mt-0.5 text-xs text-canto-500">
+            Vendas (competência) e recebimento (caixa) — meta gravada por mês, cada mês guarda a sua
+          </p>
         </div>
         {!editing && (
           <button onClick={startEdit} className="text-[11px] font-semibold text-canto-500 transition hover:text-canto-800">

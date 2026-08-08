@@ -5,6 +5,7 @@ import type { Channel, Lead } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
 import { computeGtmMetrics } from "@/lib/patricia-canto/metrics";
 import type { ComunicacaoItem, MarketSizing, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 import { computeAnaTasks } from "@/lib/patricia-canto/my-tasks";
 import StatTile from "./StatTile";
 import MyTasksPanel from "./MyTasksPanel";
@@ -33,6 +34,7 @@ export default function GtmView({
   onDeleteComunicacao,
   marketSizing,
   onSaveMarketSizing,
+  businessUnits,
 }: {
   leads: Lead[];
   investment: Partial<Record<Channel, number>>;
@@ -43,6 +45,7 @@ export default function GtmView({
   onDeleteComunicacao: (id: string) => void;
   marketSizing: MarketSizing;
   onSaveMarketSizing: (market: MarketSizing) => void;
+  businessUnits: BusinessUnit[];
 }) {
   const [subTab, setSubTab] = useState<SubTab>("canais");
   const anaTasks = useMemo(() => computeAnaTasks(comunicacoes), [comunicacoes]);
@@ -79,6 +82,7 @@ export default function GtmView({
             onAdd={onAddComunicacao}
             onSave={onSaveComunicacao}
             onDelete={onDeleteComunicacao}
+            businessUnits={businessUnits}
           />
         )}
         {subTab === "mercado" && (

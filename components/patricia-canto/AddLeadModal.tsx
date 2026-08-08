@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Channel, Lead, Priority } from "@/lib/patricia-canto/leads";
 import { CHANNELS } from "@/lib/patricia-canto/leads";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 
 export type NewLeadInput = Omit<
   Lead,
@@ -10,9 +11,11 @@ export type NewLeadInput = Omit<
 >;
 
 export default function AddLeadModal({
+  businessUnits,
   onClose,
   onAdd,
 }: {
+  businessUnits: BusinessUnit[];
   onClose: () => void;
   onAdd: (lead: NewLeadInput) => void;
 }) {
@@ -24,6 +27,7 @@ export default function AddLeadModal({
   const [prioridade, setPrioridade] = useState<Priority | "">("");
   const [valorAcao, setValorAcao] = useState("");
   const [honorarios, setHonorarios] = useState("");
+  const [unidadeId, setUnidadeId] = useState("");
 
   function submit() {
     if (!nome.trim() || !tipo.trim()) return;
@@ -42,6 +46,7 @@ export default function AddLeadModal({
       origem: origem || null,
       indicadoPor: origem === "Indicação" ? indicadoPor.trim() || null : null,
       descricao: null,
+      unidadeId: unidadeId || null,
     });
     onClose();
   }
@@ -142,6 +147,23 @@ export default function AddLeadModal({
                 placeholder="Nome de quem indicou"
                 className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
               />
+            </label>
+          )}
+          {businessUnits.length > 0 && (
+            <label className="block text-xs text-canto-500">
+              Unidade de negócio
+              <select
+                value={unidadeId}
+                onChange={(e) => setUnidadeId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500"
+              >
+                <option value="">Patrícia Canto (principal)</option>
+                {businessUnits.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome}
+                  </option>
+                ))}
+              </select>
             </label>
           )}
         </div>

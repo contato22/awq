@@ -69,6 +69,7 @@ export interface CaseItem {
   dataUltimaAtualizacao: string;
   dataCriacao: string;
   proximaAtividade: NextActivity | null;
+  unidadeId: string | null;
 }
 
 export function createCaseFromLead(lead: Lead): CaseItem {
@@ -96,6 +97,7 @@ export function createCaseFromLead(lead: Lead): CaseItem {
     dataUltimaAtualizacao: now,
     dataCriacao: now,
     proximaAtividade: null,
+    unidadeId: lead.unidadeId,
   };
 }
 

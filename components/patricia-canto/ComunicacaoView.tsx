@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ComunicacaoItem, NewComunicacaoInput } from "@/lib/patricia-canto/gtm-extra";
 import { COMUNICACAO_FORMATO_LABEL, STATUS_COMUNICACAO_LABEL } from "@/lib/patricia-canto/gtm-extra";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 import { computeQuotaProgress } from "@/lib/patricia-canto/comunicacao-quotas";
 import AddComunicacaoModal from "./AddComunicacaoModal";
 import ComunicacaoModal from "./ComunicacaoModal";
@@ -24,11 +25,13 @@ export default function ComunicacaoView({
   onAdd,
   onSave,
   onDelete,
+  businessUnits,
 }: {
   items: ComunicacaoItem[];
   onAdd: (item: NewComunicacaoInput) => void;
   onSave: (item: ComunicacaoItem) => void;
   onDelete: (id: string) => void;
+  businessUnits: BusinessUnit[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -167,6 +170,7 @@ export default function ComunicacaoView({
       {open && (
         <ComunicacaoModal
           item={open}
+          businessUnits={businessUnits}
           onClose={() => setOpenId(null)}
           onSave={(item) => {
             onSave(item);
@@ -178,7 +182,9 @@ export default function ComunicacaoView({
           }}
         />
       )}
-      {addOpen && <AddComunicacaoModal onClose={() => setAddOpen(false)} onAdd={onAdd} />}
+      {addOpen && (
+        <AddComunicacaoModal businessUnits={businessUnits} onClose={() => setAddOpen(false)} onAdd={onAdd} />
+      )}
     </div>
   );
 }

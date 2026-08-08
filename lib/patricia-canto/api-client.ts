@@ -6,6 +6,7 @@ import type { Lancamento } from "./financeiro";
 import type { ComunicacaoItem, MarketSizing } from "./gtm-extra";
 import type { SalesGoals } from "./goals";
 import type { ActivityLogEntry } from "./activity-log";
+import type { BusinessUnit } from "./business-units";
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -58,10 +59,19 @@ export const pcApi = {
     req("/api/patricia-canto/settings", { method: "PUT", body: JSON.stringify(investment) }),
 
   getGoals: () => req<{ goals: SalesGoals }>("/api/patricia-canto/goals").then((d) => d.goals),
-  setGoals: (goals: SalesGoals) => req("/api/patricia-canto/goals", { method: "PUT", body: JSON.stringify(goals) }),
+  setGoals: (goals: SalesGoals) =>
+    req("/api/patricia-canto/goals", { method: "PUT", body: JSON.stringify({ goals }) }),
 
   getActivityLog: () =>
     req<{ activityLog: ActivityLogEntry[] }>("/api/patricia-canto/activity-log").then((d) => d.activityLog),
+
+  getBusinessUnits: () =>
+    req<{ businessUnits: BusinessUnit[] }>("/api/patricia-canto/business-units").then((d) => d.businessUnits),
+  createBusinessUnit: (unit: BusinessUnit) =>
+    req("/api/patricia-canto/business-units", { method: "POST", body: JSON.stringify(unit) }),
+  updateBusinessUnit: (unit: BusinessUnit) =>
+    req(`/api/patricia-canto/business-units/${unit.id}`, { method: "PATCH", body: JSON.stringify(unit) }),
+  deleteBusinessUnit: (id: string) => req(`/api/patricia-canto/business-units/${id}`, { method: "DELETE" }),
 
   logout: () => req("/api/patricia-canto/auth/logout", { method: "POST" }),
 };

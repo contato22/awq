@@ -31,6 +31,7 @@ export interface Lancamento {
   status: StatusLancamento;
   observacao: string | null;
   dataCriacao: string;
+  unidadeId: string | null;
 }
 
 export function isOverdue(l: Lancamento): boolean {
@@ -52,6 +53,7 @@ export function createReceitaFromLead(lead: Lead): Lancamento {
     status: "pendente",
     observacao: null,
     dataCriacao: now,
+    unidadeId: lead.unidadeId,
   };
 }
 

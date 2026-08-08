@@ -5,6 +5,7 @@ import type { Lancamento, TipoLancamento } from "@/lib/patricia-canto/financeiro
 import { computeDfc, computeDre, isOverdue } from "@/lib/patricia-canto/financeiro";
 import type { SalesGoals } from "@/lib/patricia-canto/goals";
 import { computeGoalProgress } from "@/lib/patricia-canto/goals";
+import type { BusinessUnit } from "@/lib/patricia-canto/business-units";
 import type { NewLancamentoInput } from "./AddLancamentoModal";
 import AddLancamentoModal from "./AddLancamentoModal";
 import LancamentoModal from "./LancamentoModal";
@@ -34,12 +35,14 @@ export default function FinanceiroView({
   onSave,
   onDelete,
   salesGoals,
+  businessUnits,
 }: {
   lancamentos: Lancamento[];
   onAdd: (item: NewLancamentoInput) => void;
   onSave: (item: Lancamento) => void;
   onDelete: (id: string) => void;
   salesGoals: SalesGoals;
+  businessUnits: BusinessUnit[];
 }) {
   const [subTab, setSubTab] = useState<SubTab>("receber");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export default function FinanceiroView({
       {open && (
         <LancamentoModal
           item={open}
+          businessUnits={businessUnits}
           onClose={() => setOpenId(null)}
           onSave={(item) => {
             onSave(item);
@@ -102,6 +106,7 @@ export default function FinanceiroView({
       {addOpen && (
         <AddLancamentoModal
           defaultTipo={subTab === "pagar" ? "despesa" : "receita"}
+          businessUnits={businessUnits}
           onClose={() => setAddOpen(false)}
           onAdd={onAdd}
         />
