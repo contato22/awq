@@ -543,6 +543,7 @@ export default function PatriciaCantoBoard({ role }: { role: PcRole }) {
                 {tab === "cs" && (
                   <CsJuridicoBoard
                     cases={filteredCases}
+                    leads={filteredLeads}
                     onMoveCase={moveCase}
                     onSaveCase={saveCase}
                     onDeleteCase={deleteCase}
