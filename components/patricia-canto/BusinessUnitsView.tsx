@@ -14,7 +14,7 @@ type SubTab = "unidades" | "rfm";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "unidades", label: "Unidades" },
-  { id: "rfm", label: "Matriz RFM" },
+  { id: "rfm", label: "Matriz de Comunicação" },
 ];
 
 export default function BusinessUnitsView({

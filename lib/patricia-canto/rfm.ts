@@ -1,7 +1,8 @@
-// Matriz RFM (Recência, Frequência, Valor Monetário) adaptada pra controle
-// de todos os leads de um escritório de advocacia solo — não só clientes
-// que já compraram, mas toda a base, pra identificar quem precisa de
-// atenção antes de esfriar.
+// Matriz de Comunicação: segmentação RFM (Recência, Frequência, Valor
+// Monetário) usada como motor pra decidir a ação de comunicação de cada
+// segmento — não só "como está" o relacionamento, mas "o que fazer" com
+// ele (ligar, aquecer, resgatar, etc.), cobrindo toda a base, não só quem
+// já é cliente.
 import type { Channel, Lead } from "./leads";
 import { CHANNELS } from "./leads";
 import type { BusinessUnit } from "./business-units";
@@ -51,26 +52,96 @@ export type SegmentoId =
   | "em_risco"
   | "inativos";
 
+export type Urgencia = "alta" | "media" | "baixa";
+
 export interface SegmentoInfo {
   id: SegmentoId;
   label: string;
   hint: string;
   color: string;
+  acao: string;
+  urgencia: Urgencia;
 }
 
+export const URGENCIA_LABEL: Record<Urgencia, string> = { alta: "Alta", media: "Média", baixa: "Baixa" };
+
 // Grade 3x3: linha = score de Recência (3 = mais recente), coluna = média
-// arredondada de Frequência+Valor (3 = maior). Nomes adaptados ao contexto
-// de captação/atendimento jurídico, não de e-commerce.
+// arredondada de Frequência+Valor (3 = maior). Nomes e ações adaptados ao
+// contexto de captação/atendimento jurídico — cada segmento indica também
+// a ação de comunicação recomendada e a urgência de contato.
 export const SEGMENTOS: Record<SegmentoId, SegmentoInfo> = {
-  campeoes: { id: "campeoes", label: "Campeões", hint: "Recentes, recorrentes e de alto valor — prioridade máxima", color: "#6B5B3E" },
-  fieis_recentes: { id: "fieis_recentes", label: "Fiéis recentes", hint: "Contato recente, bom histórico", color: "#4F7A54" },
-  novos_leads: { id: "novos_leads", label: "Novos leads", hint: "Chegaram há pouco, ainda sem histórico", color: "#4C5F87" },
-  alto_valor_atencao: { id: "alto_valor_atencao", label: "Alto valor — atenção", hint: "Valiosos, mas o contato está esfriando", color: "#A67A2E" },
-  estaveis: { id: "estaveis", label: "Estáveis", hint: "Sem urgência, acompanhamento de rotina", color: "#7A6F52" },
-  em_desenvolvimento: { id: "em_desenvolvimento", label: "Em desenvolvimento", hint: "Recentes, mas ainda com pouco valor/histórico", color: "#4F707A" },
-  resgatar: { id: "resgatar", label: "Resgatar — não perder", hint: "Alto valor no passado, contato esfriou de vez", color: "#93342C" },
-  em_risco: { id: "em_risco", label: "Em risco", hint: "Contato antigo, valor mediano — risco de perder", color: "#A65A2A" },
-  inativos: { id: "inativos", label: "Inativos", hint: "Sem contato há muito tempo, baixo valor/frequência", color: "#6E655C" },
+  campeoes: {
+    id: "campeoes",
+    label: "Campeões",
+    hint: "Recentes, recorrentes e de alto valor — prioridade máxima",
+    color: "#6B5B3E",
+    acao: "Cultivar — agradecer, pedir indicação de novos casos",
+    urgencia: "baixa",
+  },
+  fieis_recentes: {
+    id: "fieis_recentes",
+    label: "Fiéis recentes",
+    hint: "Contato recente, bom histórico",
+    color: "#4F7A54",
+    acao: "Manter contato de rotina, sem urgência especial",
+    urgencia: "baixa",
+  },
+  novos_leads: {
+    id: "novos_leads",
+    label: "Novos leads",
+    hint: "Chegaram há pouco, ainda sem histórico",
+    color: "#4C5F87",
+    acao: "Boas-vindas — primeiro contato de qualificação",
+    urgencia: "media",
+  },
+  alto_valor_atencao: {
+    id: "alto_valor_atencao",
+    label: "Alto valor — atenção",
+    hint: "Valiosos, mas o contato está esfriando",
+    color: "#A67A2E",
+    acao: "Contato prioritário — ligar essa semana pra não perder o caso",
+    urgencia: "alta",
+  },
+  estaveis: {
+    id: "estaveis",
+    label: "Estáveis",
+    hint: "Sem urgência, acompanhamento de rotina",
+    color: "#7A6F52",
+    acao: "Acompanhamento de rotina — sem ação especial",
+    urgencia: "baixa",
+  },
+  em_desenvolvimento: {
+    id: "em_desenvolvimento",
+    label: "Em desenvolvimento",
+    hint: "Recentes, mas ainda com pouco valor/histórico",
+    color: "#4F707A",
+    acao: "Aquecer — enviar conteúdo/atualização, seguir qualificando",
+    urgencia: "media",
+  },
+  resgatar: {
+    id: "resgatar",
+    label: "Resgatar — não perder",
+    hint: "Alto valor no passado, contato esfriou de vez",
+    color: "#93342C",
+    acao: "Contato urgente — ligar hoje, risco real de perda",
+    urgencia: "alta",
+  },
+  em_risco: {
+    id: "em_risco",
+    label: "Em risco",
+    hint: "Contato antigo, valor mediano — risco de perder",
+    color: "#A65A2A",
+    acao: "Retomar contato essa semana antes de esfriar de vez",
+    urgencia: "alta",
+  },
+  inativos: {
+    id: "inativos",
+    label: "Inativos",
+    hint: "Sem contato há muito tempo, baixo valor/frequência",
+    color: "#6E655C",
+    acao: "Campanha de reativação (ou arquivar se não houver retorno)",
+    urgencia: "media",
+  },
 };
 
 function lastMovementIso(lead: Lead): string {
