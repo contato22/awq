@@ -21,7 +21,7 @@ type SubTab = "canais" | "rfm" | "comunicacao" | "mercado";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "canais", label: "Canais" },
-  { id: "rfm", label: "Matriz RFM" },
+  { id: "rfm", label: "Matriz de Comunicação" },
   { id: "comunicacao", label: "Comunicação" },
   { id: "mercado", label: "TAM / SAM / SOM" },
 ];

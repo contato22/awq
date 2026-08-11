@@ -16,7 +16,7 @@ type SubTab = "casos" | "rfm";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "casos", label: "Casos" },
-  { id: "rfm", label: "Matriz RFM" },
+  { id: "rfm", label: "Matriz de Comunicação" },
 ];
 
 export default function CsJuridicoBoard({

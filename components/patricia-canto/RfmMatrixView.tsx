@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Lead } from "@/lib/patricia-canto/leads";
 import { computeRfm, RFM_GRID, SEGMENTOS, type SegmentoId } from "@/lib/patricia-canto/rfm";
+import UrgenciaBadge from "./UrgenciaBadge";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -37,10 +38,11 @@ export default function RfmMatrixView({ leads }: { leads: Lead[] }) {
   return (
     <div>
       <div className="rounded-xl border border-canto-line bg-white p-4">
-        <h3 className="font-canto-serif text-base font-semibold text-canto-900">Matriz RFM</h3>
+        <h3 className="font-canto-serif text-base font-semibold text-canto-900">Matriz de Comunicação</h3>
         <p className="mt-1 text-xs text-canto-500">
-          Recência (dias desde a última movimentação), Frequência (nº de leads do mesmo cliente) e Valor Monetário
-          (honorários ou valor da ação). Clique numa célula pra filtrar a lista abaixo.
+          Segmenta os leads por Recência (dias desde a última movimentação), Frequência (nº de leads do mesmo
+          cliente) e Valor Monetário (honorários ou valor da ação) e indica a ação de comunicação recomendada pra
+          cada grupo. Clique numa célula pra filtrar a lista abaixo.
         </p>
 
         <div className="mt-4 overflow-x-auto">
@@ -83,17 +85,22 @@ export default function RfmMatrixView({ leads }: { leads: Lead[] }) {
         </div>
 
         {filtro !== "todos" && (
-          <p className="mt-3 text-xs text-canto-600">
-            <strong>{SEGMENTOS[filtro].label}:</strong> {SEGMENTOS[filtro].hint}{" "}
-            <button onClick={() => setFiltro("todos")} className="ml-1 font-semibold text-canto-700 underline">
-              limpar filtro
-            </button>
-          </p>
+          <div className="mt-3 rounded-lg bg-canto-50 px-3 py-2.5 text-xs text-canto-600">
+            <div className="flex flex-wrap items-center gap-2">
+              <strong>{SEGMENTOS[filtro].label}</strong>
+              <UrgenciaBadge urgencia={SEGMENTOS[filtro].urgencia} />
+              <button onClick={() => setFiltro("todos")} className="ml-auto font-semibold text-canto-700 underline">
+                limpar filtro
+              </button>
+            </div>
+            <p className="mt-1">{SEGMENTOS[filtro].hint}</p>
+            <p className="mt-1 font-medium text-canto-700">Ação recomendada: {SEGMENTOS[filtro].acao}</p>
+          </div>
         )}
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-canto-line bg-white">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
+        <table className="w-full min-w-[980px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-canto-line text-left text-xs uppercase tracking-wide text-canto-500">
               <th className="px-3 py-2">Cliente</th>
@@ -102,6 +109,8 @@ export default function RfmMatrixView({ leads }: { leads: Lead[] }) {
               <th className="px-3 py-2">Frequência</th>
               <th className="px-3 py-2">Valor</th>
               <th className="px-3 py-2">Segmento</th>
+              <th className="px-3 py-2">Urgência</th>
+              <th className="px-3 py-2">Ação recomendada</th>
             </tr>
           </thead>
           <tbody>
@@ -122,12 +131,16 @@ export default function RfmMatrixView({ leads }: { leads: Lead[] }) {
                       {info.label}
                     </span>
                   </td>
+                  <td className="px-3 py-2">
+                    <UrgenciaBadge urgencia={info.urgencia} />
+                  </td>
+                  <td className="px-3 py-2 text-canto-600">{info.acao}</td>
                 </tr>
               );
             })}
             {filtrados.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-xs text-canto-500">
+                <td colSpan={8} className="px-3 py-6 text-center text-xs text-canto-500">
                   Nenhum lead nesse segmento
                 </td>
               </tr>
