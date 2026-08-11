@@ -12,6 +12,7 @@ import LancamentoModal from "./LancamentoModal";
 import StatTile from "./StatTile";
 import GaugeChart from "./GaugeChart";
 import HorizontalBarChart from "./HorizontalBarChart";
+import VerticalBarChart from "./VerticalBarChart";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -79,6 +80,7 @@ export default function FinanceiroView({
       <div className="mt-4">
         {subTab === "receber" && (
           <>
+            <FluxoDeVendas lancamentos={lancamentos} />
             <LancamentosTable tipo="receita" lancamentos={lancamentos} onOpen={setOpenId} />
             <RecebimentoDetalhamento lancamentos={lancamentos} salesGoals={salesGoals} />
           </>
@@ -207,6 +209,181 @@ function LancamentosTable({
             )}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+type Granularidade = "diario" | "mensal" | "anual";
+
+const GRANULARIDADE_LABEL: Record<Granularidade, string> = {
+  diario: "Diário",
+  mensal: "Mensal",
+  anual: "Anual",
+};
+
+// Fluxo de vendas = regime de competência (dataVencimento), igual à definição
+// de "vendas" usada nas Metas do mês — o negócio foi fechado nessa data,
+// mesmo que o recebimento ainda não tenha caído. BU já vem filtrada de fora
+// (seletor de unidade no cabeçalho do board), então não duplicamos o filtro aqui.
+function FluxoDeVendas({ lancamentos }: { lancamentos: Lancamento[] }) {
+  const [granularidade, setGranularidade] = useState<Granularidade>("mensal");
+  const [mesSelecionado, setMesSelecionado] = useState<string>("");
+
+  const vendas = useMemo(() => lancamentos.filter((l) => l.tipo === "receita"), [lancamentos]);
+
+  const meses = useMemo(
+    () => [...new Set(vendas.map((l) => l.dataVencimento.slice(0, 7)))].sort().reverse(),
+    [vendas],
+  );
+
+  const flowData = useMemo(() => {
+    const now = new Date();
+    if (granularidade === "diario") {
+      const buckets: { key: string; label: string; value: number }[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        buckets.push({
+          key: d.toISOString().slice(0, 10),
+          label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          value: 0,
+        });
+      }
+      const map = new Map(buckets.map((b) => [b.key, b]));
+      for (const l of vendas) {
+        const b = map.get(l.dataVencimento.slice(0, 10));
+        if (b) b.value += l.valor;
+      }
+      return buckets;
+    }
+    if (granularidade === "anual") {
+      const anos = vendas.length > 0 ? vendas.map((l) => Number(l.dataVencimento.slice(0, 4))) : [now.getFullYear()];
+      const minAno = Math.min(...anos, now.getFullYear());
+      const maxAno = Math.max(...anos, now.getFullYear());
+      const buckets: { key: string; label: string; value: number }[] = [];
+      for (let ano = minAno; ano <= maxAno; ano++) buckets.push({ key: String(ano), label: String(ano), value: 0 });
+      const map = new Map(buckets.map((b) => [b.key, b]));
+      for (const l of vendas) {
+        const b = map.get(l.dataVencimento.slice(0, 4));
+        if (b) b.value += l.valor;
+      }
+      return buckets;
+    }
+    // mensal — últimos 12 meses
+    const buckets: { key: string; label: string; value: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.push({
+        key: d.toISOString().slice(0, 7),
+        label: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", ""),
+        value: 0,
+      });
+    }
+    const map = new Map(buckets.map((b) => [b.key, b]));
+    for (const l of vendas) {
+      const b = map.get(l.dataVencimento.slice(0, 7));
+      if (b) b.value += l.valor;
+    }
+    return buckets;
+  }, [vendas, granularidade]);
+
+  const relatorioMes = useMemo(() => {
+    if (!mesSelecionado) return null;
+    const items = vendas.filter((l) => l.dataVencimento.slice(0, 7) === mesSelecionado);
+    const total = items.reduce((sum, l) => sum + l.valor, 0);
+    const fechados = items.filter((l) => l.status === "liquidado").length;
+    return {
+      items: items.sort((a, b) => b.valor - a.valor),
+      total,
+      quantidade: items.length,
+      ticketMedio: items.length > 0 ? total / items.length : 0,
+      fechados,
+    };
+  }, [vendas, mesSelecionado]);
+
+  return (
+    <div className="mb-6 rounded-xl border border-canto-line bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-canto-serif text-base font-semibold text-canto-900">Fluxo de Vendas</h3>
+          <p className="mt-0.5 text-xs text-canto-500">Regime de competência (data de vencimento)</p>
+        </div>
+        <div className="flex gap-1 rounded-lg bg-canto-100 p-1">
+          {(Object.keys(GRANULARIDADE_LABEL) as Granularidade[]).map((g) => (
+            <button
+              key={g}
+              onClick={() => setGranularidade(g)}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                granularidade === g ? "bg-white text-canto-900 shadow-sm" : "text-canto-600 hover:text-canto-900"
+              }`}
+            >
+              {GRANULARIDADE_LABEL[g]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <VerticalBarChart data={flowData} formatValue={currency} color="#847455" />
+      </div>
+
+      <div className="mt-5 border-t border-canto-line pt-4">
+        <label className="text-xs text-canto-500">
+          Relatório de um mês específico
+          <select
+            value={mesSelecionado}
+            onChange={(e) => setMesSelecionado(e.target.value)}
+            className="mt-1 block w-full max-w-xs rounded-md border border-canto-200 px-2 py-1.5 text-sm outline-none focus:border-canto-500 sm:inline-block"
+          >
+            <option value="">Selecione um mês...</option>
+            {meses.map((m) => (
+              <option key={m} value={m}>
+                {new Date(`${m}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {relatorioMes && (
+          <div className="mt-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile label="Total vendido" value={currency(relatorioMes.total)} variant="accent" />
+              <StatTile label="Qtd. de vendas" value={relatorioMes.quantidade.toString()} />
+              <StatTile label="Ticket médio" value={currency(relatorioMes.ticketMedio)} />
+              <StatTile label="Já recebidos" value={`${relatorioMes.fechados}/${relatorioMes.quantidade}`} />
+            </div>
+            <div className="mt-3 overflow-x-auto rounded-lg border border-canto-line">
+              <table className="w-full min-w-[560px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-canto-line text-left text-xs uppercase tracking-wide text-canto-500">
+                    <th className="px-3 py-2">Cliente</th>
+                    <th className="px-3 py-2">Vencimento</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatorioMes.items.map((l) => (
+                    <tr key={l.id} className="border-b border-canto-line/60 last:border-0">
+                      <td className="px-3 py-2 text-canto-900">{l.contraparte}</td>
+                      <td className="px-3 py-2 text-canto-500">{formatDate(l.dataVencimento)}</td>
+                      <td className="px-3 py-2 text-canto-500">{l.status === "liquidado" ? "Recebido" : "Pendente"}</td>
+                      <td className="px-3 py-2 font-semibold text-canto-900">{currency(l.valor)}</td>
+                    </tr>
+                  ))}
+                  {relatorioMes.items.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-4 text-center text-xs text-canto-500">
+                        Nenhuma venda nesse mês
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
