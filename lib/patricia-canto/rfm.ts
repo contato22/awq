@@ -3,9 +3,21 @@
 // que já compraram, mas toda a base, pra identificar quem precisa de
 // atenção antes de esfriar.
 import type { Lead } from "./leads";
+import type { BusinessUnit } from "./business-units";
 
 export interface RfmEntry {
   lead: Lead;
+  recenciaDias: number;
+  frequencia: number;
+  valorMonetario: number;
+  scoreR: 1 | 2 | 3;
+  scoreF: 1 | 2 | 3;
+  scoreM: 1 | 2 | 3;
+  segmentoId: SegmentoId;
+}
+
+export interface RfmUnitEntry {
+  unit: BusinessUnit;
   recenciaDias: number;
   frequencia: number;
   valorMonetario: number;
@@ -103,6 +115,39 @@ export function computeRfm(leads: Lead[], now: Date = new Date()): RfmEntry[] {
     const frequencia = frequencyByClient.get(clientKey(lead)) ?? 1;
     const valorMonetario = lead.honorarios ?? lead.valorAcao ?? 0;
     return { lead, recenciaDias, frequencia, valorMonetario };
+  });
+
+  const rTerciles = terciles(raw.map((r) => r.recenciaDias));
+  const fTerciles = terciles(raw.map((r) => r.frequencia));
+  const mTerciles = terciles(raw.map((r) => r.valorMonetario));
+
+  return raw.map((r) => {
+    const scoreR = scoreDesc(r.recenciaDias, rTerciles);
+    const scoreF = scoreAsc(r.frequencia, fTerciles);
+    const scoreM = scoreAsc(r.valorMonetario, mTerciles);
+    return { ...r, scoreR, scoreF, scoreM, segmentoId: segmentoFor(scoreR, scoreF, scoreM) };
+  });
+}
+
+// Mesma lógica de RFM, mas agrupando os leads por unidade de negócio
+// parceira em vez de por lead individual — dá controle de quais parcerias
+// estão trazendo volume/valor e quais esfriaram.
+export function computeRfmForUnits(leads: Lead[], units: BusinessUnit[], now: Date = new Date()): RfmUnitEntry[] {
+  if (units.length === 0) return [];
+
+  const raw = units.map((unit) => {
+    const unitLeads = leads.filter((l) => l.unidadeId === unit.id);
+    const recenciaDias =
+      unitLeads.length > 0
+        ? Math.min(
+            ...unitLeads.map((l) =>
+              Math.max(0, Math.floor((now.getTime() - new Date(lastMovementIso(l)).getTime()) / 86_400_000)),
+            ),
+          )
+        : Math.max(0, Math.floor((now.getTime() - new Date(unit.dataCriacao).getTime()) / 86_400_000));
+    const frequencia = unitLeads.length;
+    const valorMonetario = unitLeads.reduce((sum, l) => sum + (l.honorarios ?? l.valorAcao ?? 0), 0);
+    return { unit, recenciaDias, frequencia, valorMonetario };
   });
 
   const rTerciles = terciles(raw.map((r) => r.recenciaDias));

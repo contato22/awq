@@ -4,10 +4,18 @@ import { useMemo, useState } from "react";
 import type { Lead } from "@/lib/patricia-canto/leads";
 import type { BusinessUnit, NewBusinessUnitInput } from "@/lib/patricia-canto/business-units";
 import StatTile from "./StatTile";
+import RfmMatrixUnitsView from "./RfmMatrixUnitsView";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+type SubTab = "unidades" | "rfm";
+
+const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "unidades", label: "Unidades" },
+  { id: "rfm", label: "Matriz RFM" },
+];
 
 export default function BusinessUnitsView({
   businessUnits,
@@ -22,6 +30,7 @@ export default function BusinessUnitsView({
   onSave: (unit: BusinessUnit) => void;
   onDelete: (id: string) => void;
 }) {
+  const [subTab, setSubTab] = useState<SubTab>("unidades");
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<BusinessUnit | null>(null);
 
@@ -45,19 +54,41 @@ export default function BusinessUnitsView({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-canto-500">
-            Parcerias com outros advogados, em segmentos diferentes do previdenciário/cível — controladas da
-            aquisição ao financeiro dentro do mesmo CRM.
-          </p>
+        <div className="flex gap-1 rounded-lg bg-canto-100 p-1">
+          {SUB_TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+                subTab === t.id ? "bg-white text-canto-900 shadow-sm" : "text-canto-600 hover:text-canto-900"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="rounded-lg bg-canto-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-canto-800"
-        >
-          + Nova unidade
-        </button>
+        {subTab === "unidades" && (
+          <button
+            onClick={() => setAddOpen(true)}
+            className="rounded-lg bg-canto-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-canto-800"
+          >
+            + Nova unidade
+          </button>
+        )}
       </div>
+
+      {subTab === "rfm" && (
+        <div className="mt-4">
+          <RfmMatrixUnitsView leads={leads} businessUnits={businessUnits} />
+        </div>
+      )}
+
+      {subTab === "unidades" && (
+        <>
+      <p className="mt-3 text-sm text-canto-500">
+        Parcerias com outros advogados, em segmentos diferentes do previdenciário/cível — controladas da
+        aquisição ao financeiro dentro do mesmo CRM.
+      </p>
 
       <div className="mt-4 rounded-xl border border-canto-line bg-white p-4">
         <h3 className="text-sm font-semibold text-canto-900">Patrícia Canto (prática principal)</h3>
@@ -123,6 +154,8 @@ export default function BusinessUnitsView({
           })
         )}
       </div>
+        </>
+      )}
 
       {addOpen && (
         <BusinessUnitModal
