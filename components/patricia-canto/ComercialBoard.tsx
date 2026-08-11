@@ -16,6 +16,16 @@ function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Mês em que o lead foi fechado (ganho): usa a data de fechamento (campo de
+// negócio, pode ser retroativa) e cai pro histórico de estágio só se ela não
+// estiver preenchida. Sem nenhuma das duas, não dá pra saber o mês — nesse
+// caso não arquiva (melhor mostrar do que sumir sem explicação).
+function closingMonthKey(lead: Lead): string | null {
+  if (lead.dataFechamento) return lead.dataFechamento.slice(0, 7);
+  const ganhoEvent = [...lead.stageHistory].reverse().find((h) => h.stage === "ganho");
+  return ganhoEvent ? ganhoEvent.enteredAt.slice(0, 7) : null;
+}
+
 export default function ComercialBoard({
   leads,
   onMoveLead,
@@ -49,16 +59,38 @@ export default function ComercialBoard({
     );
   }, [leads, search]);
 
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  // Fechados (ganho) de meses anteriores saem do quadro Comercial pra liberar
+  // espaço pros novos leads do mês — continuam rastreados normalmente em
+  // CS/Jurídico (caso) e Financeiro (lançamento), que nunca filtram por mês.
   const byStage = useMemo(() => {
     const map = new Map<Stage, Lead[]>();
     for (const s of STAGES) map.set(s.id, []);
-    for (const lead of filtered) map.get(lead.stage)?.push(lead);
+    for (const lead of filtered) {
+      if (lead.stage === "ganho") {
+        const month = closingMonthKey(lead);
+        if (month !== null && month !== currentMonth) continue;
+      }
+      map.get(lead.stage)?.push(lead);
+    }
     return map;
-  }, [filtered]);
+  }, [filtered, currentMonth]);
+
+  const arquivadosGanho = useMemo(
+    () =>
+      leads.filter((l) => {
+        if (l.stage !== "ganho") return false;
+        const month = closingMonthKey(l);
+        return month !== null && month !== currentMonth;
+      }).length,
+    [leads, currentMonth],
+  );
 
   const openLead = leads.find((l) => l.id === openLeadId) ?? null;
 
   const metrics = useMemo(() => computeComercialMetrics(leads), [leads]);
+  const ganhosDoMes = byStage.get("ganho")?.length ?? 0;
 
   function handleMoveStage(id: string, stage: Stage) {
     const lead = leads.find((l) => l.id === id);
@@ -80,7 +112,7 @@ export default function ComercialBoard({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatTile label="Total de leads" value={metrics.totalLeads.toString()} />
         <StatTile label="Qualificados" value={metrics.qualificados.toString()} />
-        <StatTile label="Fechados (ganho)" value={metrics.ganhos.toString()} />
+        <StatTile label="Fechados no mês" value={ganhosDoMes.toString()} />
         <StatTile label="Valor das ações" value={currency(metrics.valorAcaoTotal)} />
         <StatTile label="Honorários em pipeline" value={currency(metrics.honorariosPipeline)} variant="accent" />
       </div>
@@ -133,6 +165,11 @@ export default function ComercialBoard({
               <p className="mb-2 px-1 text-[11px] font-semibold text-canto-700">
                 Honorários: {currency(stageHonorarios)}
               </p>
+              {stage.id === "ganho" && arquivadosGanho > 0 && (
+                <p className="mb-2 px-1 text-[10px] text-canto-400">
+                  +{arquivadosGanho} de meses anteriores — em CS/Jurídico e Financeiro
+                </p>
+              )}
 
               <div className="flex min-h-[80px] flex-1 flex-col gap-2">
                 {items.map((lead) => (
