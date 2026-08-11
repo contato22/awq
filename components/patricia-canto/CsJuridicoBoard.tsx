@@ -3,24 +3,36 @@
 import { useMemo, useState } from "react";
 import type { CaseItem, CaseStage } from "@/lib/patricia-canto/cases";
 import { CASE_STAGES } from "@/lib/patricia-canto/cases";
+import type { Lead } from "@/lib/patricia-canto/leads";
 import type { NextActivity } from "@/lib/patricia-canto/activity";
 import { computeCsMetrics } from "@/lib/patricia-canto/metrics";
 import CaseCard from "./CaseCard";
 import CaseModal from "./CaseModal";
 import NextActivityModal from "./NextActivityModal";
 import StatTile from "./StatTile";
+import RfmMatrixView from "./RfmMatrixView";
+
+type SubTab = "casos" | "rfm";
+
+const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "casos", label: "Casos" },
+  { id: "rfm", label: "Matriz RFM" },
+];
 
 export default function CsJuridicoBoard({
   cases,
+  leads,
   onMoveCase,
   onSaveCase,
   onDeleteCase,
 }: {
   cases: CaseItem[];
+  leads: Lead[];
   onMoveCase: (id: string, stage: CaseStage, activity: NextActivity) => void;
   onSaveCase: (item: CaseItem) => void;
   onDeleteCase: (id: string) => void;
 }) {
+  const [subTab, setSubTab] = useState<SubTab>("casos");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<CaseStage | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -47,7 +59,29 @@ export default function CsJuridicoBoard({
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="flex gap-1 rounded-lg bg-canto-100 p-1">
+        {SUB_TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+              subTab === t.id ? "bg-white text-canto-900 shadow-sm" : "text-canto-600 hover:text-canto-900"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "rfm" && (
+        <div className="mt-4">
+          <RfmMatrixView leads={leads} />
+        </div>
+      )}
+
+      {subTab === "casos" && (
+        <>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Taxa de sucesso" value={metrics.taxaSucesso == null ? "—" : `${metrics.taxaSucesso.toFixed(0)}%`} />
         <StatTile
           label="Tempo médio até decisão"
@@ -145,6 +179,8 @@ export default function CsJuridicoBoard({
           Nenhum caso ainda — casos são criados automaticamente quando um lead do Comercial é marcado como{" "}
           <strong>Fechado — Ganho</strong>.
         </p>
+      )}
+        </>
       )}
 
       {open && (
