@@ -2,7 +2,8 @@
 // de todos os leads de um escritório de advocacia solo — não só clientes
 // que já compraram, mas toda a base, pra identificar quem precisa de
 // atenção antes de esfriar.
-import type { Lead } from "./leads";
+import type { Channel, Lead } from "./leads";
+import { CHANNELS } from "./leads";
 import type { BusinessUnit } from "./business-units";
 
 export interface RfmEntry {
@@ -18,6 +19,18 @@ export interface RfmEntry {
 
 export interface RfmUnitEntry {
   unit: BusinessUnit;
+  recenciaDias: number;
+  frequencia: number;
+  valorMonetario: number;
+  scoreR: 1 | 2 | 3;
+  scoreF: 1 | 2 | 3;
+  scoreM: 1 | 2 | 3;
+  segmentoId: SegmentoId;
+}
+
+export interface RfmChannelEntry {
+  channel: Channel;
+  tipo: "Pago" | "Orgânico";
   recenciaDias: number;
   frequencia: number;
   valorMonetario: number;
@@ -104,19 +117,16 @@ export function segmentoFor(scoreR: 1 | 2 | 3, scoreF: 1 | 2 | 3, scoreM: 1 | 2 
   return RFM_GRID[scoreR][fm];
 }
 
-export function computeRfm(leads: Lead[], now: Date = new Date()): RfmEntry[] {
-  if (leads.length === 0) return [];
+function daysSince(iso: string, now: Date): number {
+  return Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 86_400_000));
+}
 
-  const frequencyByClient = new Map<string, number>();
-  for (const l of leads) frequencyByClient.set(clientKey(l), (frequencyByClient.get(clientKey(l)) ?? 0) + 1);
-
-  const raw = leads.map((lead) => {
-    const recenciaDias = Math.max(0, Math.floor((now.getTime() - new Date(lastMovementIso(lead)).getTime()) / 86_400_000));
-    const frequencia = frequencyByClient.get(clientKey(lead)) ?? 1;
-    const valorMonetario = lead.honorarios ?? lead.valorAcao ?? 0;
-    return { lead, recenciaDias, frequencia, valorMonetario };
-  });
-
+// Pontua e segmenta qualquer lista de entidades já reduzidas a R/F/M — os
+// tercis são calculados sobre a própria lista, então cada matriz (leads,
+// unidades, canais) se compara só contra seus pares, não uns com os outros.
+function scoreEntries<T extends { recenciaDias: number; frequencia: number; valorMonetario: number }>(
+  raw: T[],
+): (T & { scoreR: 1 | 2 | 3; scoreF: 1 | 2 | 3; scoreM: 1 | 2 | 3; segmentoId: SegmentoId })[] {
   const rTerciles = terciles(raw.map((r) => r.recenciaDias));
   const fTerciles = terciles(raw.map((r) => r.frequencia));
   const mTerciles = terciles(raw.map((r) => r.valorMonetario));
@@ -129,6 +139,22 @@ export function computeRfm(leads: Lead[], now: Date = new Date()): RfmEntry[] {
   });
 }
 
+export function computeRfm(leads: Lead[], now: Date = new Date()): RfmEntry[] {
+  if (leads.length === 0) return [];
+
+  const frequencyByClient = new Map<string, number>();
+  for (const l of leads) frequencyByClient.set(clientKey(l), (frequencyByClient.get(clientKey(l)) ?? 0) + 1);
+
+  const raw = leads.map((lead) => ({
+    lead,
+    recenciaDias: daysSince(lastMovementIso(lead), now),
+    frequencia: frequencyByClient.get(clientKey(lead)) ?? 1,
+    valorMonetario: lead.honorarios ?? lead.valorAcao ?? 0,
+  }));
+
+  return scoreEntries(raw);
+}
+
 // Mesma lógica de RFM, mas agrupando os leads por unidade de negócio
 // parceira em vez de por lead individual — dá controle de quais parcerias
 // estão trazendo volume/valor e quais esfriaram.
@@ -139,25 +165,35 @@ export function computeRfmForUnits(leads: Lead[], units: BusinessUnit[], now: Da
     const unitLeads = leads.filter((l) => l.unidadeId === unit.id);
     const recenciaDias =
       unitLeads.length > 0
-        ? Math.min(
-            ...unitLeads.map((l) =>
-              Math.max(0, Math.floor((now.getTime() - new Date(lastMovementIso(l)).getTime()) / 86_400_000)),
-            ),
-          )
-        : Math.max(0, Math.floor((now.getTime() - new Date(unit.dataCriacao).getTime()) / 86_400_000));
-    const frequencia = unitLeads.length;
-    const valorMonetario = unitLeads.reduce((sum, l) => sum + (l.honorarios ?? l.valorAcao ?? 0), 0);
-    return { unit, recenciaDias, frequencia, valorMonetario };
+        ? Math.min(...unitLeads.map((l) => daysSince(lastMovementIso(l), now)))
+        : daysSince(unit.dataCriacao, now);
+    return {
+      unit,
+      recenciaDias,
+      frequencia: unitLeads.length,
+      valorMonetario: unitLeads.reduce((sum, l) => sum + (l.honorarios ?? l.valorAcao ?? 0), 0),
+    };
   });
 
-  const rTerciles = terciles(raw.map((r) => r.recenciaDias));
-  const fTerciles = terciles(raw.map((r) => r.frequencia));
-  const mTerciles = terciles(raw.map((r) => r.valorMonetario));
+  return scoreEntries(raw);
+}
 
-  return raw.map((r) => {
-    const scoreR = scoreDesc(r.recenciaDias, rTerciles);
-    const scoreF = scoreAsc(r.frequencia, fTerciles);
-    const scoreM = scoreAsc(r.valorMonetario, mTerciles);
-    return { ...r, scoreR, scoreF, scoreM, segmentoId: segmentoFor(scoreR, scoreF, scoreM) };
-  });
+// Mesma lógica, agrupando por canal de aquisição (origem do lead) — só
+// entram canais com pelo menos um lead, já que sem histórico não há como
+// calcular recência. Canais sem nenhum lead ainda simplesmente não aparecem.
+export function computeRfmForChannels(leads: Lead[], now: Date = new Date()): RfmChannelEntry[] {
+  const comLeads = CHANNELS.map((c) => ({ channel: c, channelLeads: leads.filter((l) => l.origem === c.id) })).filter(
+    (c) => c.channelLeads.length > 0,
+  );
+  if (comLeads.length === 0) return [];
+
+  const raw = comLeads.map(({ channel, channelLeads }) => ({
+    channel: channel.id,
+    tipo: channel.tipo,
+    recenciaDias: Math.min(...channelLeads.map((l) => daysSince(lastMovementIso(l), now))),
+    frequencia: channelLeads.length,
+    valorMonetario: channelLeads.reduce((sum, l) => sum + (l.honorarios ?? l.valorAcao ?? 0), 0),
+  }));
+
+  return scoreEntries(raw);
 }

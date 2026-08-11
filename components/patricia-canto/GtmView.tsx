@@ -11,15 +11,17 @@ import StatTile from "./StatTile";
 import MyTasksPanel from "./MyTasksPanel";
 import ComunicacaoView from "./ComunicacaoView";
 import MarketSizingView from "./MarketSizingView";
+import RfmMatrixChannelsView from "./RfmMatrixChannelsView";
 
 function currency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-type SubTab = "canais" | "comunicacao" | "mercado";
+type SubTab = "canais" | "rfm" | "comunicacao" | "mercado";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "canais", label: "Canais" },
+  { id: "rfm", label: "Matriz RFM" },
   { id: "comunicacao", label: "Comunicação" },
   { id: "mercado", label: "TAM / SAM / SOM" },
 ];
@@ -76,6 +78,7 @@ export default function GtmView({
 
       <div className="mt-4">
         {subTab === "canais" && <CanaisView leads={leads} investment={investment} onInvestmentChange={onInvestmentChange} />}
+        {subTab === "rfm" && <RfmMatrixChannelsView leads={leads} />}
         {subTab === "comunicacao" && (
           <ComunicacaoView
             items={comunicacoes}
