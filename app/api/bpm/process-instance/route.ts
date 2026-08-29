@@ -3,6 +3,7 @@
 // Response: { success, data: ProcessInstance | ProcessInstance[] }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initBpmDB, getProcessInstance, getAllInstances, getTasksForInstance } from "@/lib/bpm-db";
 import type { InstanceStatus } from "@/lib/bpm-types";
 
@@ -15,6 +16,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "BPM Process Instance");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const sp = req.nextUrl.searchParams;

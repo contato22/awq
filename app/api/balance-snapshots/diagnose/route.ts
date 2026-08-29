@@ -13,6 +13,7 @@ import { fetchCoraStatement, fetchCoraBalanceForAccount, isCoraConfigured } from
 import { getAllTransactions } from "@/lib/financial-db";
 import { getSnapshots } from "@/lib/balance-snapshots";
 import { todayBRT } from "@/lib/date-brt";
+import { getAuthIdentity, unauthorized } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +23,8 @@ function daysInMonth(year: number, month: number): number {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
-  if (!userEmail) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const identity = await getAuthIdentity(req);
+  if (!identity) return unauthorized();
   if (!isCoraConfigured()) return NextResponse.json({ error: "Cora não configurada" }, { status: 501 });
 
   const monthParam = req.nextUrl.searchParams.get("month") ?? todayBRT().slice(0, 7);

@@ -4,6 +4,7 @@
 // Response: { success, data, stats }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initBpmDB, getPendingTasksForUser } from "@/lib/bpm-db";
 import type { WorkQueueItem, WorkQueueStats } from "@/lib/bpm-types";
 
@@ -16,6 +17,9 @@ function ok(data: Record<string, unknown>) { return NextResponse.json({ success:
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "BPM My Tasks");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const sp = req.nextUrl.searchParams;

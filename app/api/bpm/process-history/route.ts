@@ -3,6 +3,7 @@
 // Response: { success, data: ProcessHistoryEntry[] }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initBpmDB, getInstanceHistory } from "@/lib/bpm-db";
 
 let _ready = false;
@@ -14,6 +15,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "BPM Process History");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const instanceId = req.nextUrl.searchParams.get("instance_id");

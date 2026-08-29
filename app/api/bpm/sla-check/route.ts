@@ -6,6 +6,7 @@
 // Response: { success, data: { breached_count } }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   initBpmDB,
   markOverdueTasks,
@@ -23,6 +24,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "manage_security", "holding", "BPM SLA Check");
+  if (denied) return denied;
+
   try {
     // Optional secret guard (set CRON_SECRET in env)
     const cronSecret = process.env.CRON_SECRET;
@@ -75,6 +79,9 @@ export async function POST(req: NextRequest) {
 
 // Also support GET for simple health/trigger
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "manage_security", "holding", "BPM SLA Check");
+  if (denied) return denied;
+
   return POST(req);
 }
 

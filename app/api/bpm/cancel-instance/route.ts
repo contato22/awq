@@ -3,6 +3,7 @@
 // Body: { instance_id, cancelled_by, reason? }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   initBpmDB,
   getProcessInstance,
@@ -22,6 +23,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "update", "holding", "BPM Cancel Instance");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body: { instance_id: string; cancelled_by: string; reason?: string } = await req.json();

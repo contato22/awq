@@ -26,6 +26,7 @@ import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
+import { getAuthIdentity, unauthorized } from "@/lib/api-auth";
 
 export const runtime    = "nodejs";
 export const maxDuration = 60; // sync de períodos longos (até 5+ meses)
@@ -35,11 +36,9 @@ function isValidDate(s: string) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // ── Auth — middleware injects x-user-email after verifying the session ──────────
-  const userEmail = req.headers.get("x-user-email");
-  if (!userEmail) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  // ── Auth — re-decodifica JWT direto (não confia em headers do middleware) ──
+  const identity = await getAuthIdentity(req);
+  if (!identity) return unauthorized();
 
   // ── Cora configured? ———————————————————————————————————————————————————————————————
   if (!isCoraConfigured()) {
@@ -81,7 +80,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // BU isolation: usuário BU-locked só pode sincronizar a conta Cora da própria BU.
   // Ex.: role=jacqes só pode pedir entity=JACQES (não pode disparar sync da AWQ Holding).
-  const lockedBU = req.headers.get("x-bu-lock");
+  const lockedBU = identity.buLock;
   if (lockedBU && entity !== lockedBU) {
     return NextResponse.json(
       { error: `Operação bloqueada: usuário ${lockedBU} não pode sincronizar entity=${entity}` },

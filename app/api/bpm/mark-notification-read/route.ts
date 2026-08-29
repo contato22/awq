@@ -3,6 +3,7 @@
 // Body: { notification_id?: string, user_id?: string, mark_all?: boolean }
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initBpmDB, markNotificationRead, getUnreadNotifications } from "@/lib/bpm-db";
 
 let _ready = false;
@@ -14,6 +15,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "update", "holding", "BPM Notifications");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body: { notification_id?: string; user_id?: string; mark_all?: boolean } = await req.json();

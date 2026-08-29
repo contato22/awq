@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   getBankTransactions,
   addBankTransaction,
@@ -22,6 +23,9 @@ function err(msg: string, status = 400) { return NextResponse.json({ success: fa
 // GET  ?status=unmatched&bu_code=AWQ  — list transactions
 // GET  ?find_matches=<txn_id>         — find candidates for a transaction
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "financeiro", "EPM Bank Reconciliation");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const sp         = req.nextUrl.searchParams;
@@ -42,6 +46,9 @@ export async function GET(req: NextRequest) {
 
 // POST — import a new bank transaction
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "import", "financeiro", "EPM Bank Reconciliation");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body = await req.json();
@@ -64,6 +71,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH — match or ignore a transaction
 export async function PATCH(req: NextRequest) {
+  const denied = await apiGuard(req, "update", "financeiro", "EPM Bank Reconciliation");
+  if (denied) return denied;
+
   try {
     await ensureDB();
     const body = await req.json();
