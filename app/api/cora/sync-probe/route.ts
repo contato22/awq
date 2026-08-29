@@ -15,6 +15,7 @@ import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 import { todayBRT } from "@/lib/date-brt";
+import { verifyProbeSecret } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
@@ -34,6 +35,10 @@ interface AccountResult {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // Endpoint público pra GitHub Actions — exige Bearer PROBE_SECRET em produção.
+  const denied = verifyProbeSecret(req);
+  if (denied) return denied;
+
   if (!isCoraConfigured()) {
     return NextResponse.json({ error: "Integração Cora não configurada." }, { status: 501 });
   }

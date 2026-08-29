@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listIssues, createIssue } from "@/lib/ppm-db";
 import type { BuCode } from "@/lib/ppm-types";
+import { getAuthIdentity } from "@/lib/api-auth";
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
-    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    const identity = await getAuthIdentity(req);
+    if (!identity) return err("Não autenticado", 401);
+    const lockedBU = (identity.buLock ?? undefined) as BuCode | undefined;
     const project_id = req.nextUrl.searchParams.get("project_id") ?? undefined;
     const issues = await listIssues(project_id, { bu_code: lockedBU });
     return ok(issues);

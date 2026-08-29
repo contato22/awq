@@ -4,6 +4,7 @@
 // After running, the Cora sync and all financial pages will work without DATABASE_URL.
 
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthIdentity, unauthorized } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -94,10 +95,8 @@ ALTER TABLE daily_balance_snapshots  DISABLE ROW LEVEL SECURITY;
 `;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
-  if (!userEmail) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const identity = await getAuthIdentity(req);
+  if (!identity) return unauthorized();
 
   const accept = req.headers.get("accept") ?? "";
   if (accept.includes("text/plain")) {

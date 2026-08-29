@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listProjects, createProject, getPortfolioMetrics } from "@/lib/ppm-db";
 import type { BuCode, ProjectStatus, HealthStatus, ProjectType } from "@/lib/ppm-types";
+import { getAuthIdentity } from "@/lib/api-auth";
 
 function ok(data: unknown)              { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)     { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
-    // x-bu-lock is injected by middleware from the verified JWT — override any client param
-    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    // Auth direto via JWT (não confia em headers injetados pelo middleware).
+    const identity = await getAuthIdentity(req);
+    if (!identity) return err("Não autenticado", 401);
+    const lockedBU = (identity.buLock ?? undefined) as BuCode | undefined;
 
     const p = req.nextUrl.searchParams;
     const buFilter = lockedBU ?? ((p.get("bu_code") ?? undefined) as BuCode | undefined);
@@ -30,7 +33,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    const identity = await getAuthIdentity(req);
+    if (!identity) return err("Não autenticado", 401);
+    const lockedBU = (identity.buLock ?? undefined) as BuCode | undefined;
     const body = await req.json();
     if (lockedBU) body.bu_code = lockedBU;
     const { project_name, bu_code, project_type, contract_type, start_date, planned_end_date, budget_cost, budget_revenue } = body;

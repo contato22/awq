@@ -6,14 +6,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured, isCoraEnerdyConfigured, type CoraAccount } from "@/lib/cora-api";
+import { getAuthIdentity, unauthorized } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  // Auth — middleware injects x-user-email after verifying the session
-  if (!req.headers.get("x-user-email")) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  // Auth — re-decodifica JWT direto (não confia em headers do middleware)
+  const identity = await getAuthIdentity(req);
+  if (!identity) return unauthorized();
 
   if (!isCoraConfigured()) {
     return NextResponse.json(

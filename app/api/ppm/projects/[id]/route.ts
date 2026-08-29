@@ -6,6 +6,7 @@ import {
   SEED_PROJECTS,
 } from "@/lib/ppm-db";
 import type { BuCode } from "@/lib/ppm-types";
+import { getAuthIdentity } from "@/lib/api-auth";
 
 export function generateStaticParams() {
   return SEED_PROJECTS.map(p => ({ id: p.project_id }));
@@ -17,7 +18,9 @@ function err(msg: string, s = 400)  { return NextResponse.json({ success: false,
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    const identity = await getAuthIdentity(req);
+    if (!identity) return err("Não autenticado", 401);
+    const lockedBU = (identity.buLock ?? undefined) as BuCode | undefined;
     const project = await getProject(id);
     if (!project) return err("Project not found", 404);
     if (lockedBU && project.bu_code !== lockedBU) return err("Project not found", 404);

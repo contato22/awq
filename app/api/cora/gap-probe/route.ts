@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
 import { getAllTransactions } from "@/lib/financial-db";
 import { todayBRT } from "@/lib/date-brt";
+import { getAuthIdentity, unauthorized } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,10 +18,8 @@ function daysInMonth(year: number, month: number): number {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
-  if (!userEmail) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
+  const identity = await getAuthIdentity(req);
+  if (!identity) return unauthorized();
 
   if (!isCoraConfigured()) {
     return NextResponse.json({ error: "Cora não configurado" }, { status: 501 });

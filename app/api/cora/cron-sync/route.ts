@@ -36,14 +36,22 @@ interface AccountResult {
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   // ── Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET> ──────────────
+  // Falha-fechado em produção — sem CRON_SECRET o endpoint fica desabilitado.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
+  if (!cronSecret) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "CRON_SECRET não configurado em produção. Endpoint desabilitado." },
+        { status: 503 },
+      );
+    }
+    // dev: livre para testes locais
+  } else {
     const auth = req.headers.get("authorization");
     if (auth !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
     }
   }
-  // Sem CRON_SECRET em dev/local → livre para testes
 
   // ── Pré-condições ─────────────────────────────────────────────────────────────
   if (!isCoraConfigured()) {

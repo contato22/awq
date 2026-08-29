@@ -6,8 +6,9 @@
 //
 // Publico (sem auth) — retorna so contadores, nenhum dado sensivel.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getTransactionsByEntity } from "@/lib/financial-db";
+import { verifyProbeSecret } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,11 @@ function validDate(v: unknown): string {
   return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : "";
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  // Endpoint público — vaza metadados financeiros se aberto. Exige PROBE_SECRET em prod.
+  const denied = verifyProbeSecret(req);
+  if (denied) return denied;
+
   try {
     const txns = await getTransactionsByEntity("ENERDY");
 
