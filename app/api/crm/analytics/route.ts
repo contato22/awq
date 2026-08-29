@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, getDashboardMetrics, listOpportunities } from "@/lib/crm-db";
 import { BU_OPTIONS } from "@/lib/crm-types";
-import { getForcedBu } from "@/lib/api-guard";
+import { getForcedBu, apiGuard } from "@/lib/api-guard";
 
 type Bucket = { count: number; value: number; weighted: number };
 const emptyBucket = (): Bucket => ({ count: 0, value: 0, weighted: 0 });
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "CRM Analytics");
+  if (denied) return denied;
+
   try {
     await initCrmDB();
     const forcedBu = await getForcedBu(req);

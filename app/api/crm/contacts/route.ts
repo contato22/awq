@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, listContacts, createContact, deleteContact, listAccounts } from "@/lib/crm-db";
-import { getForcedBu } from "@/lib/api-guard";
+import { getForcedBu, apiGuard } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const denied = await apiGuard(req, "view", "holding", "CRM Contacts");
+  if (denied) return denied;
+
   try {
     await initCrmDB();
     const p = req.nextUrl.searchParams;
@@ -24,6 +27,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await apiGuard(req, "create", "holding", "CRM Contacts");
+  if (denied) return denied;
+
   try {
     await initCrmDB();
     const body = await req.json();
