@@ -237,7 +237,9 @@ export default function OfficeSimulator() {
   /** Conversa aberta no mensageiro: null = lista; "geral"; "grupo:BU"; "ind:BU:papel". */
   const [conv, setConv] = useState<string | null>(null);
   const chatRef = useRef<Record<string, ChatMsg[]>>({});
-  const [faseChat, setFaseChat] = useState<string | null>(null);
+  /** Conversas com resposta em andamento (chave da conversa -> fase atual). Cada conversa trabalha em paralelo às outras. */
+  const [ocupadas, setOcupadas] = useState<Record<string, string>>({});
+  const ocupadasRef = useRef<Record<string, string>>({});
   const [reuPauta, setReuPauta] = useState("");
   const [reuResp, setReuResp] = useState<Record<string, { nome: string; cliente: string; status: "pensando" | "pronto" | "erro"; texto: string }>>({});
   const [reuBusy, setReuBusy] = useState(false);
@@ -539,6 +541,18 @@ export default function OfficeSimulator() {
   const chatKey = `${bu}|${chatRole}`;
   const conversa = chat[chatKey] ?? [];
 
+  const marcarOcupada = (chave: string, fase: string) => {
+    const next = { ...ocupadasRef.current, [chave]: fase };
+    ocupadasRef.current = next;
+    setOcupadas(next);
+  };
+  const liberarConversa = (chave: string) => {
+    const { [chave]: _fim, ...resto } = ocupadasRef.current;
+    void _fim;
+    ocupadasRef.current = resto;
+    setOcupadas(resto);
+  };
+
   const salvarChat = (next: Record<string, ChatMsg[]>) => {
     chatRef.current = next;
     setChat(next);
@@ -550,12 +564,12 @@ export default function OfficeSimulator() {
 
   const enviarChat = async () => {
     const texto = chatInput.trim();
-    if (!texto || busy || !squad) return;
-    setErro(null);
-    setBusy(true);
-    setChatInput("");
     const grupo = !!conv?.startsWith("grupo:");
     const chave = grupo ? `${bu}|grupo` : chatKey;
+    if (!texto || chave in ocupadasRef.current || !squad) return;
+    setErro(null);
+    marcarOcupada(chave, "");
+    setChatInput("");
     const base = chatRef.current[chave] ?? [];
     const historico = base.slice(-12);
     const comNova: Record<string, ChatMsg[]> = {
@@ -593,7 +607,7 @@ export default function OfficeSimulator() {
     salvarChat(comNova);
 
     try {
-      setFaseChat(ehCS ? `${nomeCS} está pensando` : null);
+      if (ehCS) marcarOcupada(chave, `${nomeCS} está pensando`);
       const r1 = await rodar(chatRole, "livre", partes.join("\n\n"), { origem: "Mensagem do gestor no chat" });
 
       const pedidos = ehCS
@@ -609,7 +623,7 @@ export default function OfficeSimulator() {
       }
 
       const plano = r1.output.replace(BLOCO_DELEGAR, "").trim();
-      setFaseChat(`${nomeCS} delegou a ${pedidos.map((d) => ROTULO_AGENTE[d.agente].split(" ")[0]).join(", ")}`);
+      marcarOcupada(chave, `${nomeCS} delegou a ${pedidos.map((d) => ROTULO_AGENTE[d.agente].split(" ")[0]).join(", ")}`);
       const recebidos: Delegacao[] = await Promise.all(
         pedidos.map(async (d) => {
           const tipo: EntregaKind = d.agente === "ref" ? "briefing" : d.agente === "criativo" ? "peca" : "livre";
@@ -623,7 +637,7 @@ export default function OfficeSimulator() {
         })
       );
 
-      setFaseChat(`${nomeCS} está consolidando`);
+      marcarOcupada(chave, `${nomeCS} está consolidando`);
       const consolidacao =
         `CONSOLIDAÇÃO DA DELEGAÇÃO (você é ${nomeCS})\nO gestor pediu: ${texto}\n\nVocê delegou e recebeu:\n` +
         recebidos
@@ -647,8 +661,7 @@ export default function OfficeSimulator() {
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha na conversa.");
     } finally {
-      setFaseChat(null);
-      setBusy(false);
+      liberarConversa(chave);
     }
   };
 
@@ -656,11 +669,10 @@ export default function OfficeSimulator() {
   const enviarGeral = async () => {
     const texto = chatInput.trim();
     const participantes = squads.filter((sq) => sq.agents.cs);
-    if (!texto || busy || participantes.length === 0) return;
+    if (!texto || "geral" in ocupadasRef.current || participantes.length === 0) return;
     setErro(null);
-    setBusy(true);
+    marcarOcupada("geral", "Os CSs estão respondendo");
     setChatInput("");
-    setFaseChat("Os CSs estão respondendo");
     const anexar = (msg: ChatMsg) => salvarChat({ ...chatRef.current, geral: [...(chatRef.current.geral ?? []), msg] });
     const historicoBase = chatRef.current.geral ?? [];
     anexar({ de: "gestor", texto, ts: new Date().toISOString() });
@@ -698,8 +710,7 @@ export default function OfficeSimulator() {
         registrar({ tipo: "ActionFailed", bu: sq.bu, ator: "cs", acao: `${nome} no canal Geral`, origem: "Mensagem do gestor no canal Geral", causa });
       }
     }));
-    setFaseChat(null);
-    setBusy(false);
+    liberarConversa("geral");
   };
 
   // ── Reunião dos CSs ───────────────────────────────────────────────────────────
@@ -1134,8 +1145,8 @@ export default function OfficeSimulator() {
                                   <span className="text-sm font-medium text-gray-900 truncate">{c.titulo}</span>
                                   {u && <span className="text-[10px] text-gray-400 shrink-0">{new Date(u.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</span>}
                                 </div>
-                                <div className="text-[11px] text-gray-500 truncate">
-                                  {u ? `${u.de === "gestor" ? "Você: " : u.autor ? `${u.autor.split(" · ")[0]}: ` : ""}${u.texto.replace(/\s+/g, " ")}` : c.sub}
+                                <div className={`text-[11px] truncate ${c.chave in ocupadas ? "text-emerald-600" : "text-gray-500"}`}>
+                                  {c.chave in ocupadas ? `${ocupadas[c.chave] || "digitando"}…` : u ? `${u.de === "gestor" ? "Você: " : u.autor ? `${u.autor.split(" · ")[0]}: ` : ""}${u.texto.replace(/\s+/g, " ")}` : c.sub}
                                 </div>
                               </div>
                             </button>
@@ -1212,11 +1223,11 @@ export default function OfficeSimulator() {
                       </div>
                     </div>
                   ))}
-                  {busy && (
+                  {atual.chave in ocupadas && (
                     <div className="flex justify-start">
                       <div className="rounded-xl px-3 py-1.5 text-sm bg-white text-gray-500 inline-flex items-center gap-2 shadow-sm">
                         <Loader2 size={13} className="animate-spin" />
-                        {faseChat ? `${faseChat}…` : live[chatRole] ? live[chatRole]!.slice(-120) : "digitando…"}
+                        {ocupadas[atual.chave] ? `${ocupadas[atual.chave]}…` : atual.tipo === "ind" && live[chatRole] ? live[chatRole]!.slice(-120) : "digitando…"}
                       </div>
                     </div>
                   )}
@@ -1229,11 +1240,11 @@ export default function OfficeSimulator() {
                     rows={2}
                     placeholder="Mensagem (Enter envia, Shift + Enter quebra a linha)"
                     className="flex-1 border border-gray-200 rounded-2xl px-3 py-2 text-sm resize-none"
-                    disabled={busy}
+                    disabled={atual.chave in ocupadas}
                   />
                   <button
                     onClick={enviar}
-                    disabled={busy || !chatInput.trim() || squads.length === 0}
+                    disabled={atual.chave in ocupadas || !chatInput.trim() || squads.length === 0}
                     aria-label="Enviar"
                     className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center disabled:opacity-40"
                   >
