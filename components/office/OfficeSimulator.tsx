@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
+import { contratoDoAgente, PRONTO_POR_KIND } from "@/lib/office-agent-contract";
 import { ACOES_POR_PAPEL, chavePolitica, instrucaoDoModo, MODOS, MODOS_INDISPONIVEIS, modoDe, type ModoAutonomia, type Politicas } from "@/lib/office-policy";
 import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
@@ -241,6 +242,8 @@ export default function OfficeSimulator() {
   const [filtroEvento, setFiltroEvento] = useState<string>("todos");
   const runsRef = useRef<RunRecord[]>([]);
   const eventosRef = useRef<EventoOffice[]>([]);
+  const cycleRef = useRef<Cycle | null>(null);
+  cycleRef.current = cycle;
 
   // Chave, execuções salvas e squads disponíveis
   useEffect(() => {
@@ -349,13 +352,25 @@ export default function OfficeSimulator() {
         setDesks((d) => ({ ...d, [role]: "error" }));
         throw new Error(motivo.replace("POLICY_BLOCKED: ", "Bloqueado pela política de autonomia: "));
       }
+      const ciclo = cycleRef.current;
+      const contrato = contratoDoAgente({
+        agente: agent.name.split(" · ")[0],
+        papel: PAPEIS.find((p) => p.role === role)?.label ?? role,
+        empresa: bu,
+        squad: bu,
+        missao: ciclo ? `Ciclo editorial: ${ciclo.demanda.slice(0, 200)}` : opts.scenarioId ? "Cenário de estresse (teste de regras)" : "Atender o pedido do gestor",
+        resultadoEsperado: acao,
+        definicaoDePronto: PRONTO_POR_KIND[kind],
+        modo,
+        estadoAtual: ciclo ? `ciclo ${ciclo.estado}, versão v${ciclo.versao}` : "sem ciclo editorial em andamento",
+      });
       registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem: `${origem} · modo: ${modo === "recomendar" ? "Recomendar" : "Preparar"}` });
       setDesks((d) => ({ ...d, [role]: "working" }));
       setLive((l) => ({ ...l, [role]: "" }));
       const t0 = performance.now();
       let rec: RunRecord;
       try {
-        const { text, usage } = await streamAgent(agent.id, instrucaoDoModo(modo) + task, apiKey ?? "", (full) =>
+        const { text, usage } = await streamAgent(agent.id, instrucaoDoModo(modo) + contrato + task, apiKey ?? "", (full) =>
           setLive((l) => ({ ...l, [role]: full }))
         );
         const ms = performance.now() - t0;
