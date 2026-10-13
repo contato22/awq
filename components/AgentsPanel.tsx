@@ -45,7 +45,7 @@ const AGENT_META: Record<string, { icon: React.ElementType; color: string; buCol
   "awq-master": { icon: Building2, color: "text-amber-700",  buColor: "bg-amber-50 border-amber-500/20" },
 };
 
-const BU_AGENTS = ["jacqes", "caza-vision", "awq-venture"];
+const BU_AGENTS = ["caza-vision", "awq-venture"];
 
 // ── Single agent card ──────────────────────────────────────────────────────────
 function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) => void }) {
