@@ -52,8 +52,14 @@ const LADO = 5;
 const ALT_PAREDE = 26;
 const ALT_VIDRO = 9;
 
+// Sala 0 (fundo da planta, "o topo") é a do Miguel e a 5 é a de reuniões; clientes ocupam as 1 a 4.
+const SLOTS_CLIENTES = [1, 2, 3, 4];
+
 export function layoutPredios(empresas: Empresa[]): PredioW[] {
-  return empresas.slice(0, 6).map((e, i) => ({ empresa: e, x: SLOTS[i].x, y: SLOTS[i].y, w: LADO, h: LADO, alt: ALT_PAREDE }));
+  return empresas.slice(0, SLOTS_CLIENTES.length).map((e, i) => {
+    const sl = SLOTS[SLOTS_CLIENTES[i]];
+    return { empresa: e, x: sl.x, y: sl.y, w: LADO, h: LADO, alt: ALT_PAREDE };
+  });
 }
 
 const iw = (gx: number, gy: number) => ({ x: WOX + (gx - gy) * 16, y: WOY + (gx + gy) * 8 });
@@ -375,29 +381,31 @@ function rotulo(c: CanvasRenderingContext2D, p: PredioW, op: OpcoesMundo) {
   }
 }
 
-/** Áreas da casa nas salas sem cliente: diretoria e lounge. */
-function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, tipo: "diretoria" | "lounge", op: OpcoesMundo, add: (d: number, f: () => void) => void) {
-  const nome = tipo === "diretoria" ? "DIRETORIA AWQ" : "LOUNGE";
+/** Áreas da casa: a sala do Miguel (topo da planta) e a sala de reuniões. */
+function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, tipo: "diretoria" | "reunioes", op: OpcoesMundo, add: (d: number, f: () => void) => void) {
+  const nome = tipo === "diretoria" ? "SALA DO MIGUEL" : "SALA DE REUNIÕES";
   add(s.x + s.y + 0.6, () => {
     const topo = iw(s.x + LADO / 2, s.y);
     c.font = "bold 5.5px sans-serif";
     const w = Math.ceil(c.measureText(nome).width) + 10;
     const x = Math.round(topo.x - w / 2), y = Math.round(topo.y - ALT_PAREDE - 18);
-    ret(c, x - 0.5, y - 0.5, w + 1, 10, OUT); ret(c, x, y, w, 9, "#334155");
+    ret(c, x - 0.5, y - 0.5, w + 1, 10, OUT); ret(c, x, y, w, 9, tipo === "diretoria" ? "#7c5a1a" : "#334155");
     ret(c, x + 2, y + 3, 3, 3, "#fbbf24");
     c.fillStyle = "#f8fafc"; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(nome, x + 6.5, y + 4.8);
   });
   if (tipo === "diretoria") {
-    for (let i = 0; i < 3; i++) add(s.x + 1 + i + s.y + 1, () => { const q = iw(s.x + 1 + i, s.y + 1); caixa(c, q.x, q.y, 11, "#5b3b22", "#3d2616", "#4b301c"); });
-    add(s.x + 2 + s.y + 0.4, () => cadeira(c, iw(s.x + 2.5, s.y + 0.5)));
+    for (let i = 0; i < 3; i++) add(s.x + 1 + i + s.y + 2, () => { const q = iw(s.x + 1 + i, s.y + 2); caixa(c, q.x, q.y, 11, "#5b3b22", "#3d2616", "#4b301c"); if (i === 1) monitor(c, q.x + 2, q.y - 2, "working", op.quadro, "cs"); });
+    add(s.x + 2 + s.y + 1.4, () => cadeira(c, iw(s.x + 2.5, s.y + 1.5)));
+    add(s.x + 2 + s.y + 1.45, () => { const q = iw(s.x + 2.5, s.y + 1.5); bonecoSentado(c, q.x, q.y, "cs", "working", op.quadro); });
     add(s.x + 3 + s.y + 3.5, () => { const q = iw(s.x + 3.5, s.y + 3.5); ret(c, q.x - 0.5, q.y - 22, 1, 22, "#94a3b8"); ret(c, q.x + 0.5, q.y - 22, 8, 5, "#fbbf24"); ret(c, q.x + 0.5, q.y - 19, 8, 1.5, "#2c4382"); });
+    add(s.x + 1 + s.y + 3.6, () => { const q = iw(s.x + 1.2, s.y + 3.6); caixa(c, q.x, q.y, 5, "#e0cba6", "#a89377", "#bfa987"); });
   } else {
-    for (let k = 0; k < 3; k++) add(s.x + 1 + k + s.y + 3, () => {
-      const q = iw(s.x + 1 + k, s.y + 3);
-      caixa(c, q.x, q.y, 6, "#d1624a", "#923d2b", "#ab4a35");
-      caixa(c, q.x, q.y - 6, 3, "#e0745c", "#a24732", "#bd523c");
-    });
-    add(s.x + 2 + s.y + 1.5, () => { const q = iw(s.x + 2, s.y + 1.5); caixa(c, q.x, q.y, 5, "#e0cba6", "#a89377", "#bfa987"); ret(c, q.x - 3, q.y - 8, 3, 3, "#f8fafc"); });
+    for (let i = 0; i < 3; i++) add(s.x + 1 + i + s.y + 2, () => { const q = iw(s.x + 1 + i, s.y + 2); caixa(c, q.x, q.y, 8, "#e5e7eb", "#9ca3af", "#cbd5e1"); });
+    for (const gx of [1.5, 2.5, 3.5]) {
+      add(s.x + gx + s.y + 1.4, () => cadeira(c, iw(s.x + gx, s.y + 1.5)));
+      add(s.x + gx + s.y + 3.6, () => cadeira(c, iw(s.x + gx, s.y + 3.5)));
+    }
+    add(s.x + 2 + s.y + 0.4, () => { const q = iw(s.x + 2.5, s.y + 0.6); ret(c, q.x - 9, q.y - 20, 18, 11, OUT); ret(c, q.x - 8, q.y - 19, 16, 9, "#0f172a"); ret(c, q.x - 6, q.y - 17, 5, 2, "#38bdf8"); ret(c, q.x - 6, q.y - 13, 10, 1.5, "#64748b"); });
   }
   add(s.x + LADO - 1 + s.y + 0.3, () => { const q = iw(s.x + LADO - 0.5, s.y + 0.5); planta(c, q.x, q.y, op.quadro); });
 }
@@ -435,8 +443,8 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
   }
   SLOTS.forEach((s, i) => {
     if (predios.some((p) => p.x === s.x && p.y === s.y)) return;
-    if (i === 4) areaDaCasa(c, s, "diretoria", op, add);
-    else if (i === 5) areaDaCasa(c, s, "lounge", op, add);
+    if (i === 0) areaDaCasa(c, s, "diretoria", op, add);
+    else if (i === 5) areaDaCasa(c, s, "reunioes", op, add);
   });
   for (const [gx, gy] of [[0, 6.5], [17, 6.5], [6, 12], [12, 0]] as const) add(gx + gy + 0.3, () => { const q = iw(gx + 0.5, gy + 0.5); planta(c, q.x, q.y, op.quadro + gx); });
   if (!op.reduzido) {
