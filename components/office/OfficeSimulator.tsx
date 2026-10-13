@@ -10,6 +10,10 @@ import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/offi
 import MiniMarkdown from "./MiniMarkdown";
 import { contratoDoAgente, PRONTO_POR_KIND } from "@/lib/office-agent-contract";
 import { ACOES_POR_PAPEL, chavePolitica, instrucaoDoModo, MODOS, MODOS_INDISPONIVEIS, modoDe, type ModoAutonomia, type Politicas } from "@/lib/office-policy";
+import {
+  aguardarAprovacao, aplicarResultado, concluirSeProvado, decisaoDoGestor, estadoJson, falhar, iniciarTentativa, limiteAtingido,
+  MAX_MISSOES, novaMissao, progresso, ROTULO_STATUS, resumoParaContrato, type Missao,
+} from "@/lib/office-missions";
 import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
 import type { Empresa } from "@/lib/office-world";
@@ -54,6 +58,7 @@ interface Cycle {
   versao: number;
   estado: Estado;
   etapa: number; // índice em ETAPAS
+  missaoId?: string;
   outputs: Outputs;
   decisoes: { decisao: "aprovado" | "ajustes" | "rejeitado"; em: string; versao: number; feedback?: string }[];
 }
@@ -96,6 +101,7 @@ const LS_RUNS = "office_runs_v1";
 const LS_CHAT = "office_chat_v1";
 const LS_EVENTOS = "office_events_v1";
 const LS_POLITICAS = "office_policies_v1";
+const LS_MISSOES = "office_missions_v1";
 
 const ORIGEM_POR_KIND: Record<EntregaKind, string> = {
   triagem: "Demanda do gestor no ciclo editorial",
@@ -239,6 +245,8 @@ export default function OfficeSimulator() {
   const router = useRouter();
   const [politicas, setPoliticas] = useState<Politicas>({});
   const politicasRef = useRef<Politicas>({});
+  const [missoes, setMissoes] = useState<Missao[]>([]);
+  const missoesRef = useRef<Missao[]>([]);
   const [filtroEvento, setFiltroEvento] = useState<string>("todos");
   const runsRef = useRef<RunRecord[]>([]);
   const eventosRef = useRef<EventoOffice[]>([]);
@@ -263,6 +271,11 @@ export default function OfficeSimulator() {
       setEventos(ev);
       eventosRef.current = ev;
     } catch { /* log corrompido: começa vazio */ }
+    try {
+      const ms = JSON.parse(localStorage.getItem(LS_MISSOES) ?? "[]") as Missao[];
+      setMissoes(ms);
+      missoesRef.current = ms;
+    } catch { /* missões corrompidas: começa vazio */ }
     try {
       const c = JSON.parse(localStorage.getItem(LS_CHAT) ?? "{}") as Record<string, ChatMsg[]>;
       setChat(c);
@@ -333,12 +346,23 @@ export default function OfficeSimulator() {
     try { localStorage.setItem(LS_EVENTOS, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
   }, []);
 
+  const gravarMissoes = useCallback((next: Missao[]) => {
+    missoesRef.current = next;
+    setMissoes(next);
+    try { localStorage.setItem(LS_MISSOES, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+  }, []);
+
+  const atualizarMissao = useCallback((id: string | undefined, fn: (m: Missao) => Missao) => {
+    if (!id) return;
+    gravarMissoes(missoesRef.current.map((m) => (m.id === id ? fn(m) : m)));
+  }, [gravarMissoes]);
+
   const rodar = useCallback(
     async (
       role: PapelAgente,
       kind: EntregaKind,
       task: string,
-      opts: { aprovado?: boolean; scenarioId?: string; origem?: string } = {}
+      opts: { aprovado?: boolean; scenarioId?: string; origem?: string; missaoId?: string } = {}
     ): Promise<RunRecord> => {
       const agent = squad?.agents[role];
       if (!agent) throw new Error("Squad indisponível.");
@@ -349,9 +373,20 @@ export default function OfficeSimulator() {
       if (modo === "bloqueado") {
         const motivo = `POLICY_BLOCKED: a política de autonomia bloqueia "${acao}" para este agente.`;
         registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(motivo) });
+        atualizarMissao(opts.missaoId, (m) => falhar(m, classificarErro(motivo)));
         setDesks((d) => ({ ...d, [role]: "error" }));
         throw new Error(motivo.replace("POLICY_BLOCKED: ", "Bloqueado pela política de autonomia: "));
       }
+      const missao = missoesRef.current.find((m) => m.id === opts.missaoId);
+      const limite = missao ? limiteAtingido(missao) : null;
+      if (limite) {
+        const motivo = `BUDGET_EXHAUSTED: ${limite}`;
+        registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(motivo) });
+        atualizarMissao(opts.missaoId, (m) => falhar(m, classificarErro(motivo), limite));
+        setDesks((d) => ({ ...d, [role]: "error" }));
+        throw new Error(`A missão parou: ${limite}.`);
+      }
+      atualizarMissao(opts.missaoId, (m) => iniciarTentativa(m, acao));
       const ciclo = cycleRef.current;
       const contrato = contratoDoAgente({
         agente: agent.name.split(" · ")[0],
@@ -362,7 +397,7 @@ export default function OfficeSimulator() {
         resultadoEsperado: acao,
         definicaoDePronto: PRONTO_POR_KIND[kind],
         modo,
-        estadoAtual: ciclo ? `ciclo ${ciclo.estado}, versão v${ciclo.versao}` : "sem ciclo editorial em andamento",
+        estadoAtual: ciclo ? `ciclo ${ciclo.estado}, versão v${ciclo.versao}${missao ? `; ${resumoParaContrato(missao)}` : ""}` : "sem ciclo editorial em andamento",
       });
       registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem: `${origem} · modo: ${modo === "recomendar" ? "Recomendar" : "Preparar"}` });
       setDesks((d) => ({ ...d, [role]: "working" }));
@@ -383,9 +418,12 @@ export default function OfficeSimulator() {
         };
         setDesks((d) => ({ ...d, [role]: "done" }));
         registrar({ tipo: "ActionCompleted", bu, ator: role, acao, origem, ms, tokens: usage });
+        atualizarMissao(opts.missaoId, (m) => aplicarResultado(m, { kind, acao, origem, modo, analise: rec.analise, usage }));
       } catch (e) {
         setDesks((d) => ({ ...d, [role]: "error" }));
-        registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(e instanceof Error ? e.message : String(e)) });
+        const causaErro = classificarErro(e instanceof Error ? e.message : String(e));
+        registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: causaErro });
+        atualizarMissao(opts.missaoId, (m) => falhar(m, causaErro));
         if (e instanceof Error && /invalid x-api-key|authentication_error/.test(e.message)) {
           localStorage.removeItem(LS_KEY);
           setApiKey(null);
@@ -404,7 +442,7 @@ export default function OfficeSimulator() {
       salvarRuns([...runsRef.current, rec]);
       return rec;
     },
-    [squad, apiKey, bu, salvarRuns, registrar]
+    [squad, apiKey, bu, salvarRuns, registrar, atualizarMissao]
   );
 
   // ── Ciclo editorial ───────────────────────────────────────────────────────────
@@ -416,26 +454,30 @@ export default function OfficeSimulator() {
     if (!demanda.trim() || busy) return;
     setErro(null);
     setBusy(true);
+    const missao = novaMissao(bu, demanda.trim());
+    gravarMissoes([...missoesRef.current, missao].slice(-MAX_MISSOES));
+    const mid = missao.id;
     const base: Cycle = {
       id: `ciclo-${Date.now()}`, demanda: demanda.trim(), versao: 1, estado: "RASCUNHO",
-      etapa: 0, outputs: {}, decisoes: [],
+      etapa: 0, outputs: {}, decisoes: [], missaoId: mid,
     };
     setCycle(base);
     try {
       const triagem = await rodar("cs", "triagem",
-        `TAREFA: TRIAGEM DA DEMANDA\nO gestor enviou a demanda abaixo. Registre a solicitação original, classifique a prioridade (P0 a P4), diga se está no escopo, liste as lacunas de informação e escreva o pedido de briefing para o agente de Referências e Inteligência. Seja objetivo.\n\nDEMANDA DO GESTOR:\n${base.demanda}`);
+        `TAREFA: TRIAGEM DA DEMANDA\nO gestor enviou a demanda abaixo. Registre a solicitação original, classifique a prioridade (P0 a P4), diga se está no escopo, liste as lacunas de informação e escreva o pedido de briefing para o agente de Referências e Inteligência. Seja objetivo.\n\nDEMANDA DO GESTOR:\n${base.demanda}`, { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "EM PRODUÇÃO", etapa: 1, outputs: { ...c.outputs, triagem: triagem.output } });
 
       const briefing = await rodar("ref", "briefing",
-        `TAREFA: BRIEFING\nProduza o briefing no formato obrigatório para a demanda abaixo. Se não puder consultar fontes, diga isso e não cite links.\n\nDEMANDA DO GESTOR:\n${base.demanda}\n\nTRIAGEM DO HEADCOUNT/CS:\n${trecho(triagem.output)}`);
+        `TAREFA: BRIEFING\nProduza o briefing no formato obrigatório para a demanda abaixo. Se não puder consultar fontes, diga isso e não cite links.\n\nDEMANDA DO GESTOR:\n${base.demanda}\n\nTRIAGEM DO HEADCOUNT/CS:\n${trecho(triagem.output)}`, { missaoId: mid });
       setCycle((c) => c && { ...c, etapa: 2, outputs: { ...c.outputs, briefing: briefing.output } });
 
       const peca = await rodar("criativo", "peca",
-        `TAREFA: PRODUZIR PEÇA (versão 1)\nProduza a peça completa no formato obrigatório de entrega, com status EM REVISÃO INTERNA.\n\nDEMANDA DO GESTOR:\n${base.demanda}\n\nBRIEFING:\n${trecho(briefing.output)}`);
+        `TAREFA: PRODUZIR PEÇA (versão 1)\nProduza a peça completa no formato obrigatório de entrega, com status EM REVISÃO INTERNA.\n\nDEMANDA DO GESTOR:\n${base.demanda}\n\nBRIEFING:\n${trecho(briefing.output)}`, { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "EM REVISÃO INTERNA", etapa: 3, outputs: { ...c.outputs, peca: peca.output } });
 
-      const pacote = await rodar("cs", "aprovacao", pacoteTask(base, briefing.output, peca.output, 1));
+      const pacote = await rodar("cs", "aprovacao", pacoteTask(base, briefing.output, peca.output, 1), { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "AGUARDANDO APROVAÇÃO", etapa: 4, outputs: { ...c.outputs, pacote: pacote.output } });
+      atualizarMissao(mid, aguardarAprovacao);
       registrar({ tipo: "ApprovalRequested", bu, ator: "cs", acao: "Pacote de aprovação pronto", origem: "Nada é publicado sem a decisão do gestor" });
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha no ciclo.");
@@ -453,6 +495,8 @@ export default function OfficeSimulator() {
     setErro(null);
     setBusy(true);
     const registro = { decisao, em: new Date().toISOString(), versao: cycle.versao, feedback: feedback.trim() || undefined };
+    const mid = cycle.missaoId;
+    atualizarMissao(mid, (m) => decisaoDoGestor(m, decisao, cycle.versao, registro.feedback));
     registrar({ tipo: "ApprovalDecided", bu, ator: "gestor", acao: `Decisão: ${decisao} (v${cycle.versao})`, origem: feedback.trim() ? `Feedback do gestor: ${feedback.trim().slice(0, 140)}` : "Decisão do gestor sobre o pacote de aprovação" });
     try {
       if (decisao === "rejeitado") {
@@ -465,8 +509,9 @@ export default function OfficeSimulator() {
         setCycle(aprovado);
         const exec = await rodar("midia", "execucao",
           `TAREFA: PREPARAR EXECUÇÃO DE ITEM APROVADO\nAPROVAÇÃO REGISTRADA: o gestor respondeu "Aprovado" em ${registro.em} para a versão v${cycle.versao}. Esta aprovação vale somente para essa versão.\nNeste ambiente você não executa ações externas: faça os checklists e o relatório de execução com Ação = "preparado, não executado".\n\nPACOTE DE APROVAÇÃO:\n${trecho(cycle.outputs.pacote)}\n\nPEÇA APROVADA (v${cycle.versao}):\n${trecho(cycle.outputs.peca)}`,
-          { aprovado: true });
+          { aprovado: true, missaoId: mid });
         setCycle((c) => c && { ...c, etapa: 6, outputs: { ...c.outputs, execucao: exec.output } });
+        atualizarMissao(mid, concluirSeProvado);
         setFeedback("");
         return;
       }
@@ -475,10 +520,11 @@ export default function OfficeSimulator() {
       const novaVersao = cycle.versao + 1;
       setCycle({ ...cycle, estado: "AJUSTES SOLICITADOS", etapa: 2, versao: novaVersao, decisoes: [...cycle.decisoes, registro] });
       const peca = await rodar("criativo", "peca",
-        `TAREFA: APLICAR AJUSTES (versão ${novaVersao})\nO gestor solicitou alterações. Aplique o feedback, preserve a versão anterior, registre o que mudou e devolva no formato obrigatório com status EM REVISÃO INTERNA. Se houver instruções conflitantes, sinalize.\n\nFEEDBACK DO GESTOR:\n${registro.feedback}\n\nBRIEFING:\n${trecho(cycle.outputs.briefing)}\n\nVERSÃO ANTERIOR (v${cycle.versao}):\n${trecho(cycle.outputs.peca)}`);
+        `TAREFA: APLICAR AJUSTES (versão ${novaVersao})\nO gestor solicitou alterações. Aplique o feedback, preserve a versão anterior, registre o que mudou e devolva no formato obrigatório com status EM REVISÃO INTERNA. Se houver instruções conflitantes, sinalize.\n\nFEEDBACK DO GESTOR:\n${registro.feedback}\n\nBRIEFING:\n${trecho(cycle.outputs.briefing)}\n\nVERSÃO ANTERIOR (v${cycle.versao}):\n${trecho(cycle.outputs.peca)}`, { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "EM REVISÃO INTERNA", etapa: 3, outputs: { ...c.outputs, peca: peca.output } });
-      const pacote = await rodar("cs", "aprovacao", pacoteTask(cycle, cycle.outputs.briefing ?? "", peca.output, novaVersao));
+      const pacote = await rodar("cs", "aprovacao", pacoteTask(cycle, cycle.outputs.briefing ?? "", peca.output, novaVersao), { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "AGUARDANDO APROVAÇÃO", etapa: 4, outputs: { ...c.outputs, pacote: pacote.output } });
+      atualizarMissao(mid, aguardarAprovacao);
       registrar({ tipo: "ApprovalRequested", bu, ator: "cs", acao: "Pacote de aprovação pronto", origem: "Nada é publicado sem a decisão do gestor" });
       setFeedback("");
     } catch (e) {
@@ -924,7 +970,7 @@ export default function OfficeSimulator() {
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
         <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
-          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["eventos", "Eventos"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["eventos", "Eventos"], ["missoes", "Missões"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
@@ -1247,6 +1293,68 @@ export default function OfficeSimulator() {
               </div>
             </div>
           )}
+
+          {tab === "missoes" && (() => {
+            const lista = missoes.filter((m) => m.bu === bu).slice().reverse();
+            const cor: Record<string, string> = {
+              working: "bg-blue-100 text-blue-800", approval_required: "bg-amber-100 text-amber-800", complete: "bg-green-100 text-green-800",
+              blocked: "bg-red-100 text-red-800", failed: "bg-red-100 text-red-800", budget_exhausted: "bg-red-100 text-red-800", waiting: "bg-gray-100 text-gray-700",
+            };
+            return (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">
+                  Cada ciclo editorial é uma missão com estado guardado neste navegador, critérios de pronto verificados pelo sistema (formato e alertas, não opinião da IA) e limites de tentativas e de tokens. Só fica &quot;Concluída&quot; quando todos os critérios estão comprovados.
+                </p>
+                {lista.length === 0 && <div className="text-xs text-gray-400">Nenhuma missão nesta sala ainda. Inicie um ciclo na aba Ciclo.</div>}
+                {lista.map((m) => (
+                  <div key={m.id} className="rounded-xl border border-gray-200 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-xs font-semibold text-gray-800">{m.demanda.slice(0, 140)}</div>
+                      <span className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 ${cor[m.status]}`}>{ROTULO_STATUS[m.status]}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden"><div className="h-full bg-brand-600" style={{ width: `${progresso(m)}%` }} /></div>
+                    <ul className="space-y-0.5">
+                      {m.criterios.map((c) => (
+                        <li key={c.id} className="text-[11px] text-gray-700">
+                          <span className={c.ok ? "text-green-600" : "text-gray-400"}>{c.ok ? "✓" : "○"}</span> {c.texto}
+                          {c.evidencia && <span className="text-gray-400"> · {c.evidencia}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-600">
+                      <div>Agora: {m.acaoAtual ?? "nada em execução"}</div>
+                      <div>Próximo: {m.proximaAcao}</div>
+                      <div>Tentativas: {m.tentativas}/{m.maxTentativas}</div>
+                      <div>Tokens (entrada / saída): {m.tokens.input.toLocaleString("pt-BR")} / {m.tokens.output.toLocaleString("pt-BR")} (limite de saída {m.maxTokensSaida.toLocaleString("pt-BR")})</div>
+                    </div>
+                    {m.bloqueio && <div className="text-[11px] rounded-lg bg-amber-50 border border-amber-200 text-amber-900 p-2">Aguardando / como destravar: {m.bloqueio}</div>}
+                    {m.autorizacoes.length > 0 && <div className="text-[11px] text-gray-600">Quem autorizou: {m.autorizacoes.join(" · ")}</div>}
+                    <details className="text-[11px]">
+                      <summary className="cursor-pointer text-brand-600">Registro de decisões ({m.decisoes.length})</summary>
+                      <div className="mt-1 space-y-1.5">
+                        {m.decisoes.slice().reverse().slice(0, 8).map((d, i) => (
+                          <div key={i} className="rounded-lg bg-gray-50 p-2 space-y-0.5 text-gray-700">
+                            <div className="font-semibold">{d.acao} <span className="font-normal text-gray-400">· {new Date(d.ts).toLocaleTimeString("pt-BR")}</span></div>
+                            <div>Objetivo: {d.objetivo}</div>
+                            <div>Alternativa descartada: {d.alternativas}</div>
+                            <div>Restrições: {d.restricoes}</div>
+                            <div>Evidência: {d.evidencias}</div>
+                            <div>Política: {d.politica} · Custo: {d.custo}</div>
+                            <div>Resultado: {d.resultado} · Próximo: {d.proximo}</div>
+                            <div className="text-gray-400">Confiança: não calibrada</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                    <details className="text-[11px]">
+                      <summary className="cursor-pointer text-brand-600">Estado (JSON)</summary>
+                      <pre className="mt-1 rounded-lg bg-gray-900 text-gray-100 p-2 overflow-x-auto text-[10px]">{JSON.stringify(estadoJson(m), null, 2)}</pre>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {tab === "eventos" && (() => {
             const lista = eventos.filter((e) => filtroEvento === "todos" || e.ator === filtroEvento).slice().reverse().slice(0, 80);

@@ -10,7 +10,7 @@ export type TipoEvento =
   | "MeetingStarted" | "MeetingReply";
 
 export interface Causa {
-  codigo: "NO_CREDITS" | "POLICY_BLOCKED" | "MISSING_API_KEY" | "INVALID_API_KEY" | "UPSTREAM_ERROR" | "NETWORK" | "UNKNOWN";
+  codigo: "NO_CREDITS" | "POLICY_BLOCKED" | "BUDGET_EXHAUSTED" | "MISSING_API_KEY" | "INVALID_API_KEY" | "UPSTREAM_ERROR" | "NETWORK" | "UNKNOWN";
   mensagem: string;
   recuperavel: boolean;
   proxima: string;
@@ -45,6 +45,9 @@ export function classificarErro(msg: string): Causa {
   }
   if (msg.startsWith("POLICY_BLOCKED")) {
     return { codigo: "POLICY_BLOCKED", mensagem: msg.replace("POLICY_BLOCKED: ", ""), recuperavel: true, proxima: "Mudar o modo desta ação na aba Eventos (Políticas de autonomia) e repetir." };
+  }
+  if (msg.startsWith("BUDGET_EXHAUSTED")) {
+    return { codigo: "BUDGET_EXHAUSTED", mensagem: msg.replace("BUDGET_EXHAUSTED: ", "Missão parada: "), recuperavel: false, proxima: "Só o gestor pode ampliar o limite: iniciar uma nova missão." };
   }
   if (/invalid x-api-key|authentication_error/.test(msg)) {
     return { codigo: "INVALID_API_KEY", mensagem: "A Anthropic recusou a chave usada.", recuperavel: true, proxima: "Colar uma chave válida no campo da chave e repetir." };

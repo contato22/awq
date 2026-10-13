@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowLeft, Search, BarChart3, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
+  ArrowLeft, Search, BarChart3, Target, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
   Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
@@ -27,7 +27,7 @@ export interface ItemBusca {
   sala?: "reunioes" | "diretoria";
 }
 
-export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "relatorio" | "analise" | "cenarios" | "registros";
+export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "missoes" | "relatorio" | "analise" | "cenarios" | "registros";
 
 export interface MetricaAgente {
   execs: number;
@@ -82,6 +82,7 @@ const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "conversa", rotulo: "Mensagens", Icone: MessageSquare },
   { tab: "reuniao", rotulo: "Reunião dos CSs", Icone: Users },
   { tab: "eventos", rotulo: "Eventos e por quês", Icone: ListChecks },
+  { tab: "missoes", rotulo: "Missões", Icone: Target },
   { tab: "relatorio", rotulo: "Relatório da manhã", Icone: FileText },
   { tab: "analise", rotulo: "Análise", Icone: BarChart3 },
   { tab: "cenarios", rotulo: "Cenários de estresse", Icone: ShieldCheck },
