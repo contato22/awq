@@ -2,20 +2,30 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  BarChart3, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
+  Search, BarChart3, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
   Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
   atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, isoC, moverGestor, passo, TEMAS, tileDoPonto, W,
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
-import { casaNoPonto, centroDaReuniao, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa, type EstadoReuniao } from "@/lib/office-world";
+import { casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa, type EstadoReuniao } from "@/lib/office-world";
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de
  * cada prédio a sala da squad. A simulação ocupa a tela; menus e painéis são camadas.
  * Zoom, arrastar, minimapa, controle de tempo e transições entre os níveis.
  */
+
+export interface ItemBusca {
+  id: string;
+  tipo: "empresa" | "agente" | "sala";
+  rotulo: string;
+  sub: string;
+  bu?: string;
+  role?: Agente;
+  sala?: "reunioes" | "diretoria";
+}
 
 export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "relatorio" | "analise" | "cenarios" | "registros";
 
@@ -44,6 +54,8 @@ interface Props {
   descricao: string;
   tab: PainelTab;
   painelAberto: boolean;
+  /** Itens encontráveis na busca global. */
+  busca?: ItemBusca[];
   /** CSs sentados na sala de reuniões. */
   reuniao?: EstadoReuniao[];
   onPainel: (aberto: boolean, tab?: PainelTab) => void;
@@ -112,7 +124,7 @@ function corBarra(v: number): string {
 export default function OfficeGame(props: Props) {
   const {
     empresas, buAtual, onEscolherEmpresa, estados, aguardandoGestor, selecionado, onSelecionar, metricas, atividade, tema,
-    nomeCS, descricao, tab, painelAberto, reuniao, onPainel, temRelatorio, pendencias, children,
+    nomeCS, descricao, tab, painelAberto, reuniao, busca, onPainel, temRelatorio, pendencias, children,
   } = props;
 
   const contRef = useRef<HTMLDivElement>(null);
@@ -211,6 +223,34 @@ export default function OfficeGame(props: Props) {
     else animar(camMundo.current, { cx: WW / 2, cy: WH / 2, z: 1 }, 380);
     setSeguir(false);
   }, [animar]);
+
+  // ── busca global ────────────────────────────────────────────────────────────
+  const [termo, setTermo] = useState("");
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const buscaRef = useRef<HTMLInputElement>(null);
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const resultados = (busca ?? []).filter((i) => !termo.trim() || norm(`${i.rotulo} ${i.sub}`).includes(norm(termo.trim()))).slice(0, 8);
+
+  const irParaItem = (i: ItemBusca) => {
+    setTermo("");
+    setBuscaAberta(false);
+    const noMundo = (fn: () => void) => {
+      if (vistaRef.current === "sala") { sair(); setTimeout(fn, 1400); } else fn();
+    };
+    if (i.tipo === "sala" && i.sala === "reunioes") { onPainel(true, "reuniao"); return; }
+    if (i.tipo === "sala" && i.sala === "diretoria") {
+      noMundo(() => { const c = centroDaDiretoria(); setSeguir(false); animar(camMundo.current, { cx: c.x + 20, cy: c.y - 8, z: 2.2 }, 650); });
+      return;
+    }
+    if (i.bu) {
+      const bu = i.bu;
+      noMundo(() => {
+        if (bu === dados.current.buAtual && vistaRef.current === "sala") return;
+        entrar(bu);
+        if (i.role) setTimeout(() => dados.current.onSelecionar(i.role as Agente), 1300);
+      });
+    }
+  };
 
   const naReuniao = painelAberto && tab === "reuniao";
   useEffect(() => {
@@ -473,6 +513,12 @@ export default function OfficeGame(props: Props) {
   };
 
   const aoTeclar = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      setBuscaAberta(true);
+      buscaRef.current?.focus();
+      return;
+    }
     const alvo = e.target as HTMLElement;
     // digitando em campo de texto: atalhos do jogo (espaço, +, -) não podem engolir as teclas
     if (alvo.closest("input, textarea, select, [contenteditable='true']")) {
@@ -531,6 +577,36 @@ export default function OfficeGame(props: Props) {
             </>
           )}
         </nav>
+        {busca && busca.length > 0 && (
+          <div className="pointer-events-auto relative">
+            <div className="flex items-center gap-1.5 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5">
+              <Search size={13} className="text-white/60" />
+              <input
+                ref={buscaRef}
+                value={termo}
+                onChange={(e) => { setTermo(e.target.value); setBuscaAberta(true); }}
+                onFocus={() => setBuscaAberta(true)}
+                onBlur={() => setTimeout(() => setBuscaAberta(false), 150)}
+                onKeyDown={(e) => { if (e.key === "Enter" && resultados[0]) { e.preventDefault(); irParaItem(resultados[0]); } }}
+                placeholder="Buscar empresa, agente ou sala (Ctrl/Cmd + K)"
+                aria-label="Busca global"
+                className="bg-transparent outline-none placeholder:text-white/40 w-56 sm:w-72"
+              />
+            </div>
+            {buscaAberta && resultados.length > 0 && (
+              <ul className="absolute left-0 top-full mt-1 w-72 rounded-lg bg-gray-900/95 text-white text-xs shadow-xl border border-white/10 overflow-hidden z-10">
+                {resultados.map((i) => (
+                  <li key={i.id}>
+                    <button onMouseDown={(e) => e.preventDefault()} onClick={() => irParaItem(i)} className="w-full text-left px-3 py-2 hover:bg-white/10 flex flex-col">
+                      <span className="font-medium">{i.rotulo}</span>
+                      <span className="text-[10px] text-white/50">{i.tipo === "empresa" ? "Empresa" : i.tipo === "sala" ? "Sala" : "Agente"} · {i.sub}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-2 pointer-events-auto">
           {pendencias > 0 && (
             <button onClick={() => alternarPainel("ciclo")} className="rounded-lg bg-amber-400 text-amber-950 text-xs font-semibold px-2.5 py-1.5">

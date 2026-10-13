@@ -101,6 +101,13 @@ export function centroDaReuniao(): { x: number; y: number } {
   return { x: c.x, y: c.y - 6 };
 }
 
+/** Centro da sala do Miguel (para a câmera). */
+export function centroDaDiretoria(): { x: number; y: number } {
+  const sl = SLOTS[0];
+  const c = iw(sl.x + LADO / 2, sl.y + LADO / 2);
+  return { x: c.x, y: c.y - 6 };
+}
+
 // cadeiras da sala de reuniões (relativas à sala): fundo, frente e a cabeceira do gestor
 const ASSENTOS: [number, number][] = [[1.5, 1.5], [2.5, 1.5], [3.5, 1.5], [1.5, 3.5], [2.5, 3.5], [3.5, 3.5]];
 const CABECEIRA: [number, number] = [4.5, 2.5];
