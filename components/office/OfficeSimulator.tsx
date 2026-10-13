@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
+import PixelOffice from "./PixelOffice";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
@@ -522,9 +523,6 @@ export default function OfficeSimulator() {
     );
   }
 
-  const etapaAtiva = cycle ? cycle.etapa : -1;
-  const fluxo = busy && cycle && !cenarioAtual ? ETAPAS[Math.min(etapaAtiva, ETAPAS.length - 1)] : null;
-
   return (
     <div className="space-y-6">
       {/* Barra superior */}
@@ -593,20 +591,22 @@ export default function OfficeSimulator() {
         })}
       </div>
 
-      {/* Planta do escritório */}
-      <div className="card p-6 bg-gray-50/60">
-        <div className="flex flex-col items-center gap-3">
-          <Mesa titulo="Gestor" sub="única autoridade de aprovação" icon={User}
-            cor="text-gray-700 bg-white border-gray-300"
-            status={cycle?.estado === "AGUARDANDO APROVAÇÃO" ? "waiting" : "idle"} />
-          <Conector ativo={fluxo?.role === "cs" || cycle?.estado === "AGUARDANDO APROVAÇÃO"} />
-          <MesaAgente papel={PAPEIS[0]} status={desks.cs} texto={live.cs} runs={runsDaSquad} />
-          <Conector largo ativo={!!fluxo && fluxo.role !== "cs" && fluxo.role !== null} />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            {PAPEIS.slice(1).map((p) => (
-              <MesaAgente key={p.role} papel={p} status={desks[p.role]} texto={live[p.role]} runs={runsDaSquad} />
-            ))}
-          </div>
+      {/* Escritório em pixel art */}
+      <div className="card p-4 space-y-4 bg-gray-50/60">
+        <PixelOffice
+          status={desks}
+          aguardandoGestor={cycle?.estado === "AGUARDANDO APROVAÇÃO"}
+          selecionado={chatRole}
+          onSelecionar={(r) => { setChatRole(r); setTab("conversa"); }}
+          descricao={`Escritório da squad ${bu}. ${PAPEIS.map((p) => `${p.label}: ${desks[p.role]}`).join(". ")}.`}
+        />
+        <p className="text-[11px] text-gray-400 text-center">
+          Clique em uma mesa para conversar com o agente. O envelope mostra a demanda indo do gestor ao CS e do CS ao agente que está trabalhando.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {PAPEIS.map((p) => (
+            <MesaAgente key={p.role} papel={p} status={desks[p.role]} texto={live[p.role]} runs={runsDaSquad} />
+          ))}
         </div>
       </div>
 
@@ -988,26 +988,6 @@ function Selo({ v }: { v: Veredito }) {
     revisar: "bg-amber-100 text-amber-700",
   }[v];
   return <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded ${m}`}>{v}</span>;
-}
-
-function Conector({ ativo, largo }: { ativo?: boolean; largo?: boolean }) {
-  return (
-    <div className={`h-6 border-l-2 ${largo ? "" : ""} ${ativo ? "border-brand-500 animate-pulse" : "border-gray-200"}`} />
-  );
-}
-
-function Mesa({
-  titulo, sub, icon: Icon, cor, status,
-}: { titulo: string; sub: string; icon: React.ElementType; cor: string; status: "idle" | "waiting" }) {
-  return (
-    <div className={`w-full max-w-xs rounded-xl border p-3 flex items-center gap-3 bg-white ${status === "waiting" ? "ring-2 ring-amber-400" : ""}`}>
-      <div className={`w-9 h-9 rounded-lg border flex items-center justify-center ${cor}`}><Icon size={16} /></div>
-      <div>
-        <div className="text-sm font-semibold text-gray-800">{titulo}</div>
-        <div className="text-[11px] text-gray-400">{status === "waiting" ? "decisão pendente" : sub}</div>
-      </div>
-    </div>
-  );
 }
 
 function MesaAgente({
