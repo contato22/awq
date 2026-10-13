@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BarChart3, ChevronRight, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
-  Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, X, ZoomIn, ZoomOut,
+  Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
   atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, isoC, moverGestor, passo, TEMAS, tileDoPonto, W,
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
-import { centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa } from "@/lib/office-world";
+import { casaNoPonto, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa } from "@/lib/office-world";
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de
@@ -17,7 +17,7 @@ import { centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, ty
  * Zoom, arrastar, minimapa, controle de tempo e transições entre os níveis.
  */
 
-export type PainelTab = "ciclo" | "conversa" | "relatorio" | "analise" | "cenarios" | "registros";
+export type PainelTab = "ciclo" | "conversa" | "reuniao" | "relatorio" | "analise" | "cenarios" | "registros";
 
 export interface MetricaAgente {
   execs: number;
@@ -64,6 +64,7 @@ const ESTADO_TXT: Record<Estado, string> = { idle: "Ocioso", working: "Trabalhan
 const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "ciclo", rotulo: "Ciclo editorial", Icone: ClipboardList },
   { tab: "conversa", rotulo: "Conversar", Icone: MessageSquare },
+  { tab: "reuniao", rotulo: "Reunião dos CSs", Icone: Users },
   { tab: "relatorio", rotulo: "Relatório da manhã", Icone: FileText },
   { tab: "analise", rotulo: "Análise", Icone: BarChart3 },
   { tab: "cenarios", rotulo: "Cenários de estresse", Icone: ShieldCheck },
@@ -407,7 +408,7 @@ export default function OfficeGame(props: Props) {
     if (vistaRef.current === "mundo") {
       const p = predioNoPonto(layoutPredios(dados.current.empresas), lx, ly);
       hoverPredio.current = p?.empresa.bu ?? null;
-      setCursor(p ? "pointer" : "grab");
+      setCursor(p || casaNoPonto(lx, ly) === "reunioes" ? "pointer" : "grab");
     } else {
       const m = mundoRef.current;
       if (!m) return;
@@ -427,6 +428,7 @@ export default function OfficeGame(props: Props) {
     if (vistaRef.current === "mundo") {
       const p = predioNoPonto(layoutPredios(dados.current.empresas), lx, ly);
       if (p) entrar(p.empresa.bu);
+      else if (casaNoPonto(lx, ly) === "reunioes") dados.current.onPainel(true, "reuniao");
       return;
     }
     const m = mundoRef.current;

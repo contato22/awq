@@ -94,6 +94,19 @@ export function predioNoPonto(predios: PredioW[], x: number, y: number): PredioW
   return melhor;
 }
 
+/** Sala da casa (sala do Miguel ou de reuniões) sob o ponto, se houver. */
+export function casaNoPonto(x: number, y: number): "diretoria" | "reunioes" | null {
+  for (const [i, tipo] of [[0, "diretoria"], [5, "reunioes"]] as const) {
+    const sl = SLOTS[i];
+    const t = iw(sl.x, sl.y), r = iw(sl.x + LADO, sl.y), b = iw(sl.x + LADO, sl.y + LADO), l = iw(sl.x, sl.y + LADO);
+    const poly = [
+      { x: t.x, y: t.y - ALT_PAREDE }, { x: r.x, y: r.y - ALT_PAREDE }, { x: r.x, y: r.y }, { x: b.x, y: b.y }, { x: l.x, y: l.y }, { x: l.x, y: l.y - ALT_PAREDE },
+    ];
+    if (noPoligono(x, y, poly)) return tipo;
+  }
+  return null;
+}
+
 // ── Cenário fixo (em cache) ────────────────────────────────────────────────────
 
 const AWQ = { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#d8cdb6", "#cfc3a9"] as [string, string] };
