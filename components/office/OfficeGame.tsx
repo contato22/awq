@@ -156,6 +156,8 @@ export default function OfficeGame(props: Props) {
   const hoverPredio = useRef<string | null>(null);
   const animacao = useRef<{ cam: Cam; de: Cam; para: Cam; t0: number; dur: number; fim?: () => void } | null>(null);
   const fade = useRef(0);
+  // instante (tSim) em que a reunião atual começou a ser mostrada; anima a chegada escalonada dos CSs
+  const reuniaoDesde = useRef<number | null>(null);
   // andar visível no mundo e atalho para as squads dele
   const [andar, setAndar] = useState<AndarId>("jacqes");
   const andarRef = useRef<AndarId>("jacqes");
@@ -385,8 +387,11 @@ export default function OfficeGame(props: Props) {
         }
         off = offSala.current!; Wv = W; Hv = H; cam = camSala.current;
       } else {
+        const reuniaoAtiva = andarRef.current === "jacqes" && d.reuniao && d.reuniao.length > 0 ? d.reuniao : undefined;
+        if (reuniaoAtiva && reuniaoDesde.current === null) reuniaoDesde.current = tSim;
+        else if (!reuniaoAtiva) reuniaoDesde.current = null;
         desenharMundo(gMundo, layoutPredios(d.empresas.filter((e) => andarDaEmpresa(e) === andarRef.current)), {
-          andar: andarRef.current, reuniao: andarRef.current === "jacqes" ? d.reuniao : undefined, hora: horaRef.current, hover: hoverPredio.current, selecionado: d.buAtual, quadro, t: tSim, reduzido: reduzidoRef.current,
+          andar: andarRef.current, reuniao: reuniaoAtiva, reuniaoDesde: reuniaoDesde.current, hora: horaRef.current, hover: hoverPredio.current, selecionado: d.buAtual, quadro, t: tSim, reduzido: reduzidoRef.current,
         });
         off = offMundo.current!; Wv = WW; Hv = WH; cam = camMundo.current;
       }
