@@ -9,6 +9,7 @@ import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/offi
 import MiniMarkdown from "./MiniMarkdown";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
 import type { Empresa } from "@/lib/office-world";
+import type { Atividade } from "@/lib/office-iso";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
@@ -53,11 +54,28 @@ interface Cycle {
   decisoes: { decisao: "aprovado" | "ajustes" | "rejeitado"; em: string; versao: number; feedback?: string }[];
 }
 
+interface Delegacao {
+  agente: PapelAgente;
+  tarefa: string;
+  resposta: string;
+  ms: number;
+}
+
 interface ChatMsg {
   de: "gestor" | "agente";
   texto: string;
   ts: string;
+  /** Plano do CS antes de delegar e o que cada agente entregou. */
+  plano?: string;
+  delegacoes?: Delegacao[];
 }
+
+const ROTULO_AGENTE: Record<"ref" | "criativo" | "midia", string> = {
+  ref: "Referências e Inteligência",
+  criativo: "Criativo e Editor",
+  midia: "Mídia e Publicação",
+};
+const BLOCO_DELEGAR = /<<DELEGAR agente=(ref|criativo|midia)>>([\s\S]*?)<<FIM>>/g;
 
 interface ReportMeta {
   slug: string;
@@ -192,6 +210,7 @@ export default function OfficeSimulator() {
   const [chat, setChat] = useState<Record<string, ChatMsg[]>>({});
   const [chatRole, setChatRole] = useState<PapelAgente>("cs");
   const [chatInput, setChatInput] = useState("");
+  const [faseChat, setFaseChat] = useState<string | null>(null);
   const runsRef = useRef<RunRecord[]>([]);
 
   // Chave, execuções salvas e squads disponíveis
@@ -381,6 +400,9 @@ export default function OfficeSimulator() {
     try { localStorage.setItem(LS_CHAT, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
   };
 
+  const nomeCS = squad?.agents.cs?.name.split(" · ")[0] ?? "CS";
+  const rotuloPapel = (r: PapelAgente) => (r === "cs" ? `${nomeCS} · CS` : PAPEIS.find((x) => x.role === r)?.label ?? r);
+
   const enviarChat = async () => {
     const texto = chatInput.trim();
     if (!texto || busy || !squad || !apiKey) return;
@@ -393,11 +415,17 @@ export default function OfficeSimulator() {
       [chatKey]: [...conversa, { de: "gestor", texto, ts: new Date().toISOString() }],
     };
     salvarChat(comNova);
+    const ehCS = chatRole === "cs";
 
     const partes: string[] = [
       "CONVERSA DIRETA COM O GESTOR",
       "Responda à última mensagem do gestor em português, de forma direta e curta. Você não tem acesso a Drive, Notion, redes sociais nem arquivos neste ambiente: use apenas o contexto abaixo e não afirme ter feito nada externo. Se faltar informação, diga o que falta. Só atribua estado de entrega (APROVADO, PUBLICADO etc.) se houver evidência no contexto.",
     ];
+    if (ehCS) {
+      partes.push(
+        `DELEGAÇÃO (você é ${nomeCS}, líder da squad)\nVocê coordena Referências (ref), Criativo (criativo) e Mídia (midia). Quando a demanda exigir a especialidade deles, delegue escrevendo, na sua resposta, um bloco por agente neste formato exato:\n<<DELEGAR agente=ref>>\ntarefa objetiva: contexto, o que entregar e o formato esperado\n<<FIM>>\nPode delegar a mais de um agente na mesma resposta (eles trabalham ao mesmo tempo). Delegue só o necessário; pergunta simples, responda direto, sem delegar. Delegação é só texto: nada é publicado nem enviado. Depois que os agentes responderem, você receberá os resultados e vai consolidar para o gestor. Antes dos blocos, escreva em uma ou duas frases o que vai pedir e por quê.`
+      );
+    }
     if (reportMd) partes.push(`RELATÓRIO DA MANHÃ (já lido pelo gestor):\n${trecho(reportMd)}`);
     if (cycle) {
       partes.push(
@@ -412,15 +440,56 @@ export default function OfficeSimulator() {
     }
     partes.push(`NOVA MENSAGEM DO GESTOR:\n${texto}`);
 
+    const adicionar = (msg: ChatMsg) =>
+      salvarChat({ ...comNova, [chatKey]: [...comNova[chatKey], msg] });
+
     try {
-      const rec = await rodar(chatRole, "livre", partes.join("\n\n"));
-      salvarChat({
-        ...comNova,
-        [chatKey]: [...comNova[chatKey], { de: "agente", texto: rec.output, ts: new Date().toISOString() }],
+      setFaseChat(ehCS ? `${nomeCS} está pensando` : null);
+      const r1 = await rodar(chatRole, "livre", partes.join("\n\n"));
+
+      const pedidos = ehCS
+        ? Array.from(r1.output.matchAll(BLOCO_DELEGAR))
+            .map((m) => ({ agente: m[1] as "ref" | "criativo" | "midia", tarefa: m[2].trim() }))
+            .filter((d, i, arr) => d.tarefa && arr.findIndex((x) => x.agente === d.agente) === i)
+            .slice(0, 3)
+        : [];
+
+      if (pedidos.length === 0) {
+        adicionar({ de: "agente", texto: r1.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString() });
+        return;
+      }
+
+      const plano = r1.output.replace(BLOCO_DELEGAR, "").trim();
+      setFaseChat(`${nomeCS} delegou a ${pedidos.map((d) => ROTULO_AGENTE[d.agente].split(" ")[0]).join(", ")}`);
+      const recebidos: Delegacao[] = await Promise.all(
+        pedidos.map(async (d) => {
+          const tipo: EntregaKind = d.agente === "ref" ? "briefing" : d.agente === "criativo" ? "peca" : "livre";
+          const tarefa = `TAREFA DELEGADA POR ${nomeCS} (Headcount/CS)\n${d.tarefa}\n\nDEMANDA ORIGINAL DO GESTOR:\n${texto}${reportMd ? `\n\nRELATÓRIO DA MANHÃ:\n${trecho(reportMd, 3500)}` : ""}\n\nEntregue em texto, como RASCUNHO. Você não publica nem envia nada.`;
+          try {
+            const rec = await rodar(d.agente, tipo, tarefa);
+            return { agente: d.agente, tarefa: d.tarefa, resposta: rec.output, ms: rec.ms };
+          } catch (e) {
+            return { agente: d.agente, tarefa: d.tarefa, resposta: `[falhou: ${e instanceof Error ? e.message : "erro"}]`, ms: 0 };
+          }
+        })
+      );
+
+      setFaseChat(`${nomeCS} está consolidando`);
+      const consolidacao =
+        `CONSOLIDAÇÃO DA DELEGAÇÃO (você é ${nomeCS})\nO gestor pediu: ${texto}\n\nVocê delegou e recebeu:\n` +
+        recebidos
+          .map((r) => `### ${ROTULO_AGENTE[r.agente as "ref" | "criativo" | "midia"]}\nTarefa pedida: ${r.tarefa}\nResposta:\n${trecho(r.resposta, 5000)}`)
+          .join("\n\n") +
+        "\n\nRevise o que os agentes entregaram, aponte falhas ou riscos que você encontrou e responda ao gestor de forma direta: o que ficou pronto, o que depende de decisão dele e o próximo passo. Não delegue de novo. Não atribua aos agentes nada que não esteja nas respostas acima. Tudo continua como RASCUNHO até a aprovação explícita do gestor.";
+      const r2 = await rodar("cs", "livre", consolidacao);
+      adicionar({
+        de: "agente", texto: r2.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString(),
+        plano: plano || undefined, delegacoes: recebidos,
       });
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha na conversa.");
     } finally {
+      setFaseChat(null);
       setBusy(false);
     }
   };
@@ -525,6 +594,28 @@ export default function OfficeSimulator() {
     );
   }
 
+  // Produtividade real por agente, calculada das execuções registradas (sem cenários de estresse)
+  const hojeBRT = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const atividade = Object.fromEntries(
+    PAPEIS.map((p) => {
+      const rs = runsDaSquad.filter((r) => r.role === p.role && !r.scenarioId && !r.erro);
+      const hoje = rs.filter((r) => new Date(r.ts).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) === hojeBRT);
+      const ultima = rs.length ? rs[rs.length - 1] : null;
+      const recentes = rs.filter((r) => Date.now() - new Date(r.ts).getTime() < 30 * 60000).length;
+      const aguardando = cycle?.estado === "AGUARDANDO APROVAÇÃO" && (p.role === "cs" || p.role === "criativo");
+      return [
+        p.role,
+        {
+          entregasHoje: hoje.length,
+          ultimaTs: ultima ? new Date(ultima.ts).getTime() : null,
+          pendente: aguardando,
+          retrabalho: !!ultima && contaFlags(ultima.analise).alta > 0,
+          carga: Math.min(1, recentes / 5),
+        },
+      ];
+    })
+  ) as Record<PapelAgente, Atividade>;
+
   const empresas: Empresa[] = squads.map((sq, i) => {
     const rs = runs.filter((r) => r.bu === sq.bu);
     const rep = reports.find((r) => sq.bu.toLowerCase().includes(r.cliente.toLowerCase()));
@@ -599,8 +690,10 @@ export default function OfficeSimulator() {
         metricas={Object.fromEntries(
           resumo.porPapel.map((p) => [p.role, { execs: p.n, formato: p.formato, alta: p.alta, media: p.media, ms: p.ms }])
         ) as Record<PapelAgente, MetricaAgente>}
+        atividade={atividade}
         tema={Math.max(0, squads.findIndex((sq) => sq.bu === bu))}
         descricao={`Escritório da squad ${bu}. ${PAPEIS.map((p) => `${p.label}: ${desks[p.role]}`).join(". ")}.`}
+        nomeCS={nomeCS}
         tab={tab}
         painelAberto={painelAberto}
         onPainel={(aberto, t) => { if (t) setTab(t); setPainelAberto(aberto); }}
@@ -724,13 +817,16 @@ export default function OfficeSimulator() {
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${
                         ativo ? p.cor : "border-gray-200 text-gray-500 bg-white"}`}
                     >
-                      <Icon size={13} /> {p.label}
+                      <Icon size={13} /> {rotuloPapel(p.role)}
                     </button>
                   );
                 })}
               </div>
               <p className="text-[11px] text-gray-400">
-                Conversa com o agente da sala selecionada. Ele não tem acesso a Drive, Notion nem redes: responde só com o contexto desta tela (relatório da manhã e ciclo em andamento, quando houver). Nada é publicado ou enviado.
+                {chatRole === "cs"
+                  ? `Fale com ${nomeCS}, o CS desta sala. Chame pelo nome e peça o que precisa: o CS decide o que resolver sozinho e o que delegar a Referências, Criativo e Mídia, acompanha as entregas e consolida o resultado. `
+                  : "Conversa direta com o agente da sala. "}
+                Eles não têm acesso a Drive, Notion nem redes: respondem só com o contexto desta tela (relatório da manhã e ciclo em andamento, quando houver). Nada é publicado ou enviado.
               </p>
               <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 space-y-3 max-h-[420px] overflow-y-auto">
                 {conversa.length === 0 && (
@@ -743,16 +839,34 @@ export default function OfficeSimulator() {
                     <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
                       m.de === "gestor" ? "bg-brand-600 text-white" : "bg-white border border-gray-200 text-gray-800"}`}>
                       {m.texto}
+                      {m.delegacoes && m.delegacoes.length > 0 && (
+                        <details className="mt-2 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                          <summary className="cursor-pointer px-2 py-1.5 text-gray-600 font-medium">
+                            {nomeCS} delegou a {m.delegacoes.map((d) => ROTULO_AGENTE[d.agente as "ref" | "criativo" | "midia"].split(" ")[0]).join(", ")} ({fmtS(Math.max(...m.delegacoes.map((d) => d.ms)))})
+                          </summary>
+                          <div className="px-2 pb-2 space-y-2">
+                            {m.plano && <p className="text-gray-500 italic whitespace-pre-wrap">{m.plano}</p>}
+                            {m.delegacoes.map((d, k) => (
+                              <div key={k} className="space-y-1">
+                                <div className="font-semibold text-gray-700">{ROTULO_AGENTE[d.agente as "ref" | "criativo" | "midia"]}</div>
+                                <div className="text-gray-500 whitespace-pre-wrap">Pedido: {d.tarefa}</div>
+                                <pre className="whitespace-pre-wrap bg-white border border-gray-100 rounded p-2 max-h-48 overflow-y-auto text-[11px] text-gray-700">{d.resposta}</pre>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
                       <div className={`text-[10px] mt-1 ${m.de === "gestor" ? "text-white/60" : "text-gray-400"}`}>
-                        {m.de === "gestor" ? "Você" : PAPEIS.find((p) => p.role === chatRole)?.label} · {new Date(m.ts).toLocaleTimeString("pt-BR")}
+                        {m.de === "gestor" ? "Você" : rotuloPapel(chatRole)} · {new Date(m.ts).toLocaleTimeString("pt-BR")}
                       </div>
                     </div>
                   </div>
                 ))}
-                {busy && desks[chatRole] === "working" && (
+                {busy && (faseChat || desks[chatRole] === "working") && (
                   <div className="flex justify-start">
                     <div className="rounded-xl px-3 py-2 text-sm bg-white border border-gray-200 text-gray-500 inline-flex items-center gap-2">
-                      <Loader2 size={13} className="animate-spin" /> {live[chatRole] ? live[chatRole]!.slice(-160) : "pensando…"}
+                      <Loader2 size={13} className="animate-spin" />
+                      {faseChat ? `${faseChat}…` : live[chatRole] ? live[chatRole]!.slice(-160) : "pensando…"}
                     </div>
                   </div>
                 )}
@@ -763,7 +877,7 @@ export default function OfficeSimulator() {
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void enviarChat(); } }}
                   rows={2}
-                  placeholder={apiKey ? "Escreva para o agente (Cmd/Ctrl + Enter envia)" : "Cole a chave da Anthropic no topo da página para conversar"}
+                  placeholder={apiKey ? (chatRole === "cs" ? `Fale com ${nomeCS} (Cmd/Ctrl + Enter envia)` : "Escreva para o agente (Cmd/Ctrl + Enter envia)") : "Cole a chave da Anthropic no topo da página para conversar"}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
                   disabled={busy || !apiKey}
                 />

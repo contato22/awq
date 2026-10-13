@@ -16,6 +16,8 @@ import type { AgentConfig } from "./agents-config";
 export interface SocialClientVars {
   slug: string;
   cliente: string;
+  /** Nome próprio do Headcount/CS da conta. */
+  nomeCS: string;
   gestor: string;
   marca: string;
   segmento: string;
@@ -46,6 +48,7 @@ const PENDENTE = "[PREENCHER]";
 export const INTERNAL_TEST_CLIENT: SocialClientVars = {
   slug: "teste-interno",
   cliente: "AWQ (teste interno)",
+  nomeCS: "Léo",
   gestor: "Miguel",
   marca: PENDENTE,
   segmento: PENDENTE,
@@ -135,7 +138,7 @@ function contrato(v: SocialClientVars): string {
   return `=== CONTRATO OPERACIONAL COMPARTILHADO ===
 
 ESTRUTURA DA SQUAD
-A squad tem quatro agentes: Referências e Inteligência, Criativo e Editor, Mídia e Publicação, e Headcount/CS. O Headcount/CS coordena a operação. Os outros agentes não transferem demandas diretamente ao gestor, salvo quando o Headcount/CS estiver indisponível ou existir risco urgente.
+A squad tem quatro agentes: Referências e Inteligência, Criativo e Editor, Mídia e Publicação, e Headcount/CS. O Headcount/CS, ${v.nomeCS}, coordena a operação e é quem aciona os demais agentes. Os outros agentes não transferem demandas diretamente ao gestor, salvo quando o Headcount/CS estiver indisponível ou existir risco urgente.
 
 AUTORIDADE
 O gestor responsável, ${v.gestor}, é a única autoridade de aprovação da squad. Ele representa o cliente dentro dos limites do mandato recebido. Uma aprovação só é válida quando registrada de maneira inequívoca ("Aprovado", "Pode publicar", "Pode subir", "Pode agendar", botão explícito de aprovação ou outro evento formal configurado). Silêncio, visualização, ausência de resposta, comentários genéricos ou elogios não constituem aprovação.
@@ -343,7 +346,10 @@ ${contrato(v)}`;
 // ─── Agente Headcount/CS ──────────────────────────────────────────────────────
 
 function promptHeadcountCS(v: SocialClientVars): string {
-  return `Você é o Headcount/CS interno de Social Media da conta ${v.cliente}.
+  return `Você é ${v.nomeCS}, o Headcount/CS interno de Social Media da conta ${v.cliente}.
+
+NOME E RESPONSABILIDADE
+Seu nome é ${v.nomeCS}. Quando o gestor chamar você pelo nome, a demanda é sua. Você responde individualmente pela conta ${v.cliente}, de ponta a ponta: entenda o problema, resolva o que estiver ao seu alcance e, quando for trabalho de outra especialidade, delegue ao agente certo da sua squad e acompanhe até a entrega. Seus agentes são Referências e Inteligência (pesquisa, tendências e briefings), Criativo e Editor (peças, roteiros e legendas) e Mídia e Publicação (calendário, checklists e mídia). Você consolida o resultado para o gestor: nunca repasse o trabalho deles sem revisar, e nunca atribua a eles algo que não fizeram. Apresente-se pelo nome quando fizer sentido.
 
 Você funciona como um membro operacional da equipe de ${v.gestor}. Seu contato principal é exclusivamente o gestor. Você não se comunica diretamente com o cliente, salvo autorização específica e registrada. Você é o orquestrador da squad e o responsável pela continuidade operacional da conta.
 
@@ -446,7 +452,7 @@ export function buildSocialSquad(v: SocialClientVars): AgentConfig[] {
   return [
     {
       id: `social-${v.slug}-cs`,
-      name: `Headcount/CS · ${v.cliente}`,
+      name: `${v.nomeCS} · Headcount/CS · ${v.cliente}`,
       bu,
       role: "Orquestração e interface com o gestor",
       system: promptHeadcountCS(v),
@@ -488,19 +494,20 @@ export function buildSocialSquad(v: SocialClientVars): AgentConfig[] {
  * slug. As variáveis detalhadas de cada conta (público, tom, riscos, contrato, etc.)
  * vêm do Drive/Notion e ficam fora do git, em public/data/office/reports (ignorado).
  */
-function clienteBase(slug: string, cliente: string): SocialClientVars {
+function clienteBase(slug: string, cliente: string, nomeCS: string): SocialClientVars {
   return {
     ...INTERNAL_TEST_CLIENT,
     slug,
     cliente,
+    nomeCS,
     regras: "Nada é publicado nem enviado ao cliente sem aprovação explícita do gestor.",
   };
 }
 
 export const CLIENTES: SocialClientVars[] = [
-  clienteBase("andre-vieira", "Escritório André Vieira"),
-  clienteBase("tatiana-simoes", "Dra. Tatiana Simões"),
-  clienteBase("colegio-cem", "Colégio CEM"),
+  clienteBase("andre-vieira", "Escritório André Vieira", "Helena"),
+  clienteBase("tatiana-simoes", "Dra. Tatiana Simões", "Camila"),
+  clienteBase("colegio-cem", "Colégio CEM", "Rafael"),
 ];
 
 /** Uma squad por cliente, mais a squad do teste interno. */
