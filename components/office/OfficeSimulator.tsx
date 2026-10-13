@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle, Check, Download, Key, Loader2, Megaphone, MessageSquare, Pencil,
-  Play, Search, ShieldCheck, Trash2, User, X,
+  AlertTriangle, ArrowLeft, Check, Download, Key, Loader2, Megaphone, MessageSquare, Pencil,
+  Play, Search, Send, ShieldCheck, Trash2, User, Users, X,
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
@@ -66,6 +66,8 @@ interface ChatMsg {
   de: "gestor" | "agente";
   texto: string;
   ts: string;
+  /** Remetente nos grupos e no canal geral (ex.: "Helena · André Vieira"). */
+  autor?: string;
   /** Plano do CS antes de delegar e o que cada agente entregou. */
   plano?: string;
   delegacoes?: Delegacao[];
@@ -222,6 +224,9 @@ export default function OfficeSimulator() {
   const [chat, setChat] = useState<Record<string, ChatMsg[]>>({});
   const [chatRole, setChatRole] = useState<PapelAgente>("cs");
   const [chatInput, setChatInput] = useState("");
+  /** Conversa aberta no mensageiro: null = lista; "geral"; "grupo:BU"; "ind:BU:papel". */
+  const [conv, setConv] = useState<string | null>(null);
+  const chatRef = useRef<Record<string, ChatMsg[]>>({});
   const [faseChat, setFaseChat] = useState<string | null>(null);
   const [reuPauta, setReuPauta] = useState("");
   const [reuResp, setReuResp] = useState<Record<string, { nome: string; cliente: string; status: "pensando" | "pronto" | "erro"; texto: string }>>({});
@@ -245,7 +250,9 @@ export default function OfficeSimulator() {
       eventosRef.current = ev;
     } catch { /* log corrompido: começa vazio */ }
     try {
-      setChat(JSON.parse(localStorage.getItem(LS_CHAT) ?? "{}") as Record<string, ChatMsg[]>);
+      const c = JSON.parse(localStorage.getItem(LS_CHAT) ?? "{}") as Record<string, ChatMsg[]>;
+      setChat(c);
+      chatRef.current = c;
     } catch { /* conversa corrompida: começa vazia */ }
 
     fetch("/data/office/reports/index.json")
@@ -444,6 +451,7 @@ export default function OfficeSimulator() {
   const conversa = chat[chatKey] ?? [];
 
   const salvarChat = (next: Record<string, ChatMsg[]>) => {
+    chatRef.current = next;
     setChat(next);
     try { localStorage.setItem(LS_CHAT, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
   };
@@ -457,10 +465,13 @@ export default function OfficeSimulator() {
     setErro(null);
     setBusy(true);
     setChatInput("");
-    const historico = conversa.slice(-12);
+    const grupo = !!conv?.startsWith("grupo:");
+    const chave = grupo ? `${bu}|grupo` : chatKey;
+    const base = chatRef.current[chave] ?? [];
+    const historico = base.slice(-12);
     const comNova: Record<string, ChatMsg[]> = {
-      ...chat,
-      [chatKey]: [...conversa, { de: "gestor", texto, ts: new Date().toISOString() }],
+      ...chatRef.current,
+      [chave]: [...base, { de: "gestor", texto, ts: new Date().toISOString() }],
     };
     salvarChat(comNova);
     const ehCS = chatRole === "cs";
@@ -483,13 +494,14 @@ export default function OfficeSimulator() {
     if (historico.length) {
       partes.push(
         "HISTÓRICO DA CONVERSA:\n" +
-          historico.map((m) => `${m.de === "gestor" ? "Gestor" : "Você"}: ${m.texto}`).join("\n")
+          historico.map((m) => `${m.de === "gestor" ? "Gestor" : m.autor ?? "Você"}: ${m.texto}`).join("\n")
       );
     }
     partes.push(`NOVA MENSAGEM DO GESTOR:\n${texto}`);
 
-    const adicionar = (msg: ChatMsg) =>
-      salvarChat({ ...comNova, [chatKey]: [...comNova[chatKey], msg] });
+    const adicionar = (...msgs: ChatMsg[]) =>
+      salvarChat({ ...chatRef.current, [chave]: [...(chatRef.current[chave] ?? comNova[chave]), ...msgs] });
+    salvarChat(comNova);
 
     try {
       setFaseChat(ehCS ? `${nomeCS} está pensando` : null);
@@ -503,7 +515,7 @@ export default function OfficeSimulator() {
         : [];
 
       if (pedidos.length === 0) {
-        adicionar({ de: "agente", texto: r1.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString() });
+        adicionar({ de: "agente", texto: r1.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString(), autor: grupo ? rotuloPapel(chatRole) : undefined });
         return;
       }
 
@@ -530,16 +542,75 @@ export default function OfficeSimulator() {
           .join("\n\n") +
         "\n\nRevise o que os agentes entregaram, aponte falhas ou riscos que você encontrou e responda ao gestor de forma direta: o que ficou pronto, o que depende de decisão dele e o próximo passo. Não delegue de novo. Não atribua aos agentes nada que não esteja nas respostas acima. Tudo continua como RASCUNHO até a aprovação explícita do gestor.";
       const r2 = await rodar("cs", "livre", consolidacao, { origem: `${nomeCS} consolidando as respostas dos agentes delegados` });
-      adicionar({
-        de: "agente", texto: r2.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString(),
-        plano: plano || undefined, delegacoes: recebidos,
-      });
+      if (grupo) {
+        const agora = () => new Date().toISOString();
+        adicionar(
+          ...(plano ? [{ de: "agente" as const, texto: plano, ts: agora(), autor: rotuloPapel("cs") }] : []),
+          ...recebidos.map((r) => ({ de: "agente" as const, texto: r.resposta, ts: agora(), autor: ROTULO_AGENTE[r.agente as "ref" | "criativo" | "midia"] })),
+          { de: "agente" as const, texto: r2.output.replace(BLOCO_DELEGAR, "").trim(), ts: agora(), autor: rotuloPapel("cs") },
+        );
+      } else {
+        adicionar({
+          de: "agente", texto: r2.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString(),
+          plano: plano || undefined, delegacoes: recebidos,
+        });
+      }
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha na conversa.");
     } finally {
       setFaseChat(null);
       setBusy(false);
     }
+  };
+
+  /** Canal geral da AWQ: todos os CSs recebem a mensagem e respondem; cada um só enxerga o próprio cliente. */
+  const enviarGeral = async () => {
+    const texto = chatInput.trim();
+    const participantes = squads.filter((sq) => sq.agents.cs);
+    if (!texto || busy || participantes.length === 0) return;
+    setErro(null);
+    setBusy(true);
+    setChatInput("");
+    setFaseChat("Os CSs estão respondendo");
+    const anexar = (msg: ChatMsg) => salvarChat({ ...chatRef.current, geral: [...(chatRef.current.geral ?? []), msg] });
+    const historicoBase = chatRef.current.geral ?? [];
+    anexar({ de: "gestor", texto, ts: new Date().toISOString() });
+    registrar({ tipo: "MeetingStarted", bu: "AWQ", ator: "gestor", acao: `Mensagem no canal Geral (${participantes.length} CSs)`, origem: `Mensagem: ${texto.slice(0, 140)}` });
+    await Promise.all(participantes.map(async (sq) => {
+      const nome = sq.agents.cs!.name.split(" · ")[0];
+      const autor = `${nome} · ${sq.bu}`;
+      const meta = reports.find((r) => sq.bu.toLowerCase().includes(r.cliente.toLowerCase()));
+      let relatorio = "";
+      if (meta) {
+        try { const r = await fetch(`/data/office/reports/${meta.arquivo}`); if (r.ok) relatorio = await r.text(); } catch { /* sem relatório: segue sem */ }
+      }
+      // histórico isolado: só as mensagens do gestor e as respostas deste mesmo CS
+      const hist = historicoBase.filter((m) => m.de === "gestor" || m.autor === autor).slice(-10)
+        .map((m) => `${m.de === "gestor" ? "Gestor" : "Você"}: ${m.texto}`).join("\n");
+      const tarefa = [
+        `CANAL GERAL DA AWQ (você é ${nome}, CS de ${sq.bu})`,
+        "O gestor escreveu no canal geral, onde estão os CSs de todos os clientes. Responda em português, curto e direto (até ~120 palavras), considerando APENAS o seu cliente. Você não vê as respostas dos outros CSs: não opine sobre outros clientes nem peça dados deles. Se a mensagem não for relevante para o seu cliente, diga em uma frase. Não afirme ter feito nada externo; nada é publicado ou enviado.",
+        relatorio ? `RELATÓRIO DA MANHÃ DO SEU CLIENTE:\n${trecho(relatorio, 3000)}` : "",
+        hist ? `CONVERSA ATÉ AGORA:\n${hist}` : "",
+        `MENSAGEM DO GESTOR:\n${texto}`,
+      ].filter(Boolean).join("\n\n");
+      const t0 = performance.now();
+      registrar({ tipo: "ActionStarted", bu: sq.bu, ator: "cs", acao: `${nome} no canal Geral`, origem: "Mensagem do gestor no canal Geral" });
+      try {
+        const { text, usage } = await streamAgent(sq.agents.cs!.id, tarefa, apiKey ?? "", () => {});
+        anexar({ de: "agente", autor, texto: text, ts: new Date().toISOString() });
+        registrar({ tipo: "ActionCompleted", bu: sq.bu, ator: "cs", acao: `${nome} no canal Geral`, origem: "Mensagem do gestor no canal Geral", ms: performance.now() - t0, tokens: usage });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "erro";
+        const causa = classificarErro(msg);
+        if (causa.codigo === "INVALID_API_KEY") { localStorage.removeItem(LS_KEY); setApiKey(null); setPrecisaChave(true); setErro("A Anthropic recusou a chave salva neste navegador. Cole uma chave nova."); }
+        else if (causa.codigo === "MISSING_API_KEY") { setPrecisaChave(true); setErro("Falta a chave da Anthropic. Cole a sua no campo que apareceu."); }
+        anexar({ de: "agente", autor, texto: `[não respondeu: ${causa.mensagem} ${causa.proxima}]`, ts: new Date().toISOString() });
+        registrar({ tipo: "ActionFailed", bu: sq.bu, ator: "cs", acao: `${nome} no canal Geral`, origem: "Mensagem do gestor no canal Geral", causa });
+      }
+    }));
+    setFaseChat(null);
+    setBusy(false);
   };
 
   // ── Reunião dos CSs ───────────────────────────────────────────────────────────
@@ -809,7 +880,7 @@ export default function OfficeSimulator() {
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
         <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
-          {([["ciclo", "Ciclo"], ["conversa", "Conversar"], ["reuniao", "Reunião"], ["eventos", "Eventos"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["eventos", "Eventos"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
@@ -910,128 +981,186 @@ export default function OfficeSimulator() {
 
           )}
 
-          {tab === "conversa" && (
-            <div className="space-y-3">
-              {precisaChave && !apiKey && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-900"><Key size={14} /> Falta a chave da Anthropic</div>
-                  <p className="text-[11px] text-amber-800">O servidor não tem uma chave configurada. Cole a sua para conversar: ela fica só neste navegador e é a mesma do /agents e do OpenClaw.</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={keyInput}
-                      onChange={(e) => setKeyInput(e.target.value)}
-                      placeholder="sk-ant-..."
-                      className="flex-1 border border-amber-200 rounded-lg px-3 py-1.5 text-xs bg-white"
-                    />
-                    <button
-                      className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40"
-                      disabled={!keyInput.trim().startsWith("sk-")}
-                      onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); setPrecisaChave(false); setErro(null); }}
-                    >
-                      Salvar
-                    </button>
+          {tab === "conversa" && (() => {
+            const nomeDoCS = (sq: Squad) => sq.agents.cs?.name.split(" · ")[0] ?? "CS";
+            type Conv = { id: string; titulo: string; sub: string; chave: string; tipo: "geral" | "grupo" | "ind"; bu?: string; role?: PapelAgente };
+            const conversas: Conv[] = [
+              { id: "geral", titulo: "Geral AWQ", sub: `Todos os CSs · ${squads.length} clientes`, chave: "geral", tipo: "geral" },
+              ...squads.map((sq): Conv => ({ id: `grupo:${sq.bu}`, titulo: `Squad ${sq.bu}`, sub: `Grupo · ${nomeDoCS(sq)} e a equipe`, chave: `${sq.bu}|grupo`, tipo: "grupo", bu: sq.bu })),
+              ...squads.flatMap((sq) => PAPEIS.filter((p) => sq.agents[p.role]).map((p): Conv => ({
+                id: `ind:${sq.bu}:${p.role}`, titulo: p.role === "cs" ? nomeDoCS(sq) : p.label,
+                sub: `${p.role === "cs" ? "Headcount/CS" : "Agente"} · ${sq.bu}`, chave: `${sq.bu}|${p.role}`, tipo: "ind", bu: sq.bu, role: p.role,
+              }))),
+            ];
+            const ultima = (c: Conv) => (chat[c.chave] ?? []).slice(-1)[0];
+            const abrir = (c: Conv) => {
+              if (c.bu && c.bu !== bu) { setBu(c.bu); setCycle(null); }
+              if (c.tipo === "grupo") setChatRole("cs");
+              if (c.tipo === "ind" && c.role) setChatRole(c.role);
+              setErro(null);
+              setConv(c.id);
+            };
+            const caixaChave = precisaChave && !apiKey && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-900"><Key size={14} /> Falta a chave da Anthropic</div>
+                <p className="text-[11px] text-amber-800">O servidor não tem uma chave configurada. Cole a sua para conversar: ela fica só neste navegador e é a mesma do /agents e do OpenClaw.</p>
+                <div className="flex gap-2">
+                  <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} placeholder="sk-ant-..." className="flex-1 border border-amber-200 rounded-lg px-3 py-1.5 text-xs bg-white" />
+                  <button
+                    className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40"
+                    disabled={!keyInput.trim().startsWith("sk-")}
+                    onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); setPrecisaChave(false); setErro(null); }}
+                  >Salvar</button>
+                </div>
+              </div>
+            );
+            const caixaErro = erro && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" /> <span>{erro}</span>
+              </div>
+            );
+            const avatar = (c: Conv, tam = "w-10 h-10") => (
+              <div className={`${tam} rounded-full flex items-center justify-center shrink-0 text-white ${c.tipo === "geral" ? "bg-gray-800" : c.tipo === "grupo" ? "bg-brand-600" : "bg-emerald-600"}`}>
+                {c.tipo === "ind" ? <User size={16} /> : <Users size={16} />}
+              </div>
+            );
+
+            const atual = conversas.find((c) => c.id === conv);
+            if (!atual) {
+              const bloco = (titulo: string, itens: Conv[]) => {
+                const ord = [...itens].sort((x, y) => (ultima(y)?.ts ?? "").localeCompare(ultima(x)?.ts ?? ""));
+                return (
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 px-1 mb-1">{titulo}</div>
+                    <ul className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
+                      {ord.map((c) => {
+                        const u = ultima(c);
+                        return (
+                          <li key={c.id}>
+                            <button onClick={() => abrir(c)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-50">
+                              {avatar(c)}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <span className="text-sm font-medium text-gray-900 truncate">{c.titulo}</span>
+                                  {u && <span className="text-[10px] text-gray-400 shrink-0">{new Date(u.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</span>}
+                                </div>
+                                <div className="text-[11px] text-gray-500 truncate">
+                                  {u ? `${u.de === "gestor" ? "Você: " : u.autor ? `${u.autor.split(" · ")[0]}: ` : ""}${u.texto.replace(/\s+/g, " ")}` : c.sub}
+                                </div>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              };
+              return (
+                <div className="space-y-4">
+                  {caixaChave}
+                  {caixaErro}
+                  {bloco("Empresa", conversas.filter((c) => c.tipo === "geral"))}
+                  {bloco("Grupos", conversas.filter((c) => c.tipo === "grupo"))}
+                  {bloco("Conversas individuais", conversas.filter((c) => c.tipo === "ind"))}
+                  <p className="text-[11px] text-gray-400">
+                    Os agentes não têm acesso a Drive, Notion nem redes: respondem só com o contexto desta tela. Nada é publicado ou enviado.
+                    No Geral, cada CS vê só o próprio cliente.
+                  </p>
+                </div>
+              );
+            }
+
+            const msgs = chat[atual.chave] ?? [];
+            const multi = atual.tipo !== "ind";
+            const cores = ["text-rose-600", "text-indigo-600", "text-amber-600", "text-teal-600", "text-fuchsia-600", "text-sky-600"];
+            const corDe = (a: string) => cores[Array.from(a).reduce((n, ch) => n + ch.charCodeAt(0), 0) % cores.length];
+            const enviar = () => (atual.tipo === "geral" ? void enviarGeral() : void enviarChat());
+            return (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setConv(null)} aria-label="Voltar para as conversas" title="Voltar" className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600"><ArrowLeft size={16} /></button>
+                  {avatar(atual, "w-9 h-9")}
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 truncate">{atual.titulo}</div>
+                    <div className="text-[11px] text-gray-500 truncate">{atual.sub}</div>
                   </div>
                 </div>
-              )}
-              {erro && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" /> <span>{erro}</span>
-                </div>
-              )}
-              <div className="flex flex-wrap items-center gap-2">
-                {PAPEIS.map((p) => {
-                  const Icon = p.icon;
-                  const ativo = p.role === chatRole;
-                  return (
-                    <button
-                      key={p.role}
-                      onClick={() => setChatRole(p.role)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${
-                        ativo ? p.cor : "border-gray-200 text-gray-500 bg-white"}`}
-                    >
-                      <Icon size={13} /> {rotuloPapel(p.role)}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[11px] text-gray-400">
-                {chatRole === "cs"
-                  ? `Fale com ${nomeCS}, o CS desta sala. Chame pelo nome e peça o que precisa: o CS decide o que resolver sozinho e o que delegar a Referências, Criativo e Mídia, acompanha as entregas e consolida o resultado. `
-                  : "Conversa direta com o agente da sala. "}
-                Eles não têm acesso a Drive, Notion nem redes: respondem só com o contexto desta tela (relatório da manhã e ciclo em andamento, quando houver). Nada é publicado ou enviado.
-              </p>
-              <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 space-y-3 max-h-[420px] overflow-y-auto">
-                {conversa.length === 0 && (
-                  <p className="text-xs text-gray-400">
-                    Nenhuma mensagem ainda. Pergunte, por exemplo, &ldquo;qual é a prioridade desta semana?&rdquo; ou &ldquo;resuma o que está pendente de aprovação&rdquo;.
-                  </p>
-                )}
-                {conversa.map((m, i) => (
-                  <div key={i} className={`flex ${m.de === "gestor" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
-                      m.de === "gestor" ? "bg-brand-600 text-white" : "bg-white border border-gray-200 text-gray-800"}`}>
-                      {m.texto}
-                      {m.delegacoes && m.delegacoes.length > 0 && (
-                        <details className="mt-2 rounded-lg bg-gray-50 border border-gray-100 text-xs">
-                          <summary className="cursor-pointer px-2 py-1.5 text-gray-600 font-medium">
-                            {nomeCS} delegou a {m.delegacoes.map((d) => ROTULO_AGENTE[d.agente as "ref" | "criativo" | "midia"].split(" ")[0]).join(", ")} ({fmtS(Math.max(...m.delegacoes.map((d) => d.ms)))})
-                          </summary>
-                          <div className="px-2 pb-2 space-y-2">
-                            {m.plano && <p className="text-gray-500 italic whitespace-pre-wrap">{m.plano}</p>}
-                            {m.delegacoes.map((d, k) => (
-                              <div key={k} className="space-y-1">
-                                <div className="font-semibold text-gray-700">{ROTULO_AGENTE[d.agente as "ref" | "criativo" | "midia"]}</div>
-                                <div className="text-gray-500 whitespace-pre-wrap">Pedido: {d.tarefa}</div>
-                                <pre className="whitespace-pre-wrap bg-white border border-gray-100 rounded p-2 max-h-48 overflow-y-auto text-[11px] text-gray-700">{d.resposta}</pre>
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      )}
-                      <div className={`text-[10px] mt-1 ${m.de === "gestor" ? "text-white/60" : "text-gray-400"}`}>
-                        {m.de === "gestor" ? "Você" : rotuloPapel(chatRole)} · {new Date(m.ts).toLocaleTimeString("pt-BR")}
+                {caixaChave}
+                {caixaErro}
+                <div className="rounded-xl border border-gray-100 bg-[#efeae2]/60 p-3 space-y-2 h-[46vh] min-h-[260px] overflow-y-auto">
+                  {msgs.length === 0 && (
+                    <p className="text-xs text-gray-500 bg-white/80 rounded-lg px-3 py-2 inline-block">
+                      {atual.tipo === "geral" ? "Escreva para todos os CSs de uma vez; cada um responde sobre o próprio cliente."
+                        : atual.tipo === "grupo" ? `Escreva no grupo: ${nomeCS} decide o que resolver e o que delegar à equipe, e os agentes respondem aqui.`
+                        : "Conversa direta. Pergunte, por exemplo, \u201cqual é a prioridade desta semana?\u201d."}
+                    </p>
+                  )}
+                  {msgs.map((m, i) => (
+                    <div key={i} className={`flex ${m.de === "gestor" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[88%] rounded-xl px-3 py-1.5 text-sm whitespace-pre-wrap shadow-sm ${m.de === "gestor" ? "bg-[#d9fdd3] text-gray-900" : "bg-white text-gray-800"}`}>
+                        {m.de !== "gestor" && multi && m.autor && <div className={`text-[11px] font-semibold ${corDe(m.autor)}`}>{m.autor}</div>}
+                        {m.texto}
+                        {m.delegacoes && m.delegacoes.length > 0 && (
+                          <details className="mt-2 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                            <summary className="cursor-pointer px-2 py-1.5 text-gray-600 font-medium">
+                              {nomeCS} delegou a {m.delegacoes.map((d) => ROTULO_AGENTE[d.agente as "ref" | "criativo" | "midia"].split(" ")[0]).join(", ")} ({fmtS(Math.max(...m.delegacoes.map((d) => d.ms)))})
+                            </summary>
+                            <div className="px-2 pb-2 space-y-2">
+                              {m.plano && <p className="text-gray-500 italic whitespace-pre-wrap">{m.plano}</p>}
+                              {m.delegacoes.map((d, k) => (
+                                <div key={k} className="space-y-1">
+                                  <div className="font-semibold text-gray-700">{ROTULO_AGENTE[d.agente as "ref" | "criativo" | "midia"]}</div>
+                                  <div className="text-gray-500 whitespace-pre-wrap">Pedido: {d.tarefa}</div>
+                                  <pre className="whitespace-pre-wrap bg-white border border-gray-100 rounded p-2 max-h-48 overflow-y-auto text-[11px] text-gray-700">{d.resposta}</pre>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                        <div className="text-[10px] mt-0.5 text-right text-gray-400">{new Date(m.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {busy && (faseChat || desks[chatRole] === "working") && (
-                  <div className="flex justify-start">
-                    <div className="rounded-xl px-3 py-2 text-sm bg-white border border-gray-200 text-gray-500 inline-flex items-center gap-2">
-                      <Loader2 size={13} className="animate-spin" />
-                      {faseChat ? `${faseChat}…` : live[chatRole] ? live[chatRole]!.slice(-160) : "pensando…"}
+                  ))}
+                  {busy && (
+                    <div className="flex justify-start">
+                      <div className="rounded-xl px-3 py-1.5 text-sm bg-white text-gray-500 inline-flex items-center gap-2 shadow-sm">
+                        <Loader2 size={13} className="animate-spin" />
+                        {faseChat ? `${faseChat}…` : live[chatRole] ? live[chatRole]!.slice(-120) : "digitando…"}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+                <div className="flex gap-2 items-end">
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); enviar(); } }}
+                    rows={2}
+                    placeholder="Mensagem (Enter envia, Shift + Enter quebra a linha)"
+                    className="flex-1 border border-gray-200 rounded-2xl px-3 py-2 text-sm resize-none"
+                    disabled={busy}
+                  />
+                  <button
+                    onClick={enviar}
+                    disabled={busy || !chatInput.trim() || squads.length === 0}
+                    aria-label="Enviar"
+                    className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center disabled:opacity-40"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
+                {msgs.length > 0 && (
+                  <button
+                    className="text-[11px] text-gray-400 hover:text-gray-700 self-start"
+                    onClick={() => { const { [atual.chave]: _descartada, ...resto } = chat; void _descartada; salvarChat(resto); }}
+                  >
+                    Limpar esta conversa
+                  </button>
                 )}
               </div>
-              <div className="flex gap-2">
-                <textarea
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void enviarChat(); } }}
-                  rows={2}
-                  placeholder={chatRole === "cs" ? `Fale com ${nomeCS} (Cmd/Ctrl + Enter envia)` : "Escreva para o agente (Cmd/Ctrl + Enter envia)"}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  disabled={busy}
-                />
-                <button
-                  onClick={() => void enviarChat()}
-                  disabled={busy || !chatInput.trim() || !squad}
-                  className="px-4 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-40"
-                >
-                  Enviar
-                </button>
-              </div>
-              {conversa.length > 0 && (
-                <button
-                  className="text-[11px] text-gray-400 hover:text-gray-700"
-                  onClick={() => { const { [chatKey]: _descartada, ...resto } = chat; void _descartada; salvarChat(resto); }}
-                >
-                  Limpar esta conversa
-                </button>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           {tab === "reuniao" && (
             <div className="space-y-3">

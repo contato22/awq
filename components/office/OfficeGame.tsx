@@ -65,7 +65,7 @@ const ESTADO_TXT: Record<Estado, string> = { idle: "Ocioso", working: "Trabalhan
 
 const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "ciclo", rotulo: "Ciclo editorial", Icone: ClipboardList },
-  { tab: "conversa", rotulo: "Conversar", Icone: MessageSquare },
+  { tab: "conversa", rotulo: "Mensagens", Icone: MessageSquare },
   { tab: "reuniao", rotulo: "Reunião dos CSs", Icone: Users },
   { tab: "eventos", rotulo: "Eventos e por quês", Icone: ListChecks },
   { tab: "relatorio", rotulo: "Relatório da manhã", Icone: FileText },
