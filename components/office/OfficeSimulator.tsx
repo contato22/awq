@@ -51,6 +51,12 @@ interface Cycle {
   decisoes: { decisao: "aprovado" | "ajustes" | "rejeitado"; em: string; versao: number; feedback?: string }[];
 }
 
+interface ChatMsg {
+  de: "gestor" | "agente";
+  texto: string;
+  ts: string;
+}
+
 interface ReportMeta {
   slug: string;
   cliente: string;
@@ -61,6 +67,7 @@ interface ReportMeta {
 
 const LS_KEY = "openclaw_api_key";
 const LS_RUNS = "office_runs_v1";
+const LS_CHAT = "office_chat_v1";
 const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -173,12 +180,15 @@ export default function OfficeSimulator() {
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [tab, setTab] = useState<"relatorio" | "analise" | "cenarios" | "registros">("relatorio");
+  const [tab, setTab] = useState<"conversa" | "relatorio" | "analise" | "cenarios" | "registros">("conversa");
   const [aberto, setAberto] = useState<string | null>(null);
   const [cenarioAtual, setCenarioAtual] = useState<string | null>(null);
   const [reports, setReports] = useState<ReportMeta[]>([]);
   const [reportMd, setReportMd] = useState<string | null>(null);
   const [reportErro, setReportErro] = useState<string | null>(null);
+  const [chat, setChat] = useState<Record<string, ChatMsg[]>>({});
+  const [chatRole, setChatRole] = useState<PapelAgente>("cs");
+  const [chatInput, setChatInput] = useState("");
   const runsRef = useRef<RunRecord[]>([]);
 
   // Chave, execuções salvas e squads disponíveis
@@ -189,6 +199,9 @@ export default function OfficeSimulator() {
       setRuns(saved);
       runsRef.current = saved;
     } catch { /* histórico corrompido: começa vazio */ }
+    try {
+      setChat(JSON.parse(localStorage.getItem(LS_CHAT) ?? "{}") as Record<string, ChatMsg[]>);
+    } catch { /* conversa corrompida: começa vazia */ }
 
     fetch("/data/office/reports/index.json")
       .then((r) => (r.ok ? r.json() : []))
@@ -355,6 +368,60 @@ export default function OfficeSimulator() {
     }
   };
 
+  // ── Conversa livre com um agente ──────────────────────────────────────────────
+
+  const chatKey = `${bu}|${chatRole}`;
+  const conversa = chat[chatKey] ?? [];
+
+  const salvarChat = (next: Record<string, ChatMsg[]>) => {
+    setChat(next);
+    try { localStorage.setItem(LS_CHAT, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+  };
+
+  const enviarChat = async () => {
+    const texto = chatInput.trim();
+    if (!texto || busy || !squad || !apiKey) return;
+    setErro(null);
+    setBusy(true);
+    setChatInput("");
+    const historico = conversa.slice(-12);
+    const comNova: Record<string, ChatMsg[]> = {
+      ...chat,
+      [chatKey]: [...conversa, { de: "gestor", texto, ts: new Date().toISOString() }],
+    };
+    salvarChat(comNova);
+
+    const partes: string[] = [
+      "CONVERSA DIRETA COM O GESTOR",
+      "Responda à última mensagem do gestor em português, de forma direta e curta. Você não tem acesso a Drive, Notion, redes sociais nem arquivos neste ambiente: use apenas o contexto abaixo e não afirme ter feito nada externo. Se faltar informação, diga o que falta. Só atribua estado de entrega (APROVADO, PUBLICADO etc.) se houver evidência no contexto.",
+    ];
+    if (reportMd) partes.push(`RELATÓRIO DA MANHÃ (já lido pelo gestor):\n${trecho(reportMd)}`);
+    if (cycle) {
+      partes.push(
+        `CICLO EDITORIAL EM ANDAMENTO: estado ${cycle.estado}, versão v${cycle.versao}.\nDemanda: ${cycle.demanda}\nPacote de aprovação atual:\n${trecho(cycle.outputs.pacote, 3000)}`
+      );
+    }
+    if (historico.length) {
+      partes.push(
+        "HISTÓRICO DA CONVERSA:\n" +
+          historico.map((m) => `${m.de === "gestor" ? "Gestor" : "Você"}: ${m.texto}`).join("\n")
+      );
+    }
+    partes.push(`NOVA MENSAGEM DO GESTOR:\n${texto}`);
+
+    try {
+      const rec = await rodar(chatRole, "livre", partes.join("\n\n"));
+      salvarChat({
+        ...comNova,
+        [chatKey]: [...comNova[chatKey], { de: "agente", texto: rec.output, ts: new Date().toISOString() }],
+      });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha na conversa.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // ── Cenários ──────────────────────────────────────────────────────────────────
 
   const rodarCenario = async (c: Cenario) => {
@@ -513,7 +580,7 @@ export default function OfficeSimulator() {
           return (
             <button
               key={sq.bu}
-              onClick={() => { setBu(sq.bu); setCycle(null); setTab(rep ? "relatorio" : "analise"); }}
+              onClick={() => { setBu(sq.bu); setCycle(null); setTab("conversa"); }}
               className={`text-left rounded-xl border p-4 bg-white transition-micro ${ativa ? "ring-2 ring-brand-400 border-brand-300" : "border-gray-200 hover:border-gray-300"}`}
             >
               <div className="text-sm font-semibold text-gray-800">{sq.bu.replace(/^Social Media · /, "")}</div>
@@ -636,7 +703,7 @@ export default function OfficeSimulator() {
       {/* Abas */}
       <div className="card">
         <div className="flex gap-1 border-b border-gray-100 px-4 pt-3">
-          {([["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+          {([["conversa", "Conversar"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 text-sm rounded-t-lg ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
@@ -645,6 +712,81 @@ export default function OfficeSimulator() {
         </div>
 
         <div className="p-5">
+          {tab === "conversa" && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {PAPEIS.map((p) => {
+                  const Icon = p.icon;
+                  const ativo = p.role === chatRole;
+                  return (
+                    <button
+                      key={p.role}
+                      onClick={() => setChatRole(p.role)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${
+                        ativo ? p.cor : "border-gray-200 text-gray-500 bg-white"}`}
+                    >
+                      <Icon size={13} /> {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Conversa com o agente da sala selecionada. Ele não tem acesso a Drive, Notion nem redes: responde só com o contexto desta tela (relatório da manhã e ciclo em andamento, quando houver). Nada é publicado ou enviado.
+              </p>
+              <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 space-y-3 max-h-[420px] overflow-y-auto">
+                {conversa.length === 0 && (
+                  <p className="text-xs text-gray-400">
+                    Nenhuma mensagem ainda. Pergunte, por exemplo, &ldquo;qual é a prioridade desta semana?&rdquo; ou &ldquo;resuma o que está pendente de aprovação&rdquo;.
+                  </p>
+                )}
+                {conversa.map((m, i) => (
+                  <div key={i} className={`flex ${m.de === "gestor" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                      m.de === "gestor" ? "bg-brand-600 text-white" : "bg-white border border-gray-200 text-gray-800"}`}>
+                      {m.texto}
+                      <div className={`text-[10px] mt-1 ${m.de === "gestor" ? "text-white/60" : "text-gray-400"}`}>
+                        {m.de === "gestor" ? "Você" : PAPEIS.find((p) => p.role === chatRole)?.label} · {new Date(m.ts).toLocaleTimeString("pt-BR")}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {busy && desks[chatRole] === "working" && (
+                  <div className="flex justify-start">
+                    <div className="rounded-xl px-3 py-2 text-sm bg-white border border-gray-200 text-gray-500 inline-flex items-center gap-2">
+                      <Loader2 size={13} className="animate-spin" /> {live[chatRole] ? live[chatRole]!.slice(-160) : "pensando…"}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <textarea
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void enviarChat(); } }}
+                  rows={2}
+                  placeholder={apiKey ? "Escreva para o agente (Cmd/Ctrl + Enter envia)" : "Cole a chave da Anthropic no topo da página para conversar"}
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  disabled={busy || !apiKey}
+                />
+                <button
+                  onClick={() => void enviarChat()}
+                  disabled={busy || !chatInput.trim() || !squad || !apiKey}
+                  className="px-4 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-40"
+                >
+                  Enviar
+                </button>
+              </div>
+              {conversa.length > 0 && (
+                <button
+                  className="text-[11px] text-gray-400 hover:text-gray-700"
+                  onClick={() => { const { [chatKey]: _descartada, ...resto } = chat; void _descartada; salvarChat(resto); }}
+                >
+                  Limpar esta conversa
+                </button>
+              )}
+            </div>
+          )}
+
           {tab === "relatorio" && (
             <div className="space-y-3">
               {!reportDaSquad && (
