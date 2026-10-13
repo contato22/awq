@@ -17,6 +17,11 @@ import {
 import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
 import { ANDARES, type Empresa } from "@/lib/office-world";
+import {
+  aplicarSaida, ativacaoDevida, atualizarTarefa, capacidadeDosAgentes, decidirAprovacao, estadoInicial, lerEstadoCS, limiteDoDia, parseSaida,
+  promptDaTarefa, promptDoHead, registrarEvento, registrarFalhaAtivacao, tarefasParaEntregar, type AgenteInfo, type ConfigHead, type EstadoHead,
+} from "@/lib/office-head";
+import HeadCSPanel from "./HeadCSPanel";
 import type { Atividade } from "@/lib/office-iso";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
@@ -102,6 +107,7 @@ const LS_CHAT = "office_chat_v1";
 const LS_EVENTOS = "office_events_v1";
 const LS_POLITICAS = "office_policies_v1";
 const LS_MISSOES = "office_missions_v1";
+const LS_HEAD = "office_head_v1";
 
 const ORIGEM_POR_KIND: Record<EntregaKind, string> = {
   triagem: "Demanda do gestor no ciclo editorial",
@@ -274,6 +280,10 @@ export default function OfficeSimulator() {
       eventosRef.current = ev;
     } catch { /* log corrompido: começa vazio */ }
     try {
+      const h = JSON.parse(localStorage.getItem(LS_HEAD) ?? "null") as EstadoHead | null;
+      if (h && Array.isArray(h.tarefas)) { const base = { ...estadoInicial(), ...h, config: { ...estadoInicial().config, ...h.config } }; setHead(base); headRef.current = base; }
+    } catch { /* estado do Head corrompido: começa vazio */ }
+    try {
       const ms = JSON.parse(localStorage.getItem(LS_MISSOES) ?? "[]") as Missao[];
       setMissoes(ms);
       missoesRef.current = ms;
@@ -359,13 +369,20 @@ export default function OfficeSimulator() {
     gravarMissoes(missoesRef.current.map((m) => (m.id === id ? fn(m) : m)));
   }, [gravarMissoes]);
 
+  const buSel = bu;
+  const squadSel = squad;
+  const squadsRef = useRef<Squad[]>([]);
+  squadsRef.current = squads;
+
   const rodar = useCallback(
     async (
       role: PapelAgente,
       kind: EntregaKind,
       task: string,
-      opts: { aprovado?: boolean; scenarioId?: string; origem?: string; missaoId?: string } = {}
+      opts: { aprovado?: boolean; scenarioId?: string; origem?: string; missaoId?: string; bu?: string } = {}
     ): Promise<RunRecord> => {
+      const bu = opts.bu ?? buSel;
+      const squad = opts.bu ? squadsRef.current.find((s) => s.bu === opts.bu) : squadSel;
       const agent = squad?.agents[role];
       if (!agent) throw new Error("Squad indisponível.");
 
@@ -376,7 +393,7 @@ export default function OfficeSimulator() {
         const motivo = `POLICY_BLOCKED: a política de autonomia bloqueia "${acao}" para este agente.`;
         registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(motivo) });
         atualizarMissao(opts.missaoId, (m) => falhar(m, classificarErro(motivo)));
-        setDesks((d) => ({ ...d, [role]: "error" }));
+        if (bu === buSel) setDesks((d) => ({ ...d, [role]: "error" }));
         throw new Error(motivo.replace("POLICY_BLOCKED: ", "Bloqueado pela política de autonomia: "));
       }
       const missao = missoesRef.current.find((m) => m.id === opts.missaoId);
@@ -385,7 +402,7 @@ export default function OfficeSimulator() {
         const motivo = `BUDGET_EXHAUSTED: ${limite}`;
         registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(motivo) });
         atualizarMissao(opts.missaoId, (m) => falhar(m, classificarErro(motivo), limite));
-        setDesks((d) => ({ ...d, [role]: "error" }));
+        if (bu === buSel) setDesks((d) => ({ ...d, [role]: "error" }));
         throw new Error(`A missão parou: ${limite}.`);
       }
       atualizarMissao(opts.missaoId, (m) => iniciarTentativa(m, acao));
@@ -402,13 +419,13 @@ export default function OfficeSimulator() {
         estadoAtual: ciclo ? `ciclo ${ciclo.estado}, versão v${ciclo.versao}${missao ? `; ${resumoParaContrato(missao)}` : ""}` : "sem ciclo editorial em andamento",
       });
       registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem: `${origem} · modo: ${modo === "recomendar" ? "Recomendar" : "Preparar"}` });
-      setDesks((d) => ({ ...d, [role]: "working" }));
-      setLive((l) => ({ ...l, [role]: "" }));
+      if (bu === buSel) setDesks((d) => ({ ...d, [role]: "working" }));
+      if (bu === buSel) setLive((l) => ({ ...l, [role]: "" }));
       const t0 = performance.now();
       let rec: RunRecord;
       try {
         const { text, usage } = await streamAgent(agent.id, instrucaoDoModo(modo) + contrato + task, apiKey ?? "", (full) =>
-          setLive((l) => ({ ...l, [role]: full }))
+          { if (bu === buSel) setLive((l) => ({ ...l, [role]: full })); }
         );
         const ms = performance.now() - t0;
         rec = {
@@ -418,11 +435,11 @@ export default function OfficeSimulator() {
           scenarioId: opts.scenarioId, task, output: text, ms, usage,
           analise: analisar(kind, text, task, !!opts.aprovado),
         };
-        setDesks((d) => ({ ...d, [role]: "done" }));
+        if (bu === buSel) setDesks((d) => ({ ...d, [role]: "done" }));
         registrar({ tipo: "ActionCompleted", bu, ator: role, acao, origem, ms, tokens: usage });
         atualizarMissao(opts.missaoId, (m) => aplicarResultado(m, { kind, acao, origem, modo, analise: rec.analise, usage }));
       } catch (e) {
-        setDesks((d) => ({ ...d, [role]: "error" }));
+        if (bu === buSel) setDesks((d) => ({ ...d, [role]: "error" }));
         const causaErro = classificarErro(e instanceof Error ? e.message : String(e));
         registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: causaErro });
         atualizarMissao(opts.missaoId, (m) => falhar(m, causaErro));
@@ -444,7 +461,7 @@ export default function OfficeSimulator() {
       salvarRuns([...runsRef.current, rec]);
       return rec;
     },
-    [squad, apiKey, bu, salvarRuns, registrar, atualizarMissao]
+    [squadSel, buSel, apiKey, salvarRuns, registrar, atualizarMissao]
   );
 
   // ── Ciclo editorial ───────────────────────────────────────────────────────────
@@ -480,6 +497,7 @@ export default function OfficeSimulator() {
       const pacote = await rodar("cs", "aprovacao", pacoteTask(base, briefing.output, peca.output, 1), { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "AGUARDANDO APROVAÇÃO", etapa: 4, outputs: { ...c.outputs, pacote: pacote.output } });
       atualizarMissao(mid, aguardarAprovacao);
+      gravarHead(registrarEvento(headRef.current, "mission_awaiting_approval", bu, new Date()));
       registrar({ tipo: "ApprovalRequested", bu, ator: "cs", acao: "Pacote de aprovação pronto", origem: "Nada é publicado sem a decisão do gestor" });
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha no ciclo.");
@@ -499,6 +517,7 @@ export default function OfficeSimulator() {
     const registro = { decisao, em: new Date().toISOString(), versao: cycle.versao, feedback: feedback.trim() || undefined };
     const mid = cycle.missaoId;
     atualizarMissao(mid, (m) => decisaoDoGestor(m, decisao, cycle.versao, registro.feedback));
+    gravarHead(registrarEvento(headRef.current, "manager_decision", bu, new Date()));
     registrar({ tipo: "ApprovalDecided", bu, ator: "gestor", acao: `Decisão: ${decisao} (v${cycle.versao})`, origem: feedback.trim() ? `Feedback do gestor: ${feedback.trim().slice(0, 140)}` : "Decisão do gestor sobre o pacote de aprovação" });
     try {
       if (decisao === "rejeitado") {
@@ -527,6 +546,7 @@ export default function OfficeSimulator() {
       const pacote = await rodar("cs", "aprovacao", pacoteTask(cycle, cycle.outputs.briefing ?? "", peca.output, novaVersao), { missaoId: mid });
       setCycle((c) => c && { ...c, estado: "AGUARDANDO APROVAÇÃO", etapa: 4, outputs: { ...c.outputs, pacote: pacote.output } });
       atualizarMissao(mid, aguardarAprovacao);
+      gravarHead(registrarEvento(headRef.current, "mission_awaiting_approval", bu, new Date()));
       registrar({ tipo: "ApprovalRequested", bu, ator: "cs", acao: "Pacote de aprovação pronto", origem: "Nada é publicado sem a decisão do gestor" });
       setFeedback("");
     } catch (e) {
@@ -712,6 +732,145 @@ export default function OfficeSimulator() {
     }));
     liberarConversa("geral");
   };
+
+  // ── Head de CS ────────────────────────────────────────────────────────────────
+
+  const empresasRef = useRef<Empresa[]>([]);
+  const [head, setHead] = useState<EstadoHead>(estadoInicial);
+  const headRef = useRef<EstadoHead>(head);
+  const [headBusy, setHeadBusy] = useState(false);
+  const [headEntregando, setHeadEntregando] = useState(false);
+  const [headErro, setHeadErro] = useState<string | null>(null);
+  const headBusyRef = useRef(false);
+  const entregandoRef = useRef(false);
+
+  const gravarHead = (next: EstadoHead) => {
+    headRef.current = next;
+    setHead(next);
+    try { localStorage.setItem(LS_HEAD, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+  };
+
+  const agentesInfo = (): AgenteInfo[] =>
+    squadsRef.current.flatMap((sq) =>
+      (Object.entries(sq.agents) as [PapelAgente, { id: string; name: string }][]).map(([role, a]) => ({ id: `${sq.bu}|${role}`, bu: sq.bu, role, nome: a.name.split(" · ")[0] }))
+    );
+
+  const statusDoAgente = (a: AgenteInfo): string => {
+    const ult = [...eventosRef.current].reverse().find((e) => e.bu === a.bu && e.ator === a.role && /^Action/.test(e.tipo));
+    if (!ult) return "disponível (sem atividade registrada)";
+    return ult.tipo === "ActionStarted" ? "trabalhando" : ult.tipo === "ActionFailed" ? "com falha na última ação" : "disponível";
+  };
+
+  const ctxHead = (): { agentes: AgenteInfo[]; modoDe: (bu: string, role: PapelAgente) => ModoAutonomia; agora: Date } => ({
+    agentes: agentesInfo(),
+    modoDe: (b, r) => modoDe(politicasRef.current, b, r, "livre"),
+    agora: new Date(),
+  });
+
+  const ativarHead = async (motivo: string) => {
+    if (headBusyRef.current) return;
+    const lim = limiteDoDia(headRef.current);
+    if (lim) { setHeadErro(`O Head não foi ativado: ${lim}.`); return; }
+    const lider = squadsRef.current.find((sq) => sq.agents.cs)?.agents.cs;
+    if (!lider) { setHeadErro("Nenhum agente de CS disponível para executar o Head."); return; }
+    headBusyRef.current = true;
+    setHeadBusy(true);
+    setHeadErro(null);
+    const ctx = ctxHead();
+    const aid = `ativ-${Date.now().toString(36)}`;
+    const snap = {
+      empresas: empresasRef.current.map((e) => ({ bu: e.bu, nome: e.nome, trabalhando: e.trabalhando, agentes: e.agentes, execs: e.execs, alta: e.alta, estados: e.estados as Record<PapelAgente, string> | undefined })),
+      missoes: missoesRef.current.map((m) => ({ id: m.id, bu: m.bu, status: m.status, progresso: progresso(m), bloqueio: m.bloqueio, proxima: m.proximaAcao, tentativas: m.tentativas, max: m.maxTentativas })),
+      eventosRecentes: eventosRef.current.slice(-15).map((e) => ({ ts: e.ts, tipo: e.tipo, bu: e.bu, ator: e.ator, acao: e.acao, erro: e.causa?.codigo })),
+    };
+    const prompt = promptDoHead({ ativacaoId: aid, motivo, agora: ctx.agora, estadoCS: lerEstadoCS(headRef.current, snap), capacidade: capacidadeDosAgentes(headRef.current, ctx.agentes, statusDoAgente) });
+    registrar({ tipo: "LeaderActivated", bu: "AWQ", ator: "head", acao: "Head de CS ativado", origem: `Motivo: ${motivo}` });
+    const t0 = performance.now();
+    try {
+      const { text, usage } = await streamAgent(lider.id, prompt, apiKey ?? "", () => {});
+      const saida = parseSaida(text);
+      if (!saida) {
+        gravarHead(registrarFalhaAtivacao(headRef.current, aid, motivo, "A resposta do Head não veio no formato JSON esperado; nada foi aplicado.", new Date(), usage));
+        registrar({ tipo: "ActionFailed", bu: "AWQ", ator: "head", acao: "Ativação do Head", origem: `Motivo: ${motivo}`, causa: { codigo: "UNKNOWN", mensagem: "Resposta fora do formato JSON.", recuperavel: true, proxima: "Ativar de novo; se persistir, ver o texto no registro." } });
+      } else {
+        const { estado, ativacao } = aplicarSaida(headRef.current, saida, aid, motivo, ctx, usage);
+        gravarHead(estado);
+        registrar({ tipo: "ActionCompleted", bu: "AWQ", ator: "head", acao: "Ativação do Head", origem: `Motivo: ${motivo}`, ms: performance.now() - t0, tokens: usage });
+        for (const id of ativacao.criadas) {
+          const t = estado.tarefas.find((x) => x.id === id);
+          if (t) registrar({ tipo: "TaskCreated", bu: t.bu, ator: "head", acao: `${t.agenteId.split("|")[1]}: ${t.resultado.slice(0, 80)}`, origem: `Delegada pelo Head (${t.prioridade}); status ${t.status}` });
+        }
+        for (const r of ativacao.rejeitadas) registrar({ tipo: "ActionFailed", bu: "AWQ", ator: "head", acao: `Despacho recusado pelo motor`, origem: r.motivo, causa: { codigo: "POLICY_BLOCKED", mensagem: r.motivo, recuperavel: true, proxima: "O Head corrige o despacho na próxima ativação." } });
+        for (const id of ativacao.aprovacoes) { const ap = estado.aprovacoes.find((x) => x.id === id); if (ap) registrar({ tipo: "ApprovalRequested", bu: "AWQ", ator: "head", acao: ap.pedido.slice(0, 100), origem: ap.motivo }); }
+        registrar({ tipo: "CheckpointSaved", bu: "AWQ", ator: "head", acao: "Checkpoint salvo", origem: estado.checkpoint?.wakeup.at ? `Próximo wakeup: ${new Date(estado.checkpoint.wakeup.at).toLocaleString("pt-BR")}` : "Sem wakeup por horário; segue o heartbeat e os eventos" });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "erro";
+      const causa = classificarErro(msg);
+      if (causa.codigo === "INVALID_API_KEY") { localStorage.removeItem(LS_KEY); setApiKey(null); setPrecisaChave(true); }
+      if (causa.codigo === "MISSING_API_KEY") setPrecisaChave(true);
+      gravarHead(registrarFalhaAtivacao(headRef.current, aid, motivo, `${causa.mensagem} ${causa.proxima}`, new Date()));
+      registrar({ tipo: "ActionFailed", bu: "AWQ", ator: "head", acao: "Ativação do Head", origem: `Motivo: ${motivo}`, causa });
+      setHeadErro(`${causa.mensagem} ${causa.proxima}`);
+    } finally {
+      headBusyRef.current = false;
+      setHeadBusy(false);
+    }
+  };
+
+  /** Fila: entrega as tarefas atribuídas aos agentes (respeita a concorrência), uma execução real por tarefa. */
+  const entregarTarefas = async () => {
+    if (entregandoRef.current) return;
+    const lote = tarefasParaEntregar(headRef.current);
+    if (lote.length === 0) return;
+    entregandoRef.current = true;
+    setHeadEntregando(true);
+    await Promise.all(lote.map(async (t) => {
+      gravarHead(atualizarTarefa(headRef.current, t.id, { status: "iniciado", tentativas: t.tentativas + 1, bloqueio: undefined }, new Date()));
+      registrar({ tipo: "TaskUpdated", bu: t.bu, ator: t.role, acao: `Iniciou: ${t.resultado.slice(0, 80)}`, origem: `Tarefa ${t.id} do Head de CS` });
+      try {
+        const rec = await rodar(t.role, "livre", promptDaTarefa(t), { bu: t.bu, origem: `Tarefa ${t.id} delegada pelo Head de CS` });
+        const altas = rec.analise.flags.filter((f) => f.severity === "alta").length;
+        const evid = `${rec.output.length} caracteres; ${altas} alerta(s) alto(s) na análise do motor; ${rec.usage ? `${rec.usage.output} tokens de saída` : "uso não medido"}. O texto fica na conta ${t.bu}; o Head só vê estes fatos.`;
+        const agora = new Date();
+        gravarHead(registrarEvento(atualizarTarefa(headRef.current, t.id, { status: "concluido", evidenciasColetadas: evid, tokensSaida: rec.usage?.output }, agora), "task_completed", t.bu, agora));
+        registrar({ tipo: "TaskUpdated", bu: t.bu, ator: t.role, acao: `Concluiu (aguarda validação do Head): ${t.resultado.slice(0, 60)}`, origem: `Tarefa ${t.id}` });
+      } catch (e) {
+        const causa = classificarErro(e instanceof Error ? e.message : String(e));
+        const agora = new Date();
+        gravarHead(registrarEvento(atualizarTarefa(headRef.current, t.id, { status: "bloqueado", bloqueio: `${causa.mensagem} ${causa.proxima}`.slice(0, 240) }, agora), "task_blocked", t.bu, agora));
+      }
+    }));
+    entregandoRef.current = false;
+    setHeadEntregando(false);
+  };
+
+  const decidirAprovacaoHead = (idAprov: string, decisao: "aprovada" | "recusada") => {
+    gravarHead(decidirAprovacao(headRef.current, idAprov, decisao, new Date()));
+    registrar({ tipo: "ApprovalDecided", bu: "AWQ", ator: "gestor", acao: `Aprovação do Head: ${decisao}`, origem: headRef.current.aprovacoes.find((a) => a.id === idAprov)?.pedido.slice(0, 120) ?? "" });
+  };
+
+  const validarManual = (tarefaId: string, ok: boolean) => {
+    gravarHead(atualizarTarefa(headRef.current, tarefaId, { status: ok ? "validado" : "atribuido", bloqueio: ok ? undefined : "Reaberta pelo gestor" }, new Date()));
+  };
+
+  const mudarConfigHead = (p: Partial<ConfigHead>) => gravarHead({ ...headRef.current, config: { ...headRef.current.config, ...p } });
+
+  // Heartbeat: só enquanto esta página está aberta e o modo autônomo está ligado.
+  const ativarHeadRef = useRef(ativarHead);
+  ativarHeadRef.current = ativarHead;
+  const entregarRef = useRef(entregarTarefas);
+  entregarRef.current = entregarTarefas;
+  useEffect(() => {
+    const t = setInterval(() => {
+      const h = headRef.current;
+      if (!h.config.autonomo) return;
+      const motivo = ativacaoDevida(h, new Date());
+      if (motivo && !headBusyRef.current) void ativarHeadRef.current(motivo);
+      void entregarRef.current();
+    }, 30000);
+    return () => clearInterval(t);
+  }, []);
 
   // ── Reunião dos CSs ───────────────────────────────────────────────────────────
 
@@ -907,6 +1066,7 @@ export default function OfficeSimulator() {
       ) as Record<PapelAgente, DeskStatus>,
     };
   });
+  empresasRef.current = empresas;
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#0a101f] notranslate" translate="no">
@@ -982,7 +1142,7 @@ export default function OfficeSimulator() {
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
         <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
-          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["eventos", "Eventos"], ["missoes", "Missões"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["head", "Head de CS"], ["eventos", "Eventos"], ["missoes", "Missões"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
@@ -1304,6 +1464,14 @@ export default function OfficeSimulator() {
                 ))}
               </div>
             </div>
+          )}
+
+          {tab === "head" && (
+            <HeadCSPanel
+              head={head} busy={headBusy} entregando={headEntregando} erro={headErro} temSquads={squads.some((sq) => sq.agents.cs)}
+              onAtivar={() => void ativarHead("solicitação do gestor")} onEntregar={() => void entregarTarefas()}
+              onAprovacao={decidirAprovacaoHead} onValidar={validarManual} onConfig={mudarConfigHead}
+            />
           )}
 
           {tab === "missoes" && (() => {

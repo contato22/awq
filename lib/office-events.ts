@@ -7,7 +7,8 @@
 export type TipoEvento =
   | "ActionStarted" | "ActionCompleted" | "ActionFailed"
   | "ApprovalRequested" | "ApprovalDecided"
-  | "MeetingStarted" | "MeetingReply";
+  | "MeetingStarted" | "MeetingReply"
+  | "LeaderActivated" | "TaskCreated" | "TaskUpdated" | "CheckpointSaved";
 
 export interface Causa {
   codigo: "NO_CREDITS" | "POLICY_BLOCKED" | "BUDGET_EXHAUSTED" | "MISSING_API_KEY" | "INVALID_API_KEY" | "UPSTREAM_ERROR" | "NETWORK" | "UNKNOWN";
@@ -72,4 +73,8 @@ export const ROTULO_TIPO: Record<TipoEvento, string> = {
   ApprovalDecided: "Decisão do gestor",
   MeetingStarted: "Reunião iniciada",
   MeetingReply: "Resposta na reunião",
+  LeaderActivated: "Head de CS ativado",
+  TaskCreated: "Tarefa criada",
+  TaskUpdated: "Tarefa atualizada",
+  CheckpointSaved: "Checkpoint salvo",
 };
