@@ -306,6 +306,8 @@ function penumbraDasSalas(c: CanvasRenderingContext2D) {
   }
 }
 
+function clamp(v: number, a: number, b: number) { return Math.max(a, Math.min(b, v)); }
+
 type Pt = { x: number; y: number };
 /** Feixes de sol das janelas externas: [dois pontos na parede, dois pontos no chão], em coordenadas de grade. */
 const FEIXES: [[number, number], [number, number], [number, number], [number, number]][] = [
@@ -647,9 +649,24 @@ function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, ti
     if (op.reuniao && op.reuniao.length > 0) {
       add(s.x + CABECEIRA[0] + s.y + CABECEIRA[1] - 0.1, () => cadeira(c, iw(s.x + CABECEIRA[0], s.y + CABECEIRA[1])));
       add(s.x + CABECEIRA[0] + s.y + CABECEIRA[1] - 0.05, () => { const q = iw(s.x + CABECEIRA[0], s.y + CABECEIRA[1]); bonecoSentado(c, q.x, q.y, "cs", "idle", op.quadro); });
+      const decorrido = op.reuniaoDesde != null ? op.t - op.reuniaoDesde : 999;
       op.reuniao.slice(0, ASSENTOS.length).forEach((est, i) => {
         const [ax, ay] = ASSENTOS[i];
-        add(s.x + ax + s.y + ay - 0.05, () => { const q = iw(s.x + ax, s.y + ay); bonecoSentado(c, q.x, q.y, LOOKS[i], est === "pensando" ? "working" : "idle", op.quadro); });
+        // chegada escalonada: cada CS entra ~0.12s depois do anterior, deslizando e esmaecendo até o lugar
+        const prog = clamp((decorrido - i * 0.12) / 0.45, 0, 1);
+        if (prog <= 0) return;
+        const suave = prog * prog * (3 - 2 * prog); // smoothstep
+        add(s.x + ax + s.y + ay - 0.05, () => {
+          const q = iw(s.x + ax, s.y + ay);
+          c.save();
+          c.globalAlpha = suave;
+          const escala = 0.82 + 0.18 * suave;
+          const dy = (1 - suave) * 7; // desliza de baixo para cima até sentar
+          c.translate(q.x, q.y + dy);
+          c.scale(escala, escala);
+          bonecoSentado(c, 0, 0, LOOKS[i], est === "pensando" ? "working" : "idle", op.quadro);
+          c.restore();
+        });
       });
     }
     add(s.x + 2 + s.y + 0.4, () => { const q = iw(s.x + 2.5, s.y + 0.6); ret(c, q.x - 9, q.y - 20, 18, 11, OUT); ret(c, q.x - 8, q.y - 19, 16, 9, "#0f172a"); ret(c, q.x - 6, q.y - 17, 5, 2, "#38bdf8"); ret(c, q.x - 6, q.y - 13, 10, 1.5, "#64748b"); });
@@ -687,6 +704,8 @@ export interface OpcoesMundo {
   andar?: AndarId;
   /** CSs sentados na sala de reuniões (vazio fora da reunião). */
   reuniao?: EstadoReuniao[];
+  /** Tempo de simulação (o mesmo de `t`) em que a reunião atual começou a ser mostrada; null fora da reunião. Anima a chegada escalonada dos CSs. */
+  reuniaoDesde?: number | null;
   hora: number;
   hover: string | null;
   selecionado: string | null;
@@ -787,7 +806,10 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
 
   if (op.reuniao) {
     const sl = SLOTS[5];
+    const decorrido = op.reuniaoDesde != null ? op.t - op.reuniaoDesde : 999;
     op.reuniao.slice(0, ASSENTOS.length).forEach((est, i) => {
+      // só mostra o balão depois que o CS terminou de "chegar" (evita balão flutuando sobre a cadeira vazia)
+      if (decorrido - i * 0.12 < 0.45) return;
       const [ax, ay] = ASSENTOS[i];
       const q = iw(sl.x + ax, sl.y + ay);
       if (est === "pensando") balaoMini(c, q.x, q.y - 36, "pontos", op.quadro);
