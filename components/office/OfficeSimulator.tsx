@@ -764,6 +764,7 @@ export default function OfficeSimulator() {
         nomeCS={nomeCS}
         tab={tab}
         painelAberto={painelAberto}
+        reuniao={painelAberto && tab === "reuniao" ? squads.filter((sq) => sq.agents.cs).map((sq) => { const st = reuResp[sq.bu]?.status; return st ?? "chegando"; }) : undefined}
         onPainel={(aberto, t) => { if (t) setTab(t); setPainelAberto(aberto); }}
         temRelatorio={!!reportDaSquad}
         pendencias={cycle?.estado === "AGUARDANDO APROVAÇÃO" ? 1 : 0}

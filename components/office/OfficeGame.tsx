@@ -9,7 +9,7 @@ import {
   atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, isoC, moverGestor, passo, TEMAS, tileDoPonto, W,
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
-import { casaNoPonto, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa } from "@/lib/office-world";
+import { casaNoPonto, centroDaReuniao, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa, type EstadoReuniao } from "@/lib/office-world";
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de
@@ -44,6 +44,8 @@ interface Props {
   descricao: string;
   tab: PainelTab;
   painelAberto: boolean;
+  /** CSs sentados na sala de reuniões. */
+  reuniao?: EstadoReuniao[];
   onPainel: (aberto: boolean, tab?: PainelTab) => void;
   temRelatorio: boolean;
   pendencias: number;
@@ -109,7 +111,7 @@ function corBarra(v: number): string {
 export default function OfficeGame(props: Props) {
   const {
     empresas, buAtual, onEscolherEmpresa, estados, aguardandoGestor, selecionado, onSelecionar, metricas, atividade, tema,
-    nomeCS, descricao, tab, painelAberto, onPainel, temRelatorio, pendencias, children,
+    nomeCS, descricao, tab, painelAberto, reuniao, onPainel, temRelatorio, pendencias, children,
   } = props;
 
   const contRef = useRef<HTMLDivElement>(null);
@@ -209,6 +211,20 @@ export default function OfficeGame(props: Props) {
     setSeguir(false);
   }, [animar]);
 
+  const naReuniao = painelAberto && tab === "reuniao";
+  useEffect(() => {
+    if (!naReuniao) return;
+    const ir = () => {
+      const c = centroDaReuniao();
+      setSeguir(false);
+      animar(camMundo.current, { cx: c.x + 50, cy: c.y - 8, z: 1.9 }, 650);
+    };
+    if (vistaRef.current === "mundo") { ir(); return; }
+    sair();
+    const t = setTimeout(ir, 1400);
+    return () => clearTimeout(t);
+  }, [naReuniao, animar, sair]);
+
   const zoomPor = useCallback((fator: number) => {
     const sala = vistaRef.current === "sala";
     const cam = sala ? camSala.current : camMundo.current;
@@ -302,7 +318,7 @@ export default function OfficeGame(props: Props) {
         off = offSala.current!; Wv = W; Hv = H; cam = camSala.current;
       } else {
         desenharMundo(gMundo, layoutPredios(d.empresas), {
-          hora: horaRef.current, hover: hoverPredio.current, selecionado: d.buAtual, quadro, t: tSim, reduzido: reduzidoRef.current,
+          reuniao: d.reuniao, hora: horaRef.current, hover: hoverPredio.current, selecionado: d.buAtual, quadro, t: tSim, reduzido: reduzidoRef.current,
         });
         off = offMundo.current!; Wv = WW; Hv = WH; cam = camMundo.current;
       }
