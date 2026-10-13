@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, Check, Download, Key, Loader2, Megaphone, MessageSquare, Pencil,
   Play, Search, Send, ShieldCheck, Trash2, User, Users, X,
@@ -234,6 +235,7 @@ export default function OfficeSimulator() {
   const [reuResp, setReuResp] = useState<Record<string, { nome: string; cliente: string; status: "pensando" | "pronto" | "erro"; texto: string }>>({});
   const [reuBusy, setReuBusy] = useState(false);
   const [eventos, setEventos] = useState<EventoOffice[]>([]);
+  const router = useRouter();
   const [politicas, setPoliticas] = useState<Politicas>({});
   const politicasRef = useRef<Politicas>({});
   const [filtroEvento, setFiltroEvento] = useState<string>("todos");
@@ -835,48 +837,38 @@ export default function OfficeSimulator() {
   });
 
   return (
-    <div className="space-y-3 notranslate" translate="no">
-      {/* Barra superior */}
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs text-gray-400">
-          Uma sala por cliente, cada uma com a sua squad. Os agentes só geram texto: nada é publicado, enviado ou gasto.
-        </span>
-        {apiKey && (
-          <button
-            className="ml-auto text-xs text-gray-400 hover:text-gray-700"
-            onClick={() => { localStorage.removeItem(LS_KEY); setApiKey(BUILTIN_KEY || null); }}
-          >
-            Trocar chave
-          </button>
-        )}
-      </div>
-
-      {precisaChave && !apiKey && (
-        <div className="card p-4 flex flex-wrap items-center gap-3">
-          <Key size={16} className="text-gray-500" />
-          <span className="text-xs text-gray-600">
-            O servidor não tem chave da Anthropic configurada. Cole a sua para rodar os agentes: ela fica só neste navegador (localStorage) e é a mesma do /agents e do OpenClaw.
-          </span>
-          <input
-            type="password"
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            placeholder="sk-ant-..."
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs w-64"
-          />
-          <button
-            className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40"
-            disabled={!keyInput.trim().startsWith("sk-")}
-            onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); setPrecisaChave(false); setErro(null); }}
-          >
-            Salvar chave
-          </button>
-        </div>
-      )}
-
-      {erro && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" /> <span>{erro}</span>
+    <div className="fixed inset-0 z-[60] bg-[#0a101f] notranslate" translate="no">
+      {/* Avisos flutuantes: ficam sobre o mundo, sem empurrar a tela */}
+      {((precisaChave && !apiKey) || erro) && !(painelAberto && tab === "conversa") && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 w-[min(680px,94%)] space-y-2">
+          {precisaChave && !apiKey && (
+            <div className="rounded-xl bg-white shadow-xl border border-amber-200 p-3 flex flex-wrap items-center gap-2">
+              <Key size={16} className="text-amber-600" />
+              <span className="text-xs text-gray-600 flex-1 min-w-[200px]">
+                O servidor não tem chave da Anthropic configurada. Cole a sua: ela fica só neste navegador e é a mesma do /agents e do OpenClaw.
+              </span>
+              <input
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="sk-ant-..."
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs w-56"
+              />
+              <button
+                className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40"
+                disabled={!keyInput.trim().startsWith("sk-")}
+                onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); setPrecisaChave(false); setErro(null); }}
+              >
+                Salvar chave
+              </button>
+            </div>
+          )}
+          {erro && (
+            <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 shadow-xl px-4 py-3 text-sm text-red-700">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" /> <span className="flex-1">{erro}</span>
+              <button onClick={() => setErro(null)} aria-label="Dispensar aviso" className="text-red-400 hover:text-red-700"><X size={14} /></button>
+            </div>
+          )}
         </div>
       )}
 
@@ -898,6 +890,7 @@ export default function OfficeSimulator() {
         nomeCS={nomeCS}
         tab={tab}
         painelAberto={painelAberto}
+        onSair={() => { if (window.history.length > 1) router.back(); else router.push("/"); }}
         busca={[
           ...squads.map((sq) => ({ id: `e:${sq.bu}`, tipo: "empresa" as const, rotulo: sq.bu, sub: "sala do cliente", bu: sq.bu })),
           ...squads.flatMap((sq) => PAPEIS.filter((p) => sq.agents[p.role]).map((p) => ({
@@ -1295,6 +1288,11 @@ export default function OfficeSimulator() {
                       className={`px-2.5 py-1 rounded-full text-[11px] border ${filtroEvento === k ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600"}`}>{l}</button>
                   ))}
                 </div>
+                {apiKey && (
+                  <button className="text-[11px] text-gray-400 hover:text-gray-700" onClick={() => { localStorage.removeItem(LS_KEY); setApiKey(BUILTIN_KEY || null); }}>
+                    Trocar a chave da Anthropic deste navegador
+                  </button>
+                )}
                 {lista.length === 0 && <p className="text-xs text-gray-400">Nenhum evento ainda. Rode uma ação para ver o registro.</p>}
                 <ul className="space-y-2">
                   {lista.map((e) => (

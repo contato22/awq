@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Search, BarChart3, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
+  ArrowLeft, Search, BarChart3, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
   Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
@@ -54,6 +54,8 @@ interface Props {
   descricao: string;
   tab: PainelTab;
   painelAberto: boolean;
+  /** Volta ao painel (o mundo ocupa a janela inteira). */
+  onSair?: () => void;
   /** Itens encontráveis na busca global. */
   busca?: ItemBusca[];
   /** CSs sentados na sala de reuniões. */
@@ -124,7 +126,7 @@ function corBarra(v: number): string {
 export default function OfficeGame(props: Props) {
   const {
     empresas, buAtual, onEscolherEmpresa, estados, aguardandoGestor, selecionado, onSelecionar, metricas, atividade, tema,
-    nomeCS, descricao, tab, painelAberto, reuniao, busca, onPainel, temRelatorio, pendencias, children,
+    nomeCS, descricao, tab, painelAberto, reuniao, busca, onSair, onPainel, temRelatorio, pendencias, children,
   } = props;
 
   const contRef = useRef<HTMLDivElement>(null);
@@ -549,8 +551,7 @@ export default function OfficeGame(props: Props) {
       ref={contRef}
       tabIndex={0}
       onKeyDown={aoTeclar}
-      className="relative w-full overflow-hidden rounded-xl border border-gray-800 bg-[#0a101f] outline-none"
-      style={{ height: "calc(100vh - 170px)", minHeight: 520 }}
+      className="relative w-full h-full overflow-hidden bg-[#0a101f] outline-none"
     >
       <canvas
         ref={canvasRef}
@@ -566,6 +567,11 @@ export default function OfficeGame(props: Props) {
 
       {/* Barra superior: onde você está */}
       <div className="absolute top-0 left-0 right-0 flex items-center gap-2 px-3 py-2 pointer-events-none">
+        {onSair && (
+          <button onClick={onSair} title="Voltar ao painel" aria-label="Voltar ao painel" className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5 hover:bg-black/80">
+            <ArrowLeft size={13} /> Painel
+          </button>
+        )}
         <nav aria-label="Localização" className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5">
           <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista === "sala" && sair()}>Escritório AWQ</button>
           {vista === "sala" && (
