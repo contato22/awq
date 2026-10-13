@@ -1,9 +1,11 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Loader2, Play, Send, XCircle } from "lucide-react";
+import type { StatusSync } from "@/lib/office-sync";
 import { ROTULO_TAREFA, limiteDoDia, type ConfigHead, type EstadoHead, type StatusTarefa } from "@/lib/office-head";
 
 interface Props {
+  armazenamento: { status: StatusSync; detalhe?: string };
   head: EstadoHead;
   busy: boolean;
   entregando: boolean;
@@ -26,7 +28,7 @@ const COR_NIVEL: Record<string, string> = { P0: "bg-red-600 text-white", P1: "bg
 const quando = (iso?: string | null) => (iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }) : "—");
 const texto = (v: unknown): string => (typeof v === "string" ? v : JSON.stringify(v));
 
-export default function HeadCSPanel({ head, busy, entregando, erro, temSquads, onAtivar, onEntregar, onAprovacao, onValidar, onConfig }: Props) {
+export default function HeadCSPanel({ armazenamento, head, busy, entregando, erro, temSquads, onAtivar, onEntregar, onAprovacao, onValidar, onConfig }: Props) {
   const ult = head.ativacoes[head.ativacoes.length - 1];
   const saida = ult?.saida ?? null;
   const limite = limiteDoDia(head);
@@ -40,6 +42,10 @@ export default function HeadCSPanel({ head, busy, entregando, erro, temSquads, o
         O Head de CS lidera por ciclos: lê o estado de todas as contas, prioriza, delega com prazo e critérios de aceite e programa a continuidade. O motor valida autoridade, limites e duplicidade antes de criar cada tarefa.
         Ele só age quando ativado (agora, por evento ou pelo heartbeat) e <strong>apenas enquanto esta página estiver aberta</strong>: não há monitoramento em segundo plano. Ele enxerga o estado operacional das contas, nunca o conteúdo das entregas.
       </p>
+
+      <div className={`rounded-lg px-3 py-1.5 text-[11px] ${armazenamento.status === "servidor" ? "bg-green-50 text-green-800" : armazenamento.status === "verificando" ? "bg-gray-50 text-gray-600" : "bg-amber-50 text-amber-900"}`}>
+        Armazenamento: {armazenamento.status === "servidor" ? "salvo no servidor (durável e compartilhado entre navegadores)" : armazenamento.status === "verificando" ? "verificando o servidor…" : `só neste navegador${armazenamento.detalhe ? ` (${armazenamento.detalhe})` : ""}`}
+      </div>
 
       <div className="rounded-xl border border-gray-200 p-3 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
