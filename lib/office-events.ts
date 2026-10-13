@@ -10,7 +10,7 @@ export type TipoEvento =
   | "MeetingStarted" | "MeetingReply";
 
 export interface Causa {
-  codigo: "POLICY_BLOCKED" | "MISSING_API_KEY" | "INVALID_API_KEY" | "UPSTREAM_ERROR" | "NETWORK" | "UNKNOWN";
+  codigo: "NO_CREDITS" | "POLICY_BLOCKED" | "MISSING_API_KEY" | "INVALID_API_KEY" | "UPSTREAM_ERROR" | "NETWORK" | "UNKNOWN";
   mensagem: string;
   recuperavel: boolean;
   proxima: string;
@@ -40,6 +40,9 @@ export function novoEvento(e: Omit<EventoOffice, "id" | "ts">): EventoOffice {
 
 /** Converte um erro bruto em causa estruturada com a próxima ação sugerida. */
 export function classificarErro(msg: string): Causa {
+  if (/credit balance is too low/i.test(msg)) {
+    return { codigo: "NO_CREDITS", mensagem: "A conta da Anthropic dona da chave está sem créditos.", recuperavel: true, proxima: "Adicionar créditos em platform.claude.com/settings/billing (na mesma organização da chave) e repetir." };
+  }
   if (msg.startsWith("POLICY_BLOCKED")) {
     return { codigo: "POLICY_BLOCKED", mensagem: msg.replace("POLICY_BLOCKED: ", ""), recuperavel: true, proxima: "Mudar o modo desta ação na aba Eventos (Políticas de autonomia) e repetir." };
   }
