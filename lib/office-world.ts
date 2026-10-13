@@ -94,6 +94,18 @@ export function predioNoPonto(predios: PredioW[], x: number, y: number): PredioW
   return melhor;
 }
 
+/** Centro da sala de reuniões (para a câmera). */
+export function centroDaReuniao(): { x: number; y: number } {
+  const sl = SLOTS[5];
+  const c = iw(sl.x + LADO / 2, sl.y + LADO / 2);
+  return { x: c.x, y: c.y - 6 };
+}
+
+// cadeiras da sala de reuniões (relativas à sala): fundo, frente e a cabeceira do gestor
+const ASSENTOS: [number, number][] = [[1.5, 1.5], [2.5, 1.5], [3.5, 1.5], [1.5, 3.5], [2.5, 3.5], [3.5, 3.5]];
+const CABECEIRA: [number, number] = [4.5, 2.5];
+const LOOKS: Papel[] = ["ref", "criativo", "midia", "ref", "criativo", "midia"];
+
 /** Sala da casa (sala do Miguel ou de reuniões) sob o ponto, se houver. */
 export function casaNoPonto(x: number, y: number): "diretoria" | "reunioes" | null {
   for (const [i, tipo] of [[0, "diretoria"], [5, "reunioes"]] as const) {
@@ -418,6 +430,15 @@ function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, ti
       add(s.x + gx + s.y + 1.4, () => cadeira(c, iw(s.x + gx, s.y + 1.5)));
       add(s.x + gx + s.y + 3.6, () => cadeira(c, iw(s.x + gx, s.y + 3.5)));
     }
+    // reunião em andamento: o gestor na cabeceira e os CSs sentados em volta da mesa
+    if (op.reuniao && op.reuniao.length > 0) {
+      add(s.x + CABECEIRA[0] + s.y + CABECEIRA[1] - 0.1, () => cadeira(c, iw(s.x + CABECEIRA[0], s.y + CABECEIRA[1])));
+      add(s.x + CABECEIRA[0] + s.y + CABECEIRA[1] - 0.05, () => { const q = iw(s.x + CABECEIRA[0], s.y + CABECEIRA[1]); bonecoSentado(c, q.x, q.y, "cs", "idle", op.quadro); });
+      op.reuniao.slice(0, ASSENTOS.length).forEach((est, i) => {
+        const [ax, ay] = ASSENTOS[i];
+        add(s.x + ax + s.y + ay - 0.05, () => { const q = iw(s.x + ax, s.y + ay); bonecoSentado(c, q.x, q.y, LOOKS[i], est === "pensando" ? "working" : "idle", op.quadro); });
+      });
+    }
     add(s.x + 2 + s.y + 0.4, () => { const q = iw(s.x + 2.5, s.y + 0.6); ret(c, q.x - 9, q.y - 20, 18, 11, OUT); ret(c, q.x - 8, q.y - 19, 16, 9, "#0f172a"); ret(c, q.x - 6, q.y - 17, 5, 2, "#38bdf8"); ret(c, q.x - 6, q.y - 13, 10, 1.5, "#64748b"); });
   }
   add(s.x + LADO - 1 + s.y + 0.3, () => { const q = iw(s.x + LADO - 0.5, s.y + 0.5); planta(c, q.x, q.y, op.quadro); });
@@ -429,7 +450,11 @@ function colega(c: CanvasRenderingContext2D, x: number, y: number, cor: string, 
   ret(c, x - 1.75, y - 6.5, 3.5, 3.5, cor); ret(c, x - 1.25, y - 9, 2.5, 2.5, "#f1c9a5"); ret(c, x - 1.25, y - 9.5, 2.5, 1, "#3b2a1b");
 }
 
+export type EstadoReuniao = "chegando" | "pensando" | "pronto" | "erro";
+
 export interface OpcoesMundo {
+  /** CSs sentados na sala de reuniões (vazio fora da reunião). */
+  reuniao?: EstadoReuniao[];
   hora: number;
   hover: string | null;
   selecionado: string | null;
@@ -493,6 +518,17 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
       for (let i = 0; i < p.w * 32; i++) { c.fillRect(t.x + i * 0.5, t.y + i * 0.25, 0.5, 0.5); c.fillRect(l.x + i * 0.5, l.y + i * 0.25, 0.5, 0.5); }
       for (let i = 0; i < p.h * 32; i++) { c.fillRect(t.x - i * 0.5, t.y + i * 0.25, 0.5, 0.5); c.fillRect(r.x - i * 0.5, r.y + i * 0.25, 0.5, 0.5); }
     }
+  }
+
+  if (op.reuniao) {
+    const sl = SLOTS[5];
+    op.reuniao.slice(0, ASSENTOS.length).forEach((est, i) => {
+      const [ax, ay] = ASSENTOS[i];
+      const q = iw(sl.x + ax, sl.y + ay);
+      if (est === "pensando") balaoMini(c, q.x, q.y - 36, "pontos", op.quadro);
+      else if (est === "pronto") balaoMini(c, q.x, q.y - 36, "ok", op.quadro);
+      else if (est === "erro") balaoMini(c, q.x, q.y - 36, "erro", op.quadro);
+    });
   }
 
   const escuro = 1 - luzDoDia(op.hora);
