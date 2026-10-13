@@ -634,6 +634,15 @@ export default function OfficeSimulator() {
       alta: rs.reduce((a, r) => a + contaFlags(r.analise).alta, 0),
       trabalhando: sq.bu === bu ? PAPEIS.filter((p) => desks[p.role] === "working").length : 0,
       relatorio: !!rep,
+      // sala atual: estados ao vivo; demais salas: aproximado das execuções recentes (10 min)
+      estados: Object.fromEntries(
+        PAPEIS.map((p) => {
+          if (sq.bu === bu) return [p.role, desks[p.role]];
+          const ult = [...rs].reverse().find((r) => r.role === p.role && !r.scenarioId);
+          const recente = !!ult && Date.now() - new Date(ult.ts).getTime() < 10 * 60000;
+          return [p.role, !recente ? "idle" : contaFlags(ult!.analise).alta > 0 ? "error" : "done"];
+        })
+      ) as Record<PapelAgente, DeskStatus>,
     };
   });
 

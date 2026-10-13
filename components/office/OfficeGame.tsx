@@ -496,7 +496,7 @@ export default function OfficeGame(props: Props) {
       {/* Barra superior: onde você está */}
       <div className="absolute top-0 left-0 right-0 flex items-center gap-2 px-3 py-2 pointer-events-none">
         <nav aria-label="Localização" className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5">
-          <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista === "sala" && sair()}>Mundo AWQ</button>
+          <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista === "sala" && sair()}>Escritório AWQ</button>
           {vista === "sala" && (
             <>
               <ChevronRight size={12} className="text-white/50" />
@@ -522,8 +522,8 @@ export default function OfficeGame(props: Props) {
       {/* Trilho de modos */}
       <div className="absolute left-3 top-14 flex flex-col gap-1.5">
         <button
-          title="Mundo AWQ"
-          aria-label="Mundo AWQ"
+          title="Escritório AWQ"
+          aria-label="Escritório AWQ"
           onClick={() => (vista === "sala" ? sair() : recentrar())}
           className={`w-10 h-10 rounded-xl flex items-center justify-center border ${vista === "mundo" ? "bg-brand-600 text-white border-brand-500" : "bg-black/60 text-white border-white/10 hover:bg-black/80"}`}
         >
@@ -630,8 +630,8 @@ export default function OfficeGame(props: Props) {
 
       <p className={`absolute left-16 bottom-3 text-[10px] text-white/45 max-w-[150px] pointer-events-none hidden 2xl:block ${painelAberto ? "2xl:hidden" : ""}`}>
         {vista === "mundo"
-          ? "Clique num prédio (ou dê zoom nele) para entrar. Arraste para mover o mapa."
-          : "Clique num agente para selecioná-lo, no chão para mover o gestor. Afaste o zoom para voltar ao mapa. Esc também volta."}
+          ? "Clique numa sala de cliente (ou dê zoom nela) para entrar. Arraste para mover a planta."
+          : "Clique num agente para selecioná-lo, no chão para mover o gestor. Afaste o zoom para voltar à planta do escritório. Esc também volta."}
       </p>
 
       {/* Gaveta de painéis */}
