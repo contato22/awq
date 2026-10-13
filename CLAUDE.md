@@ -127,3 +127,12 @@ npm run build             # build completo (confirma que não quebrou SSR)
 - **Sync falhava**: `initDB()` lançava exceção antes de chegar no Supabase — corrigido com `.catch()` interno
 - **Page SSR vazia**: Next.js cacheava fetch do Supabase em Server Components — corrigido com `cache: 'no-store'` em todos os clientes server-side
 - **Board não atualizava**: `useState(initialTransactions)` não re-inicializa em prop changes — corrigido com `useEffect([initialTransactions])`
+
+---
+
+## Office (simulador de agentes em `/agents/office`)
+
+- Estado durável: tabela `office_state` (migration `supabase/migrations/013_office_state.sql`, rodar no SQL Editor do Supabase do ERP). API `/api/office/state`. Sem a tabela o simulador segue só com `localStorage` (aviso no painel do Head de CS).
+- Só `head`, `missions`, `events` e `policies` vão ao servidor. Conversas, relatórios da manhã e conteúdo de entregas de clientes ficam só no navegador (repositório público, dados de clientes).
+- Head de CS no servidor (`/api/office/head/tick`, `lib/office-server.ts`): travado por padrão. Só gasta créditos com `OFFICE_HEAD_TICK=1`, `OFFICE_TICK_SECRET`, `ANTHROPIC_API_KEY` e o "Modo autônomo" ligado no painel. O agendador é o workflow de exemplo `scripts/office-head-tick.workflow.yml.example` (copiar para `.github/workflows/`; manual até descomentar o `schedule`).
+- Motor puro e testável: `lib/office-head.ts` (fila, políticas, idempotência, checkpoint), `lib/office-missions.ts`, `lib/office-sync.ts` (mescla).
