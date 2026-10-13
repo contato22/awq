@@ -872,6 +872,16 @@ export default function OfficeSimulator() {
         nomeCS={nomeCS}
         tab={tab}
         painelAberto={painelAberto}
+        busca={[
+          ...squads.map((sq) => ({ id: `e:${sq.bu}`, tipo: "empresa" as const, rotulo: sq.bu, sub: "sala do cliente", bu: sq.bu })),
+          ...squads.flatMap((sq) => PAPEIS.filter((p) => sq.agents[p.role]).map((p) => ({
+            id: `a:${sq.bu}:${p.role}`, tipo: "agente" as const,
+            rotulo: p.role === "cs" ? `${sq.agents.cs?.name.split(" · ")[0] ?? "CS"} (CS)` : p.label,
+            sub: sq.bu, bu: sq.bu, role: p.role,
+          }))),
+          { id: "s:reunioes", tipo: "sala" as const, rotulo: "Sala de reuniões", sub: "reunião dos CSs", sala: "reunioes" as const },
+          { id: "s:diretoria", tipo: "sala" as const, rotulo: "Sala do Miguel", sub: "diretoria", sala: "diretoria" as const },
+        ]}
         reuniao={painelAberto && tab === "reuniao" ? squads.filter((sq) => sq.agents.cs).map((sq) => { const st = reuResp[sq.bu]?.status; return st ?? "chegando"; }) : undefined}
         onPainel={(aberto, t) => { if (t) setTab(t); setPainelAberto(aberto); }}
         temRelatorio={!!reportDaSquad}
