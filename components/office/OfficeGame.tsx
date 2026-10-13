@@ -9,7 +9,7 @@ import {
   atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, isoC, moverGestor, passo, TEMAS, tileDoPonto, W,
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
-import { casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa, type EstadoReuniao } from "@/lib/office-world";
+import { ANDARES, andarDaEmpresa, casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type AndarId, type Empresa, type EstadoReuniao } from "@/lib/office-world";
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de
@@ -19,12 +19,13 @@ import { casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoPredio, desenh
 
 export interface ItemBusca {
   id: string;
-  tipo: "empresa" | "agente" | "sala";
+  tipo: "empresa" | "agente" | "sala" | "andar";
   rotulo: string;
   sub: string;
   bu?: string;
   role?: Agente;
   sala?: "reunioes" | "diretoria";
+  andar?: AndarId;
 }
 
 export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "missoes" | "relatorio" | "analise" | "cenarios" | "registros";
@@ -155,6 +156,10 @@ export default function OfficeGame(props: Props) {
   const hoverPredio = useRef<string | null>(null);
   const animacao = useRef<{ cam: Cam; de: Cam; para: Cam; t0: number; dur: number; fim?: () => void } | null>(null);
   const fade = useRef(0);
+  // andar visível no mundo e atalho para as squads dele
+  const [andar, setAndar] = useState<AndarId>("jacqes");
+  const andarRef = useRef<AndarId>("jacqes");
+  const prediosDoAndar = useCallback(() => layoutPredios(dados.current.empresas.filter((e) => andarDaEmpresa(e) === andarRef.current)), []);
   const offSala = useRef<HTMLCanvasElement | null>(null);
   const offMundo = useRef<HTMLCanvasElement | null>(null);
   const arraste = useRef<{ x: number; y: number; cx: number; cy: number; mexeu: boolean } | null>(null);
@@ -194,7 +199,9 @@ export default function OfficeGame(props: Props) {
 
   const entrar = useCallback((bu: string) => {
     if (animacao.current) return;
-    const predios = layoutPredios(dados.current.empresas);
+    const emp = dados.current.empresas.find((e) => e.bu === bu);
+    if (emp && andarDaEmpresa(emp) !== andarRef.current) { andarRef.current = andarDaEmpresa(emp); setAndar(andarRef.current); }
+    const predios = prediosDoAndar();
     const p = predios.find((x) => x.empresa.bu === bu);
     const alvo = p ? centroDoPredio(p) : { x: WW / 2, y: WH / 2 };
     setSeguir(false);
@@ -205,11 +212,11 @@ export default function OfficeGame(props: Props) {
       setVista("sala");
       animar(camSala.current, { cx: W / 2, cy: H / 2, z: 1 }, 520);
     });
-  }, [animar]);
+  }, [animar, prediosDoAndar]);
 
   const sair = useCallback(() => {
     if (animacao.current || vistaRef.current === "mundo") return;
-    const predios = layoutPredios(dados.current.empresas);
+    const predios = prediosDoAndar();
     const p = predios.find((x) => x.empresa.bu === dados.current.buAtual);
     const alvo = p ? centroDoPredio(p) : { x: WW / 2, y: WH / 2 };
     setSeguir(false);
@@ -219,7 +226,23 @@ export default function OfficeGame(props: Props) {
       setVista("mundo");
       animar(camMundo.current, { cx: WW / 2, cy: WH / 2, z: 1 }, 650);
     });
-  }, [animar]);
+  }, [animar, prediosDoAndar]);
+
+  /** Troca o andar visível; dentro de uma sala, primeiro volta ao mundo. */
+  const trocarAndar = useCallback((id: AndarId) => {
+    if (id === andarRef.current) return;
+    const fazer = () => {
+      andarRef.current = id;
+      setAndar(id);
+      fade.current = 1;
+      camMundo.current = { cx: WW / 2, cy: WH / 2, z: 1 };
+      setZoomRot(1);
+      setSeguir(false);
+    };
+    // dentro de uma sala: sai direto para o mundo (o fade cobre a transição) e já mostra o outro andar
+    if (vistaRef.current === "sala") { animacao.current = null; setVista("mundo"); }
+    fazer();
+  }, []);
 
   const recentrar = useCallback(() => {
     if (vistaRef.current === "sala") animar(camSala.current, { cx: W / 2, cy: H / 2, z: 1 }, 380);
@@ -240,7 +263,8 @@ export default function OfficeGame(props: Props) {
     const noMundo = (fn: () => void) => {
       if (vistaRef.current === "sala") { sair(); setTimeout(fn, 1400); } else fn();
     };
-    if (i.tipo === "sala" && i.sala === "reunioes") { onPainel(true, "reuniao"); return; }
+    if (i.tipo === "andar" && i.andar) { trocarAndar(i.andar); return; }
+    if (i.tipo === "sala" && i.sala === "reunioes") { if (andarRef.current !== "jacqes") trocarAndar("jacqes"); onPainel(true, "reuniao"); return; }
     if (i.tipo === "sala" && i.sala === "diretoria") {
       noMundo(() => { const c = centroDaDiretoria(); setSeguir(false); animar(camMundo.current, { cx: c.x + 20, cy: c.y - 8, z: 2.2 }, 650); });
       return;
@@ -361,8 +385,8 @@ export default function OfficeGame(props: Props) {
         }
         off = offSala.current!; Wv = W; Hv = H; cam = camSala.current;
       } else {
-        desenharMundo(gMundo, layoutPredios(d.empresas), {
-          reuniao: d.reuniao, hora: horaRef.current, hover: hoverPredio.current, selecionado: d.buAtual, quadro, t: tSim, reduzido: reduzidoRef.current,
+        desenharMundo(gMundo, layoutPredios(d.empresas.filter((e) => andarDaEmpresa(e) === andarRef.current)), {
+          andar: andarRef.current, reuniao: andarRef.current === "jacqes" ? d.reuniao : undefined, hora: horaRef.current, hover: hoverPredio.current, selecionado: d.buAtual, quadro, t: tSim, reduzido: reduzidoRef.current,
         });
         off = offMundo.current!; Wv = WW; Hv = WH; cam = camMundo.current;
       }
@@ -413,7 +437,7 @@ export default function OfficeGame(props: Props) {
       const z1 = cam.z * Math.exp(-e.deltaY * 0.0016);
       if (sala && z1 < 0.55 && e.deltaY > 0) { sair(); return; }
       if (!sala && z1 > 3.1 && e.deltaY < 0) {
-        const predios = layoutPredios(dados.current.empresas);
+        const predios = prediosDoAndar();
         const alvo = predioNoPonto(predios, lx, ly) ?? predios.find((p) => p.empresa.bu === dados.current.buAtual) ?? predios[0];
         if (alvo) { entrar(alvo.empresa.bu); return; }
       }
@@ -431,7 +455,7 @@ export default function OfficeGame(props: Props) {
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
     };
-  }, [entrar, sair]);
+  }, [entrar, sair, prediosDoAndar]);
 
   // ── entrada: arrastar, clicar, passar o mouse ───────────────────────────────
 
@@ -466,7 +490,7 @@ export default function OfficeGame(props: Props) {
       return;
     }
     if (vistaRef.current === "mundo") {
-      const p = predioNoPonto(layoutPredios(dados.current.empresas), lx, ly);
+      const p = predioNoPonto(prediosDoAndar(), lx, ly);
       hoverPredio.current = p?.empresa.bu ?? null;
       setCursor(p || casaNoPonto(lx, ly) === "reunioes" ? "pointer" : "grab");
     } else {
@@ -486,7 +510,7 @@ export default function OfficeGame(props: Props) {
     if (!a || a.mexeu) return;
     const { lx, ly } = paraLogico(e);
     if (vistaRef.current === "mundo") {
-      const p = predioNoPonto(layoutPredios(dados.current.empresas), lx, ly);
+      const p = predioNoPonto(prediosDoAndar(), lx, ly);
       if (p) entrar(p.empresa.bu);
       else if (casaNoPonto(lx, ly) === "reunioes") dados.current.onPainel(true, "reuniao");
       return;
@@ -573,6 +597,19 @@ export default function OfficeGame(props: Props) {
             <ArrowLeft size={13} /> Painel
           </button>
         )}
+        <div role="group" aria-label="Andares" className="pointer-events-auto flex items-center gap-0.5 rounded-lg bg-black/60 p-0.5 text-xs text-white">
+          {[...ANDARES].reverse().map((a) => (
+            <button
+              key={a.id}
+              onClick={() => trocarAndar(a.id)}
+              title={`Andar ${a.numero}: ${a.descricao}`}
+              aria-pressed={andar === a.id}
+              className={`rounded-md px-2 py-1 ${andar === a.id ? "bg-white text-gray-900 font-semibold" : "hover:bg-white/10"}`}
+            >
+              {a.numero}º · {a.nome}
+            </button>
+          ))}
+        </div>
         <nav aria-label="Localização" className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5">
           <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista === "sala" && sair()}>Escritório AWQ</button>
           {vista === "sala" && (
@@ -696,7 +733,8 @@ export default function OfficeGame(props: Props) {
           </>
         ) : (
           <div className="flex flex-wrap gap-1.5">
-            {empresas.map((e) => (
+            {empresas.filter((e) => andarDaEmpresa(e) === andar).length === 0 && <span className="text-xs text-white/60 px-1">Nenhuma squad neste andar ainda</span>}
+            {empresas.filter((e) => andarDaEmpresa(e) === andar).map((e) => (
               <button key={e.bu} onClick={() => entrar(e.bu)} className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-white/15 hover:bg-white/10 flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${e.trabalhando > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-400"}`} />
                 {e.nome}
