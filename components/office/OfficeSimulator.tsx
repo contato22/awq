@@ -212,6 +212,9 @@ export default function OfficeSimulator() {
   const [chatRole, setChatRole] = useState<PapelAgente>("cs");
   const [chatInput, setChatInput] = useState("");
   const [faseChat, setFaseChat] = useState<string | null>(null);
+  const [reuPauta, setReuPauta] = useState("");
+  const [reuResp, setReuResp] = useState<Record<string, { nome: string; cliente: string; status: "pensando" | "pronto" | "erro"; texto: string }>>({});
+  const [reuBusy, setReuBusy] = useState(false);
   const runsRef = useRef<RunRecord[]>([]);
 
   // Chave, execuções salvas e squads disponíveis
@@ -505,6 +508,51 @@ export default function OfficeSimulator() {
     }
   };
 
+  // ── Reunião dos CSs ───────────────────────────────────────────────────────────
+
+  /** Cada CS responde em paralelo, vendo só o contexto do próprio cliente (sem ler as respostas dos outros). */
+  const iniciarReuniao = async () => {
+    const pauta = reuPauta.trim();
+    const participantes = squads.filter((sq) => sq.agents.cs);
+    if (!pauta || reuBusy || participantes.length === 0) return;
+    setErro(null);
+    setReuBusy(true);
+    setReuResp(Object.fromEntries(participantes.map((sq) => [sq.bu, {
+      nome: sq.agents.cs!.name.split(" · ")[0], cliente: sq.bu, status: "pensando" as const, texto: "",
+    }])));
+    await Promise.all(participantes.map(async (sq) => {
+      const nome = sq.agents.cs!.name.split(" · ")[0];
+      const meta = reports.find((r) => sq.bu.toLowerCase().includes(r.cliente.toLowerCase()));
+      let relatorio = "";
+      if (meta) {
+        try { const r = await fetch(`/data/office/reports/${meta.arquivo}`); if (r.ok) relatorio = await r.text(); } catch { /* sem relatório: segue sem */ }
+      }
+      const tarefa = [
+        `REUNIÃO DE ALINHAMENTO DOS CSs (você é ${nome}, CS de ${sq.bu})`,
+        "O gestor reuniu os CSs de todos os clientes. Responda em português, direto e curto (até ~150 palavras): sua posição sobre a pauta considerando APENAS o seu cliente, o que está pendente ou em risco e o que precisa de decisão do gestor. Você só enxerga o contexto do seu cliente: não opine sobre outros clientes nem peça dados deles. Não afirme ter feito nada externo; nada é publicado ou enviado.",
+        relatorio ? `RELATÓRIO DA MANHÃ DO SEU CLIENTE:\n${trecho(relatorio, 3500)}` : "",
+        `PAUTA DO GESTOR:\n${pauta}`,
+      ].filter(Boolean).join("\n\n");
+      try {
+        const { text } = await streamAgent(sq.agents.cs!.id, tarefa, apiKey ?? "", (full) =>
+          setReuResp((m) => ({ ...m, [sq.bu]: { nome, cliente: sq.bu, status: "pensando", texto: full } }))
+        );
+        setReuResp((m) => ({ ...m, [sq.bu]: { nome, cliente: sq.bu, status: "pronto", texto: text } }));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "erro";
+        if (/invalid x-api-key|authentication_error/.test(msg)) {
+          localStorage.removeItem(LS_KEY); setApiKey(null); setPrecisaChave(true);
+          setErro("A Anthropic recusou a chave salva neste navegador. Cole uma chave nova no campo que apareceu.");
+        } else if (msg.includes("API_KEY_REQUIRED")) {
+          setPrecisaChave(true);
+          setErro("Falta a chave da Anthropic. Cole a sua no campo que apareceu (ela fica só neste navegador).");
+        }
+        setReuResp((m) => ({ ...m, [sq.bu]: { nome, cliente: sq.bu, status: "erro", texto: msg } }));
+      }
+    }));
+    setReuBusy(false);
+  };
+
   // ── Cenários ──────────────────────────────────────────────────────────────────
 
   const rodarCenario = async (c: Cenario) => {
@@ -723,7 +771,7 @@ export default function OfficeSimulator() {
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
         <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
-          {([["ciclo", "Ciclo"], ["conversa", "Conversar"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+          {([["ciclo", "Ciclo"], ["conversa", "Conversar"], ["reuniao", "Reunião"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
@@ -944,6 +992,48 @@ export default function OfficeSimulator() {
                   Limpar esta conversa
                 </button>
               )}
+            </div>
+          )}
+
+          {tab === "reuniao" && (
+            <div className="space-y-3">
+              {erro && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" /> <span>{erro}</span>
+                </div>
+              )}
+              <p className="text-xs text-gray-500">
+                Sala de reuniões: todos os CSs ({squads.map((sq) => sq.agents.cs?.name.split(" · ")[0]).filter(Boolean).join(", ") || "nenhum carregado"}) recebem a mesma pauta e respondem ao mesmo tempo.
+                Cada um vê só o contexto do próprio cliente e não lê o que os outros disseram. Nada é publicado ou enviado.
+              </p>
+              <textarea
+                value={reuPauta}
+                onChange={(e) => setReuPauta(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void iniciarReuniao(); } }}
+                rows={3}
+                placeholder="Pauta da reunião (ex.: qual a prioridade de cada cliente esta semana? Cmd/Ctrl + Enter inicia)"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+              />
+              <button
+                className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+                disabled={reuBusy || !reuPauta.trim() || squads.length === 0}
+                onClick={() => void iniciarReuniao()}
+              >
+                {reuBusy ? <Loader2 size={14} className="animate-spin" /> : <User size={14} />} Iniciar reunião
+              </button>
+              <div className="space-y-3">
+                {Object.values(reuResp).map((r) => (
+                  <div key={r.cliente} className="rounded-xl border border-gray-200 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-xs font-semibold text-gray-800">{r.nome} · CS de {r.cliente}</div>
+                      <div className={`text-[10px] ${r.status === "erro" ? "text-red-600" : r.status === "pronto" ? "text-green-600" : "text-gray-400"}`}>
+                        {r.status === "pensando" ? "falando…" : r.status === "pronto" ? "concluiu" : "falhou"}
+                      </div>
+                    </div>
+                    {r.status === "erro" ? <p className="text-xs text-red-600">{r.texto}</p> : <MiniMarkdown source={r.texto || "…"} />}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
