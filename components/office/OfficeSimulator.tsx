@@ -22,6 +22,7 @@ import {
   promptDaTarefa, promptDoHead, registrarEvento, registrarFalhaAtivacao, tarefasParaEntregar, type AgenteInfo, type ConfigHead, type EstadoHead,
 } from "@/lib/office-head";
 import HeadCSPanel from "./HeadCSPanel";
+import { criarSincronizador, type Sincronizador, type StatusSync, type ValoresSync } from "@/lib/office-sync";
 import type { Atividade } from "@/lib/office-iso";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
@@ -253,6 +254,8 @@ export default function OfficeSimulator() {
   const router = useRouter();
   const [politicas, setPoliticas] = useState<Politicas>({});
   const politicasRef = useRef<Politicas>({});
+  const syncRef = useRef<Sincronizador | null>(null);
+  const [armazenamento, setArmazenamento] = useState<{ status: StatusSync; detalhe?: string }>({ status: "verificando" });
   const [missoes, setMissoes] = useState<Missao[]>([]);
   const missoesRef = useRef<Missao[]>([]);
   const [filtroEvento, setFiltroEvento] = useState<string>("todos");
@@ -300,6 +303,21 @@ export default function OfficeSimulator() {
       .catch(() => setReports([]));
 
     if (IS_STATIC) return;
+
+    // Estado durável no servidor: mescla com o local e passa a gravar nas mudanças.
+    const aplicarLocal = <K extends keyof ValoresSync>(chave: K, valor: ValoresSync[K]) => {
+      const gravar = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* cota estourada */ } };
+      if (chave === "events") { eventosRef.current = valor as EventoOffice[]; setEventos(valor as EventoOffice[]); gravar(LS_EVENTOS, valor); }
+      else if (chave === "missions") { missoesRef.current = valor as Missao[]; setMissoes(valor as Missao[]); gravar(LS_MISSOES, valor); }
+      else if (chave === "policies") { politicasRef.current = valor as Politicas; setPoliticas(valor as Politicas); gravar(LS_POLITICAS, valor); }
+      else { headRef.current = valor as EstadoHead; setHead(valor as EstadoHead); gravar(LS_HEAD, valor); }
+    };
+    const sinc = criarSincronizador({ status: (st, detalhe) => setArmazenamento({ status: st, detalhe }), aoMesclar: aplicarLocal });
+    void sinc.iniciar({ head: headRef.current, missions: missoesRef.current, events: eventosRef.current, policies: politicasRef.current }).then((out) => {
+      syncRef.current = sinc;
+      if (out) (Object.keys(out) as (keyof ValoresSync)[]).forEach((k) => aplicarLocal(k, out[k] as never));
+    });
+
     fetch("/api/agents")
       .then((r) => r.json())
       .then((list: { id: string; name: string; bu: string }[]) => {
@@ -349,6 +367,7 @@ export default function OfficeSimulator() {
     politicasRef.current = next;
     setPoliticas(next);
     try { localStorage.setItem(LS_POLITICAS, JSON.stringify(next)); } catch { /* segue só em memória */ }
+    syncRef.current?.agendar("policies", next);
   };
 
   const registrar = useCallback((e: Omit<EventoOffice, "id" | "ts">) => {
@@ -356,12 +375,14 @@ export default function OfficeSimulator() {
     eventosRef.current = next;
     setEventos(next);
     try { localStorage.setItem(LS_EVENTOS, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+    syncRef.current?.agendar("events", next);
   }, []);
 
   const gravarMissoes = useCallback((next: Missao[]) => {
     missoesRef.current = next;
     setMissoes(next);
     try { localStorage.setItem(LS_MISSOES, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+    syncRef.current?.agendar("missions", next);
   }, []);
 
   const atualizarMissao = useCallback((id: string | undefined, fn: (m: Missao) => Missao) => {
@@ -748,6 +769,7 @@ export default function OfficeSimulator() {
     headRef.current = next;
     setHead(next);
     try { localStorage.setItem(LS_HEAD, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+    syncRef.current?.agendar("head", next);
   };
 
   const agentesInfo = (): AgenteInfo[] =>
@@ -1468,7 +1490,7 @@ export default function OfficeSimulator() {
 
           {tab === "head" && (
             <HeadCSPanel
-              head={head} busy={headBusy} entregando={headEntregando} erro={headErro} temSquads={squads.some((sq) => sq.agents.cs)}
+              armazenamento={armazenamento} head={head} busy={headBusy} entregando={headEntregando} erro={headErro} temSquads={squads.some((sq) => sq.agents.cs)}
               onAtivar={() => void ativarHead("solicitação do gestor")} onEntregar={() => void entregarTarefas()}
               onAprovacao={decidirAprovacaoHead} onValidar={validarManual} onConfig={mudarConfigHead}
             />
