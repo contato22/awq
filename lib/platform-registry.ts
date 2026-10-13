@@ -205,6 +205,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
 
   // ── AI & Agents ───────────────────────────────────────────────────────────
   { href: "/agents",   label: "Agents",   bu: "ai", layer: "ai", status: "active", dataSource: "lib/agents-config.ts + /api/agents", inSidebar: true, inTabNav: false },
+  { href: "/agents/office", label: "Office", bu: "ai", layer: "ai", status: "active", dataSource: "lib/social-squad.ts + /api/agents (simulador de squad)", inSidebar: true, inTabNav: false },
   { href: "/openclaw", label: "OpenClaw", bu: "ai", layer: "ai", status: "active", dataSource: "/api/chat (Anthropic SDK)",          inSidebar: true, inTabNav: false },
 ];
 

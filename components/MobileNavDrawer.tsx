@@ -965,7 +965,8 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             <>
               <SectionLabel>IA & Agentes</SectionLabel>
               <div className="space-y-0.5">
-                <NavLink href="/agents"   icon={Bot}      label="Agents"   active={isActive("/agents")}   onNavigate={onClose} />
+                <NavLink href="/agents"   icon={Bot}      label="Agents"   active={pathname === "/agents"} onNavigate={onClose} />
+                <NavLink href="/agents/office" icon={Building2} label="Office" active={isActive("/agents/office")} onNavigate={onClose} />
                 <NavLink href="/openclaw" icon={Sparkles} label="OpenClaw" active={isActive("/openclaw")} onNavigate={onClose} />
               </div>
             </>

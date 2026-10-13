@@ -129,6 +129,7 @@ type AwqModule = {
 // ── BU nav arrays ─────────────────────────────────────────────────────────────
 const aiNav: ModuleItem[] = [
     { label: "Agents",   href: "/agents",   icon: Bot      },
+    { label: "Office",   href: "/agents/office", icon: Building2 },
     { label: "OpenClaw", href: "/openclaw", icon: Sparkles },
 ];
 
@@ -859,7 +860,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     ];
 
     const isActive = (href: string) =>
-        href === "/awq" || href === "/crm"
+        href === "/awq" || href === "/crm" || href === "/agents"
             ? pathname === href
             : pathname === href || pathname.startsWith(href + "/");
 
@@ -1006,7 +1007,7 @@ function BUSidebar({
     const colors = BU_COLORS[buId] ?? BU_COLORS.jacqes;
 
     const isActive = (href: string) =>
-        href === homeHref ? pathname === homeHref : pathname === href || pathname.startsWith(href + "/");
+        href === homeHref || href === "/agents" ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
     const findDefaultPanel = () =>
         modules.find((m) => m.items.some((i) => isActive(i.href)))?.id
