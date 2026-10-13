@@ -325,41 +325,28 @@ export function atorNoPonto(m: Mundo, x: number, y: number): Papel | null {
 }
 
 // ── Desenho ────────────────────────────────────────────────────────────────────
+//
+// O canvas tem W*ESCALA x H*ESCALA pixels e as coordenadas lógicas aceitam meio
+// pixel (múltiplos de 0.5), o que dá traços e arestas muito mais finos. O cenário
+// fixo (paredes, piso, janelas, quadros) é pré-renderizado e guardado em cache por
+// tema e por faixa de 15 minutos do dia; só móveis, personagens e luz são
+// redesenhados a cada quadro.
+
+export const ESCALA = 2;
+
+const r5 = (v: number) => Math.round(v * 2) / 2;
 
 function ret(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
   c.fillStyle = cor;
-  c.fillRect(Math.round(x), Math.round(y), w, h);
+  c.fillRect(r5(x), r5(y), w, h);
 }
 
-/** Losango 32x16 nítido (linha a linha), com o vértice superior em (x, y). */
-function losango(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
-  c.fillStyle = cor;
-  for (let i = 0; i < 16; i++) {
-    const w = i < 8 ? 4 * (i + 1) : 4 * (16 - i);
-    c.fillRect(Math.round(x - w / 2), Math.round(y + i), w, 1);
-  }
-}
-
-function contorno(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
-  c.fillStyle = cor;
-  for (let i = 0; i < 16; i++) {
-    const w = i < 8 ? 4 * (i + 1) : 4 * (16 - i);
-    c.fillRect(Math.round(x - w / 2), Math.round(y + i), 2, 1);
-    c.fillRect(Math.round(x + w / 2 - 2), Math.round(y + i), 2, 1);
-  }
-  c.fillRect(Math.round(x - 2), Math.round(y), 4, 1);
-  c.fillRect(Math.round(x - 2), Math.round(y + 15), 4, 1);
-}
-
-/** Cubo de um tile com altura h; (x, y) é o vértice superior do losango no chão. */
-function caixa(c: CanvasRenderingContext2D, x: number, y: number, h: number, topo: string, esq: string, dir: string) {
-  for (let i = 0; i < 16; i++) {
-    c.fillStyle = esq;
-    c.fillRect(Math.round(x - 16 + i), Math.round(y - h + 8 + Math.floor(i / 2)), 1, h);
-    c.fillStyle = dir;
-    c.fillRect(Math.round(x + i), Math.round(y - h + 16 - Math.floor(i / 2)), 1, h);
-  }
-  losango(c, x, y - h, topo);
+function aleat(a: number, b: number, k = 0): number {
+  let h = Math.imul(a + 0x9e37, 0x85ebca6b) ^ Math.imul(b + 0x7f4a, 0xc2b2ae35) ^ Math.imul(k + 1, 0x27d4eb2f);
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x2c1b3c6d);
+  h ^= h >>> 12;
+  return (h >>> 0) / 4294967296;
 }
 
 function mistura(a: string, b: string, t: number): string {
@@ -374,7 +361,6 @@ function sombreia(cor: string, f: number): string {
 }
 
 function luzDoDia(hora: number): number {
-  // 0 = noite fechada, 1 = dia pleno
   if (hora >= 7 && hora <= 17) return 1;
   if (hora > 17 && hora < 19.5) return 1 - (hora - 17) / 2.5;
   if (hora >= 5 && hora < 7) return (hora - 5) / 2;
@@ -383,61 +369,208 @@ function luzDoDia(hora: number): number {
 
 function ceu(hora: number): { topo: string; base: string } {
   const l = luzDoDia(hora);
-  const dia = { topo: "#7dd3fc", base: "#bae6fd" };
-  const noite = { topo: "#0f172a", base: "#1e293b" };
-  const poente = { topo: "#fb923c", base: "#fde68a" };
-  const amanhecer = hora < 12;
+  const dia = { topo: "#5cc0f5", base: "#c4e8fb" };
+  const noite = { topo: "#0a1226", base: "#1b2a4a" };
   if (l >= 1) return dia;
   if (l <= 0) return noite;
-  const meio = amanhecer ? { topo: "#f9a8d4", base: "#fde68a" } : poente;
+  const meio = hora < 12 ? { topo: "#f4a6d0", base: "#fde2a8" } : { topo: "#f9843c", base: "#fde6a0" };
   return l > 0.5
     ? { topo: mistura(meio.topo, dia.topo, (l - 0.5) * 2), base: mistura(meio.base, dia.base, (l - 0.5) * 2) }
     : { topo: mistura(noite.topo, meio.topo, l * 2), base: mistura(noite.base, meio.base, l * 2) };
 }
 
-function desenharParedes(c: CanvasRenderingContext2D, tema: Tema, hora: number) {
+/** Losango 32x16 com arestas em degraus de meio pixel (inclinação 2:1 exata). */
+function losango(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
+  c.fillStyle = cor;
+  for (let i = 0; i < 32; i++) {
+    const w = (i < 16 ? i + 1 : 32 - i) * 2;
+    c.fillRect(r5(x - w / 2), r5(y + i * 0.5), w, 0.5);
+  }
+}
+
+/** Losango escalado (s = 1 é o tile inteiro), centrado em (cx, cy). */
+function losangoEsc(c: CanvasRenderingContext2D, cx: number, cy: number, s: number, cor: string) {
+  const n = Math.round(32 * s);
+  const meio = n / 2;
+  const k = (32 * s) / meio;
+  c.fillStyle = cor;
+  for (let i = 0; i < n; i++) {
+    const w = (i < meio ? i + 1 : n - i) * k;
+    c.fillRect(r5(cx - w / 2), r5(cy - 8 * s + i * 0.5), w, 0.5);
+  }
+}
+
+function arestaInf(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
+  c.fillStyle = cor;
+  for (let i = 0; i < 32; i++) {
+    c.fillRect(r5(x - 16 + i * 0.5), r5(y + 8 + i * 0.25), 0.5, 0.5);
+    c.fillRect(r5(x + i * 0.5), r5(y + 16 - i * 0.25), 0.5, 0.5);
+  }
+}
+
+function arestaSup(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
+  c.fillStyle = cor;
+  for (let i = 0; i < 32; i++) {
+    c.fillRect(r5(x - 16 + i * 0.5), r5(y + 8 - i * 0.25), 0.5, 0.5);
+    c.fillRect(r5(x + i * 0.5), r5(y + i * 0.25), 0.5, 0.5);
+  }
+}
+
+/** Cubo de um tile; (x, y) é o vértice superior do losango no chão. */
+function caixa(c: CanvasRenderingContext2D, x: number, y: number, h: number, topo: string, esq: string, dir: string) {
+  const baixo = Math.round(h * 0.3 * 2) / 2;
+  for (let i = 0; i < 32; i++) {
+    const xe = x - 16 + i * 0.5;
+    const te = y - h + 8 + i * 0.25;
+    ret(c, xe, te, 0.5, h, esq);
+    ret(c, xe, te + h - baixo, 0.5, baixo, sombreia(esq, -0.16));
+    const xd = x + i * 0.5;
+    const td = y - h + 16 - i * 0.25;
+    ret(c, xd, td, 0.5, h, dir);
+    ret(c, xd, td + h - baixo, 0.5, baixo, sombreia(dir, -0.13));
+  }
+  losango(c, x, y - h, topo);
+  arestaSup(c, x, y - h, sombreia(topo, 0.3));
+  ret(c, x - 16, y - h + 8, 0.5, h, sombreia(esq, -0.28));
+  ret(c, x - 0.5, y - h + 16, 1, h, sombreia(esq, -0.34));
+  ret(c, x + 15.5, y - h + 8, 0.5, h, sombreia(dir, -0.28));
+}
+
+// ── Cenário fixo (em cache) ────────────────────────────────────────────────────
+
+function colParede(lado: "D" | "E", u: number): { x: number; base: number } {
+  return { x: lado === "D" ? OX + u * 16 : OX - u * 16 - 0.5, base: OY + u * 8 };
+}
+
+function pintarParede(c: CanvasRenderingContext2D, lado: "D" | "E", tema: Tema) {
+  const n = lado === "D" ? GW : GH;
+  const cor = lado === "D" ? tema.paredeD : tema.paredeE;
+  for (let k = 0; k < n * 32; k++) {
+    const u = k / 32;
+    const { x, base } = colParede(lado, u);
+    const ao = Math.max(0, 1 - (u * 16) / 34) * 0.22;
+    const principal = sombreia(cor, -ao);
+    ret(c, x, base - WALL_H, 0.5, WALL_H, principal);
+    ret(c, x, base - WALL_H, 0.5, 1.5, sombreia(cor, 0.26));
+    ret(c, x, base - WALL_H + 1.5, 0.5, 0.5, sombreia(cor, -0.22));
+    ret(c, x, base - 17, 0.5, 12, sombreia(principal, -0.07));
+    ret(c, x, base - 17.5, 0.5, 0.5, sombreia(cor, 0.14));
+    ret(c, x, base - 17, 0.5, 0.5, sombreia(cor, -0.22));
+    ret(c, x, base - 5, 0.5, 5, tema.rodape);
+    ret(c, x, base - 5, 0.5, 0.5, sombreia(tema.rodape, 0.38));
+  }
+}
+
+function disco(c: CanvasRenderingContext2D, cx: number, cy: number, r: number, cor: string) {
+  c.fillStyle = cor;
+  for (let dy = -r; dy < r; dy += 0.5) {
+    const w = 2 * Math.sqrt(Math.max(0, r * r - (dy + 0.25) * (dy + 0.25)));
+    c.fillRect(r5(cx - w / 2), r5(cy + dy), Math.round(w * 2) / 2, 0.5);
+  }
+}
+
+function pintarJanela(c: CanvasRenderingContext2D, lado: "D" | "E", a: number, b: number, hora: number, tema: Tema) {
   const sky = ceu(hora);
-  const noite = luzDoDia(hora) < 0.4;
-  // parede direita (ao longo de gx, em gy=0)
-  for (let x = OX; x < OX + GW * 16; x++) {
-    const base = OY + Math.floor((x - OX) / 2);
-    ret(c, x, base - WALL_H, 1, WALL_H, tema.paredeD);
-    ret(c, x, base - 4, 1, 4, tema.rodape);
-    ret(c, x, base - WALL_H, 1, 2, sombreia(tema.paredeD, 0.25));
-  }
-  // parede esquerda (ao longo de gy, em gx=0)
-  for (let x = OX - GH * 16; x < OX; x++) {
-    const base = OY + Math.floor((OX - x) / 2);
-    ret(c, x, base - WALL_H, 1, WALL_H, tema.paredeE);
-    ret(c, x, base - 4, 1, 4, tema.rodape);
-    ret(c, x, base - WALL_H, 1, 2, sombreia(tema.paredeE, 0.2));
-  }
-  // janelas: trechos em tiles ao longo de cada parede
-  const janelas: { lado: "D" | "E"; a: number; b: number }[] = [
-    { lado: "D", a: 8.4, b: 10.6 }, { lado: "E", a: 1.2, b: 2.8 }, { lado: "E", a: 6.2, b: 8.2 },
-  ];
-  for (const j of janelas) {
-    for (let t = 0; t < (j.b - j.a) * 16; t++) {
-      const x = j.lado === "D" ? OX + Math.floor(j.a * 16) + t : OX - Math.floor(j.b * 16) + t;
-      const base = j.lado === "D" ? OY + Math.floor((x - OX) / 2) : OY + Math.floor((OX - x) / 2);
-      const top = base - WALL_H + 9;
-      const alto = 22;
-      const borda = t < 2 || t >= (j.b - j.a) * 16 - 2;
-      ret(c, x, top - 2, 1, alto + 4, "#e2e8f0");
-      if (!borda) {
-        ret(c, x, top, 1, Math.floor(alto / 2), sky.topo);
-        ret(c, x, top + Math.floor(alto / 2), 1, Math.ceil(alto / 2), sky.base);
-        if (t === Math.floor(((j.b - j.a) * 16) / 2)) ret(c, x, top, 1, alto, "#e2e8f0");
-        if (noite && (t * 7 + (j.a * 13 | 0)) % 17 === 0) ret(c, x, top + 3 + (t % 5), 1, 1, "#f8fafc");
-      }
-    }
-    // peitoril
-  }
-  // sol/lua
   const l = luzDoDia(hora);
-  if (l > 0.05 && l < 1) {
-    // luz do poente/amanhecer na janela direita
+  const noite = l < 0.35;
+  const larg = (b - a) * 16;
+  const alto = 24;
+  const cortina = mistura(lado === "D" ? tema.paredeD : tema.paredeE, "#ffffff", 0.62);
+  for (let k = Math.round(a * 32); k < Math.round(b * 32); k++) {
+    const u = k / 32;
+    const { x, base } = colParede(lado, u);
+    const off = (u - a) * 16;
+    const top = base - WALL_H + 8;
+    const borda = off < 1 || off > larg - 1;
+    const meio = Math.abs(off - larg / 2) < 0.5;
+    if (borda || meio) {
+      ret(c, x, top - 1, 0.5, alto + 2, "#e8edf4");
+      ret(c, x, top - 1, 0.5, 0.5, "#ffffff");
+      continue;
+    }
+    ret(c, x, top - 1, 0.5, 2, "#e8edf4");
+    ret(c, x, top + alto - 1, 0.5, 2, "#cbd5e1");
+    const linhas = (alto - 2) * 2;
+    for (let r = 0; r < linhas; r++) ret(c, x, top + 1 + r * 0.5, 0.5, 0.5, mistura(sky.topo, sky.base, r / linhas));
+    const hb = 3 + aleat(Math.floor(off / 2.5), lado === "D" ? 1 : 2, 7) * 7;
+    ret(c, x, top + alto - 1 - hb, 0.5, hb, noite ? "#070d1c" : mistura(sky.base, "#51647f", 0.5));
+    if (noite && aleat(k, Math.floor(hb), 3) > 0.82) ret(c, x, top + alto - 1 - hb + 1 + Math.floor(aleat(k, 1, 1) * (hb - 2)), 0.5, 0.5, "#fde68a");
+    if (noite && aleat(k, 3, 5) > 0.97) ret(c, x, top + 2 + aleat(k, 2, 2) * 7, 0.5, 0.5, "#f8fafc");
   }
+  // sol ou lua
+  const cu = a + (b - a) * 0.66;
+  const cp = colParede(lado, cu);
+  if (l > 0.12) {
+    disco(c, cp.x, cp.base - WALL_H + 8 + 6, 3.4, "rgba(255,244,170,0.35)");
+    disco(c, cp.x, cp.base - WALL_H + 8 + 6, 2.2, "#fff3a8");
+  } else {
+    disco(c, cp.x, cp.base - WALL_H + 8 + 6, 2.4, "#f1f5f9");
+    disco(c, cp.x + 1, cp.base - WALL_H + 8 + 5.5, 2.1, "#0e1a33");
+  }
+  // cortinas
+  for (let k = Math.round(a * 32); k < Math.round(b * 32); k++) {
+    const u = k / 32;
+    const off = (u - a) * 16;
+    if (off > 2.6 && off < larg - 2.6) continue;
+    const { x, base } = colParede(lado, u);
+    const dobra = Math.floor(off * 2) % 3 === 0;
+    ret(c, x, base - WALL_H + 6, 0.5, alto + 3, dobra ? sombreia(cortina, -0.14) : cortina);
+  }
+  // peitoril
+  for (let k = Math.round(a * 32) - 1; k < Math.round(b * 32) + 1; k++) {
+    const { x, base } = colParede(lado, k / 32);
+    ret(c, x, base - WALL_H + 8 + alto + 1, 0.5, 1.5, "#dfe6ee");
+    ret(c, x, base - WALL_H + 8 + alto + 2.5, 0.5, 0.5, "#94a3b8");
+  }
+}
+
+function painel(
+  c: CanvasRenderingContext2D, lado: "D" | "E", u0: number, u1: number, yTopo: number, alto: number,
+  cor: (off: number, y: number, larg: number) => string | null
+) {
+  const larg = (u1 - u0) * 16;
+  for (let k = Math.round(u0 * 32); k < Math.round(u1 * 32); k++) {
+    const u = k / 32;
+    const { x, base } = colParede(lado, u);
+    const off = (u - u0) * 16;
+    for (let r = 0; r < alto * 2; r++) {
+      const col = cor(off, r * 0.5, larg);
+      if (col) ret(c, x, base - WALL_H + yTopo + r * 0.5, 0.5, 0.5, col);
+    }
+  }
+}
+
+function pintarDecoracao(c: CanvasRenderingContext2D, tema: Tema) {
+  const destaque = sombreia(tema.paredeD, 0.5);
+  // quadro de paisagem na parede direita
+  painel(c, "D", 1.1, 2.9, 8, 17, (off, y, larg) => {
+    if (off < 1 || off > larg - 1 || y < 1 || y > 16) return "#3b2a1b";
+    if (off < 1.5 || off > larg - 1.5 || y < 1.5 || y > 15.5) return "#c8a46a";
+    if (y < 9) return mistura("#7fd1ff", "#ffe9b0", y / 9);
+    const colina = 9 + Math.sin(off * 0.35) * 1.4 + 1.2;
+    if (y > colina) return mistura("#3f8f5b", "#2d6b44", (y - colina) / 6);
+    if (Math.hypot(off - larg * 0.7, y - 6) < 2.4) return "#fff3a8";
+    return mistura("#7fd1ff", "#ffe9b0", y / 9);
+  });
+  // quadro geométrico menor
+  painel(c, "D", 10.85, 11.85, 10, 12, (off, y, larg) => {
+    if (off < 1 || off > larg - 1 || y < 1 || y > 11) return "#27272a";
+    const faixa = Math.floor((off - 1) / ((larg - 2) / 3));
+    return [tema.rodape, destaque, sombreia(tema.paredeD, -0.1)][Math.min(2, faixa)];
+  });
+  // lousa na parede esquerda, com post-its
+  painel(c, "E", 3.0, 5.85, 9, 19, (off, y, larg) => {
+    if (off < 1 || off > larg - 1 || y < 1 || y > 18) return "#cbd5e1";
+    if (off < 1.5 || off > larg - 1.5 || y < 1.5 || y > 17.5) return "#94a3b8";
+    const notas = [
+      { x: 4, y: 3, cor: "#fde047" }, { x: 12, y: 3.5, cor: "#f9a8d4" }, { x: 21, y: 3, cor: "#86efac" },
+      { x: 29, y: 3.5, cor: "#93c5fd" }, { x: 8, y: 10, cor: "#fdba74" }, { x: 17, y: 10.5, cor: "#c4b5fd" },
+    ];
+    for (const n of notas) if (off >= n.x && off < n.x + 6 && y >= n.y && y < n.y + 5.5) return y < n.y + 1 ? sombreia(n.cor, -0.12) : n.cor;
+    if (y > 14.5 && y < 15 && off > 3 && off < larg - 8) return "#60a5fa";
+    if (y > 16 && y < 16.5 && off > 3 && off < larg - 16) return "#f87171";
+    return "#f8fafc";
+  });
 }
 
 function desenharPiso(c: CanvasRenderingContext2D, tema: Tema) {
@@ -445,51 +578,447 @@ function desenharPiso(c: CanvasRenderingContext2D, tema: Tema) {
     for (let x = 0; x < GW; x++) {
       const p = isoC(x, y);
       const tapete = x >= 4 && x <= 9 && y >= 3 && y <= 8;
-      losango(c, p.x, p.y, tapete ? tema.tapete[(x + y) % 2] : tema.piso[(x + y) % 2]);
+      const borda = tapete && (x === 4 || x === 9 || y === 3 || y === 8);
+      let cor = tapete ? tema.tapete[(x + y) % 2] : tema.piso[(x + y) % 2];
+      if (borda) cor = sombreia(cor, -0.12);
+      losango(c, p.x, p.y, cor);
+      if (tapete && !borda) losangoEsc(c, p.x, p.y + 8, 0.5, sombreia(cor, 0.1));
+      if (tapete && !borda) losangoEsc(c, p.x, p.y + 8, 0.22, sombreia(cor, -0.08));
+      // textura sutil
+      for (let k = 0; k < 3; k++) {
+        const hx = (aleat(x, y, k) - 0.5) * 18;
+        const hy = 8 + (aleat(y, x, k + 4) - 0.5) * 6;
+        ret(c, p.x + hx, p.y + hy, 0.5, 0.5, sombreia(cor, aleat(x, y, k + 9) > 0.5 ? 0.07 : -0.07));
+      }
+      arestaInf(c, p.x, p.y, "rgba(0,0,0,0.075)");
+      arestaSup(c, p.x, p.y, "rgba(255,255,255,0.13)");
+      if (y === 0 || x === 0) losango(c, p.x, p.y, "rgba(0,0,0,0.11)");
+      if (y === 1 || x === 1) losango(c, p.x, p.y, "rgba(0,0,0,0.04)");
     }
   }
   // espessura do piso nas duas bordas da frente
   const x0 = OX - GH * 16;
-  for (let i = 0; i < GW * 16; i++) ret(c, x0 + i, OY + GH * 8 + Math.floor(i / 2), 1, 5, "#475569");
+  for (let i = 0; i < GW * 32; i++) {
+    const yy = OY + GH * 8 + i * 0.25;
+    ret(c, x0 + i * 0.5, yy, 0.5, 2.5, "#64748b");
+    ret(c, x0 + i * 0.5, yy + 2.5, 0.5, 3, "#475569");
+  }
   const x1 = OX + (GW - GH) * 16;
-  for (let i = 0; i < GH * 16; i++) ret(c, x1 + i, OY + (GW + GH) * 8 - Math.floor(i / 2), 1, 5, "#334155");
+  for (let i = 0; i < GH * 32; i++) {
+    const yy = OY + (GW + GH) * 8 - i * 0.25;
+    ret(c, x1 + i * 0.5, yy, 0.5, 2.5, "#475569");
+    ret(c, x1 + i * 0.5, yy + 2.5, 0.5, 3, "#334155");
+  }
 }
+
+function sombrasDosMoveis(c: CanvasRenderingContext2D) {
+  const bloq = montarBloqueios();
+  for (let y = 0; y < GH; y++) {
+    for (let x = 0; x < GW; x++) {
+      if (!bloq[y][x]) continue;
+      const p = isoC(x, y);
+      losango(c, p.x + 4, p.y + 2, "rgba(10,15,30,0.14)");
+    }
+  }
+}
+
+function feixesDeLuz(c: CanvasRenderingContext2D, hora: number) {
+  const l = luzDoDia(hora);
+  const dia = l > 0.1;
+  c.save();
+  c.beginPath();
+  const t = isoC(0, 0), r = isoC(GW, 0), b = isoC(GW, GH), e = isoC(0, GH);
+  c.moveTo(t.x, t.y); c.lineTo(r.x, r.y); c.lineTo(b.x, b.y); c.lineTo(e.x, e.y); c.closePath();
+  c.clip();
+  const cor = dia ? `rgba(255,243,190,${(0.2 * l).toFixed(3)})` : "rgba(140,170,255,0.07)";
+  const faixa = (a: { x: number; y: number }, b2: { x: number; y: number }, c2: { x: number; y: number }, d: { x: number; y: number }) => {
+    c.fillStyle = cor;
+    c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b2.x, b2.y); c.lineTo(c2.x, c2.y); c.lineTo(d.x, d.y); c.closePath(); c.fill();
+  };
+  // janela da parede direita (gy = 0, gx 8.4 a 10.6): luz entra pela direita
+  const p = (gx: number, gy: number) => isoC(gx, gy);
+  faixa(p(8.5, 0), p(9.4, 0), p(6.9, 4.2), p(6.0, 4.2));
+  faixa(p(9.6, 0), p(10.5, 0), p(8.0, 4.2), p(7.1, 4.2));
+  // janelas da parede esquerda (gx = 0)
+  faixa(p(0, 1.3), p(0, 2.7), p(4.3, 4.0), p(4.3, 2.6));
+  faixa(p(0, 6.3), p(0, 8.1), p(4.3, 9.2), p(4.3, 7.6));
+  c.restore();
+}
+
+function cenarioEstatico(c: CanvasRenderingContext2D, tema: Tema, hora: number) {
+  for (let k = 0; k < H; k += 4) ret(c, 0, k, W, 4, mistura("#0a101f", "#141f3a", k / H));
+  pintarParede(c, "D", tema);
+  pintarParede(c, "E", tema);
+  pintarJanela(c, "D", 8.4, 10.6, hora, tema);
+  pintarJanela(c, "E", 1.2, 2.8, hora, tema);
+  pintarJanela(c, "E", 6.2, 8.2, hora, tema);
+  pintarDecoracao(c, tema);
+  desenharPiso(c, tema);
+  sombrasDosMoveis(c);
+  feixesDeLuz(c, hora);
+}
+
+const cacheFundo = new Map<string, HTMLCanvasElement>();
+
+function fundo(op: OpcoesDesenho): HTMLCanvasElement | null {
+  if (typeof document === "undefined") return null;
+  const chave = `${TEMAS.indexOf(op.tema)}|${Math.floor(op.hora * 4)}`;
+  let cv = cacheFundo.get(chave);
+  if (!cv) {
+    cv = document.createElement("canvas");
+    cv.width = W * ESCALA;
+    cv.height = H * ESCALA;
+    const g = cv.getContext("2d");
+    if (!g) return null;
+    g.setTransform(ESCALA, 0, 0, ESCALA, 0, 0);
+    g.imageSmoothingEnabled = false;
+    cenarioEstatico(g, op.tema, op.hora);
+    if (cacheFundo.size > 24) cacheFundo.delete(cacheFundo.keys().next().value as string);
+    cacheFundo.set(chave, cv);
+  }
+  return cv;
+}
+
+// ── Itens dinâmicos ────────────────────────────────────────────────────────────
 
 type Item = { d: number; f: () => void };
 
-function monitor(c: CanvasRenderingContext2D, cx: number, cy: number, st: Estado | "off", f: number) {
-  ret(c, cx - 7, cy - 11, 14, 11, "#0f172a");
-  ret(c, cx - 1, cy, 2, 2, "#475569");
-  const base = st === "error" ? "#7f1d1d" : st === "done" ? "#14532d" : st === "working" ? "#0c4a6e" : "#111827";
-  ret(c, cx - 6, cy - 10, 12, 8, base);
+const OUT = "rgba(11,17,32,0.92)";
+
+function parte(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
+  ret(c, x - 0.5, y - 0.5, w + 1, h + 1, OUT);
+  ret(c, x, y, w, h, cor);
+}
+
+function monitor(c: CanvasRenderingContext2D, cx: number, cy: number, st: Estado | "off", f: number, papel: Papel) {
+  ret(c, cx - 3, cy - 0.5, 6, 1, "#52525b");
+  ret(c, cx - 3, cy - 1, 6, 0.5, "#a1a1aa");
+  ret(c, cx - 0.75, cy - 3, 1.5, 2.5, "#71717a");
+  ret(c, cx - 7.5, cy - 14.5, 15, 11.5, "#0b0b10");
+  ret(c, cx - 7, cy - 14, 14, 10.5, "#27272a");
+  const x0 = cx - 6.5, y0 = cy - 13.5, w = 13, h = 9.5;
+  const base = st === "error" ? "#3b0d0d" : st === "done" ? "#0f3a22" : st === "working" ? "#0b2a4a" : "#0c1424";
+  ret(c, x0, y0, w, h, base);
   if (st === "working") {
-    [8, 6, 9, 5].forEach((w, i) => ret(c, cx - 5, cy - 9 + i * 2, Math.min(10, Math.max(2, ((w + f + i * 2) % 9) + 2)), 1, i % 2 ? "#7dd3fc" : "#38bdf8"));
+    if (papel === "cs") {
+      ret(c, x0 + 1, y0 + 1, 6, 2, "#e2e8f0"); ret(c, x0 + 6, y0 + 3.5, 6, 2, "#38bdf8"); ret(c, x0 + 1, y0 + 6, 4, 2, "#e2e8f0");
+      if (f % 4 < 2) ret(c, x0 + 6, y0 + 6.5, 3, 1.5, "#38bdf8");
+    } else if (papel === "ref") {
+      ret(c, x0 + 1, y0 + 1, 5, 4.5, "#475569"); ret(c, x0 + 1.5, y0 + 1.5, 2, 2, "#94a3b8");
+      for (let i = 0; i < 4; i++) ret(c, x0 + 7, y0 + 1 + i * 2, 2 + ((f + i * 3) % 4), 1, i % 2 ? "#7dd3fc" : "#bae6fd");
+      ret(c, x0 + 1, y0 + 6.5, 11, 0.5, "#38bdf8");
+    } else if (papel === "criativo") {
+      ["#f43f5e", "#f59e0b", "#22c55e", "#3b82f6"].forEach((cor, i) => ret(c, x0 + 1 + i * 2.5, y0 + 1, 2, 2, cor));
+      ret(c, x0 + 1, y0 + 3.5, 11, 5, "#f8fafc");
+      ret(c, x0 + 2 + (f % 8), y0 + 5 + (f % 3) * 0.5, 2, 1, "#8b5cf6");
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const alt = 2 + ((i * 3 + f) % 5);
+        ret(c, x0 + 1.5 + i * 2.2, y0 + 8 - alt, 1.5, alt, i % 2 ? "#34d399" : "#10b981");
+      }
+      ret(c, x0 + 1, y0 + 8, 11, 0.5, "#94a3b8");
+    }
   } else if (st === "done") {
-    ret(c, cx - 3, cy - 6, 2, 2, "#86efac"); ret(c, cx - 1, cy - 5, 2, 2, "#86efac"); ret(c, cx + 1, cy - 8, 2, 4, "#86efac");
+    ret(c, x0 + 4, y0 + 4.5, 1, 1, "#86efac"); ret(c, x0 + 5, y0 + 5.5, 1, 1, "#86efac");
+    ret(c, x0 + 6, y0 + 4.5, 1, 1, "#86efac"); ret(c, x0 + 7, y0 + 3.5, 1, 1, "#86efac"); ret(c, x0 + 8, y0 + 2.5, 1, 1, "#86efac");
   } else if (st === "error") {
-    ret(c, cx - 1, cy - 9, 2, 4, "#fca5a5"); ret(c, cx - 1, cy - 4, 2, 1, "#fca5a5");
+    ret(c, x0 + 5.5, y0 + 2, 2, 4, "#fca5a5"); ret(c, x0 + 5.5, y0 + 6.5, 2, 1, "#fca5a5");
+  } else {
+    ret(c, x0, y0 + h - 2, w, 2, "#16233f");
+    if (f % 8 < 4) ret(c, x0 + 1.5, y0 + 1.5, 0.5, 1.5, "#64748b");
+  }
+  for (let k = 0; k < 5; k++) ret(c, x0 + 0.5 + k * 0.5, y0 + 0.5 + k * 0.5, 2.5 - k * 0.5, 0.5, "rgba(255,255,255,0.18)");
+  ret(c, cx + 5.5, cy - 4.5, 0.5, 0.5, st === "working" ? "#22c55e" : "#ef4444");
+}
+
+function acessoriosDaMesa(c: CanvasRenderingContext2D, p: { x: number; y: number }, papel: Papel, f: number) {
+  // teclado e mouse
+  ret(c, p.x - 4.5, p.y - 3.5, 9, 2.5, "#52525b");
+  ret(c, p.x - 4, p.y - 3.5, 8, 2, "#a1a1aa");
+  for (let k = 0; k < 7; k++) { ret(c, p.x - 3.5 + k * 1.1, p.y - 3, 0.5, 0.5, "#e4e4e7"); ret(c, p.x - 3.5 + k * 1.1, p.y - 2, 0.5, 0.5, "#e4e4e7"); }
+  ret(c, p.x + 6, p.y - 3, 1.5, 2, "#d4d4d8");
+  // caneca
+  ret(c, p.x - 10.5, p.y - 5, 2.5, 2.5, "#f8fafc"); ret(c, p.x - 8, p.y - 4.5, 0.5, 1.5, "#f8fafc");
+  ret(c, p.x - 10.5, p.y - 5, 2.5, 0.5, "#92400e");
+  if (papel === "gestor" || papel === "ref") {
+    ret(c, p.x - 14, p.y - 3.5, 3.5, 0.5, "#52525b");
+    ret(c, p.x - 12.5, p.y - 9, 0.5, 5.5, "#71717a");
+    ret(c, p.x - 12.5, p.y - 9.5, 3.5, 0.5, "#71717a");
+    ret(c, p.x - 10, p.y - 9.5, 3, 1.5, "#fbbf24");
+  }
+  if (papel === "gestor") {
+    ret(c, p.x + 9, p.y - 4.5, 5.5, 3.5, "#f8fafc"); ret(c, p.x + 9.5, p.y - 3.5, 4, 0.5, "#94a3b8"); ret(c, p.x + 9.5, p.y - 2.5, 3, 0.5, "#94a3b8");
+    ret(c, p.x + 4, p.y - 6.5, 3, 1.5, "#fbbf24"); ret(c, p.x + 4.5, p.y - 6, 2, 0.5, "#92400e");
+  } else if (papel === "criativo") {
+    ret(c, p.x + 9, p.y - 5, 6, 3.5, "#18181b"); ret(c, p.x + 9.5, p.y - 4.5, 5, 2.5, f % 6 < 3 ? "#a78bfa" : "#f0abfc");
+    ["#f43f5e", "#f59e0b", "#22c55e"].forEach((cor, i) => ret(c, p.x + 9 + i * 1.6, p.y - 7, 1.2, 1.5, cor));
+  } else if (papel === "midia") {
+    ret(c, p.x + 9, p.y - 5, 2, 3.5, "#18181b"); ret(c, p.x + 9.5, p.y - 4.5, 1, 2, "#38bdf8");
+    ret(c, p.x + 12, p.y - 6.5, 4, 5, "#f8fafc"); ret(c, p.x + 12, p.y - 6.5, 4, 1, "#ef4444");
+  } else if (papel === "ref") {
+    ret(c, p.x + 9, p.y - 5, 5, 1.5, "#3b82f6"); ret(c, p.x + 9, p.y - 6.5, 5, 1.5, "#f59e0b"); ret(c, p.x + 9.5, p.y - 8, 4, 1.5, "#10b981");
+  } else {
+    ret(c, p.x + 9, p.y - 4, 4, 2.5, "#fef3c7"); ret(c, p.x + 9.5, p.y - 3.5, 3, 0.5, "#a16207");
+  }
+}
+
+function cadeira(c: CanvasRenderingContext2D, p: { x: number; y: number }) {
+  ret(c, p.x - 4.5, p.y - 0.5, 9, 0.5, "#27272a");
+  ret(c, p.x - 4.5, p.y - 1, 1, 1, "#18181b"); ret(c, p.x + 3.5, p.y - 1, 1, 1, "#18181b"); ret(c, p.x - 0.5, p.y - 1, 1, 1, "#18181b");
+  ret(c, p.x - 0.5, p.y - 4.5, 1, 4, "#3f3f46");
+  ret(c, p.x - 5.5, p.y - 7.5, 11, 3, "#3f3f46");
+  ret(c, p.x - 5.5, p.y - 7.5, 11, 0.5, "#71717a");
+  ret(c, p.x - 5.5, p.y - 16, 11, 9, "#3f3f46");
+  ret(c, p.x - 5, p.y - 15.5, 10, 8, "#52525b");
+  ret(c, p.x - 5, p.y - 15.5, 10, 0.5, "#a1a1aa");
+  ret(c, p.x - 7, p.y - 10.5, 1.5, 3.5, "#27272a"); ret(c, p.x + 5.5, p.y - 10.5, 1.5, 3.5, "#27272a");
+}
+
+function planta(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
+  ret(c, cx - 5.5, cy - 9, 11, 9, "#7c2d12");
+  ret(c, cx - 5.5, cy - 9, 11, 1.5, "#c2410c");
+  ret(c, cx - 5, cy - 7.5, 10, 0.5, "#451a03");
+  ret(c, cx - 4, cy - 1.5, 8, 1.5, "#431407");
+  ret(c, cx - 5.5, cy - 9, 0.5, 9, "#9a3412");
+  const balanco = Math.sin(f * 0.25) * 0.8;
+  const folhas: [number, number][] = [[-66, 9], [-42, 13], [-18, 17], [4, 19], [26, 16], [48, 13], [68, 9], [-4, 12]];
+  for (let passe = 0; passe < 2; passe++) {
+    folhas.forEach(([ang, len], i) => {
+      const a = (ang * Math.PI) / 180;
+      const cor = i % 2 ? "#15803d" : "#22c55e";
+      for (let s = 1; s <= len; s += 0.5) {
+        const t = s / len;
+        const x = cx + Math.sin(a) * s + t * t * balanco;
+        const y = cy - 9 - Math.cos(a) * s;
+        const w = t < 0.25 ? 1.5 : t > 0.82 ? 1 : 2.5;
+        if (passe === 0) ret(c, x - w / 2 - 0.5, y - 0.5, w + 1, 2, OUT);
+        else ret(c, x - w / 2, y, w, 1, t > 0.5 && i % 2 === 0 ? "#4ade80" : cor);
+      }
+    });
+  }
+}
+
+function cafeteira(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
+  parte(c, cx - 5.5, cy - 20, 11, 20, "#27272a");
+  ret(c, cx - 5, cy - 19.5, 10, 6, "#3f3f46");
+  ret(c, cx - 4, cy - 18.5, 4, 3, "#18181b"); ret(c, cx + 1, cy - 18.5, 3, 1, "#ef4444"); ret(c, cx + 1, cy - 16.5, 3, 1, f % 8 < 4 ? "#22c55e" : "#14532d");
+  ret(c, cx - 3, cy - 12, 6, 1.5, "#71717a");
+  ret(c, cx - 2.5, cy - 8.5, 5, 4, "#f8fafc"); ret(c, cx + 2.5, cy - 7.5, 1, 2, "#f8fafc"); ret(c, cx - 2, cy - 8, 4, 1, "#7c2d12");
+  ret(c, cx - 5, cy - 4, 10, 4, "#18181b");
+  const v = f % 6;
+  ret(c, cx - 1 + (v % 2) * 0.5, cy - 10.5 - v * 0.5, 0.5, 1, "rgba(255,255,255,0.55)");
+  ret(c, cx + 1 - (v % 2) * 0.5, cy - 11.5 - v * 0.5, 0.5, 1, "rgba(255,255,255,0.4)");
+}
+
+function bebedouro(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
+  parte(c, cx - 5, cy - 11, 10, 11, "#e5e7eb");
+  ret(c, cx - 4.5, cy - 10.5, 9, 0.5, "#ffffff");
+  ret(c, cx - 3, cy - 8, 6, 1, "#94a3b8"); ret(c, cx - 3.5, cy - 8, 1, 1, "#3b82f6"); ret(c, cx + 2.5, cy - 8, 1, 1, "#ef4444");
+  parte(c, cx - 4, cy - 23, 8, 12, "#93d3fb");
+  ret(c, cx - 3.5, cy - 22.5, 1, 11, "rgba(255,255,255,0.45)");
+  ret(c, cx - 4, cy - 14 - (f % 8) * 0.5, 0.5, 0.5, "#ffffff"); ret(c, cx + 2, cy - 17 - ((f + 3) % 8) * 0.5, 0.5, 0.5, "#ffffff");
+  ret(c, cx - 4, cy - 23, 8, 0.5, "#dbeafe");
+  ret(c, cx - 2, cy - 3, 4, 0.5, "#64748b");
+}
+
+// ── Personagens ────────────────────────────────────────────────────────────────
+
+const LOOK: Record<Papel, { pele: string; cabelo: string; corpo: string; calca: string }> = {
+  gestor: { pele: "#e0b08a", cabelo: "#1f2937", corpo: "#334155", calca: "#1f2937" },
+  cs: { pele: "#f1c9a5", cabelo: "#6b4423", corpo: "#0487D9", calca: "#1e293b" },
+  ref: { pele: "#c98f5f", cabelo: "#111827", corpo: "#0e7490", calca: "#334155" },
+  criativo: { pele: "#f7d6b8", cabelo: "#c2410c", corpo: "#7c3aed", calca: "#1e3a8a" },
+  midia: { pele: "#8d5524", cabelo: "#292524", corpo: "#059669", calca: "#78716c" },
+};
+
+function desenharAtor(c: CanvasRenderingContext2D, m: Mundo, p: Papel, op: OpcoesDesenho, quadro: number) {
+  const a = m.atores[p];
+  const L = LOOK[p];
+  const pos = isoC(a.x, a.y);
+  const cx = r5(pos.x);
+  const cy = r5(pos.y);
+  const sent = sentado(m, p);
+  const andando = a.path.length > 0 && !m.reduzido;
+  const st: Estado = p === "gestor" ? "idle" : op.estados[p as Agente];
+  const trabalhando = st === "working" && sent;
+  const frente = a.dx + a.dy >= 0;
+  const gz = a.dx - a.dy > 0.01 ? 0.5 : a.dx - a.dy < -0.01 ? -0.5 : 0;
+  const Y = cy + (sent ? 3.5 : 0);
+  const resp = !andando && !trabalhando && !m.reduzido && Math.floor(m.t * 1.3) % 2 === 0 ? 0.5 : 0;
+  const sw = andando ? Math.sin(a.fase) : 0;
+  const par = quadro % 2 === 0;
+
+  // sombra no chão
+  ret(c, cx - 5.5, cy - 1, 11, 1.5, "rgba(0,0,0,0.16)");
+  ret(c, cx - 4, cy - 1.5, 8, 2.5, "rgba(0,0,0,0.13)");
+
+  // pernas e sapatos
+  if (!sent) {
+    const eL = sw > 0.35 ? 1 : 0;
+    const eR = sw < -0.35 ? 1 : 0;
+    parte(c, cx - 3, Y - 8, 2.5, 6.5 - eL, L.calca);
+    parte(c, cx + 0.5, Y - 8, 2.5, 6.5 - eR, L.calca);
+    ret(c, cx - 3.5, Y - 1.5 - eL, 3, 1.5, "#0b1220"); ret(c, cx - 3.5, Y - 1.5 - eL, 3, 0.5, "#475569");
+    ret(c, cx + 0.5, Y - 1.5 - eR, 3, 1.5, "#0b1220"); ret(c, cx + 0.5, Y - 1.5 - eR, 3, 0.5, "#475569");
+  }
+
+  // elementos atrás da cabeça
+  if (p === "criativo") parte(c, cx - 4.5, Y - 18.5, 9, 3.5, sombreia(L.corpo, -0.15));
+  if (p === "cs" && frente) parte(c, cx + 3.5, Y - 22.5, 2.5, 6, L.cabelo);
+  if (p === "ref") { parte(c, cx - 4.5, Y - 23.5, 2, 7.5, L.cabelo); parte(c, cx + 2.5, Y - 23.5, 2, 7.5, L.cabelo); }
+
+  // tronco
+  parte(c, cx - 4.5, Y - 15.5 + resp, 9, 7.5 - resp, L.corpo);
+  ret(c, cx + 3, Y - 15 + resp, 1.5, 6.5 - resp, sombreia(L.corpo, -0.2));
+  ret(c, cx - 4.5, Y - 15 + resp, 0.5, 6.5 - resp, sombreia(L.corpo, 0.2));
+  ret(c, cx - 4.5, Y - 8.5, 9, 0.5, sombreia(L.corpo, -0.25));
+  if (frente) {
+    if (p === "gestor") {
+      ret(c, cx - 1.5, Y - 15.5 + resp, 3, 5, "#f8fafc");
+      ret(c, cx - 3, Y - 15.5 + resp, 1.5, 4.5, sombreia(L.corpo, -0.28)); ret(c, cx + 1.5, Y - 15.5 + resp, 1.5, 4.5, sombreia(L.corpo, -0.28));
+      ret(c, cx - 0.5, Y - 14.5 + resp, 1, 5, "#dc2626"); ret(c, cx - 0.5, Y - 15.5 + resp, 1, 1, "#991b1b");
+      ret(c, cx + 2.5, Y - 12.5, 1, 0.5, "#f8fafc");
+    } else if (p === "cs") {
+      ret(c, cx - 2.5, Y - 15.5 + resp, 2, 1, "#e0f2fe"); ret(c, cx + 0.5, Y - 15.5 + resp, 2, 1, "#e0f2fe");
+      ret(c, cx - 0.25, Y - 14.5 + resp, 0.5, 3, sombreia(L.corpo, -0.3));
+    } else if (p === "ref") {
+      ret(c, cx - 1.5, Y - 15.5 + resp, 3, 6.5, "#f1f5f9");
+      ret(c, cx - 0.25, Y - 14 + resp, 0.5, 0.5, "#94a3b8"); ret(c, cx - 0.25, Y - 12 + resp, 0.5, 0.5, "#94a3b8");
+    } else if (p === "criativo") {
+      ret(c, cx - 3, Y - 11, 6, 2.5, sombreia(L.corpo, -0.22));
+      ret(c, cx - 1.5, Y - 15, 0.5, 2.5, "#f8fafc"); ret(c, cx + 1, Y - 15, 0.5, 2.5, "#f8fafc");
+    } else {
+      ret(c, cx - 1, Y - 13.5 + resp, 2, 1, "#ecfdf5");
+    }
+  }
+
+  // braços
+  const balanco = sw;
+  if (trabalhando) {
+    parte(c, cx - 6.5, Y - 14.5, 2, 4.5, L.corpo); parte(c, cx + 4.5, Y - 14.5, 2, 4.5, L.corpo);
+    parte(c, cx - 5.5 + (par ? 0.5 : 0), Y - 10.5, 2, 1.5, L.pele); parte(c, cx + 3.5 - (par ? 0 : 0.5), Y - 10.5, 2, 1.5, L.pele);
+  } else {
+    parte(c, cx - 6.5, Y - 14.5 + balanco, 2, 6, L.corpo); parte(c, cx + 4.5, Y - 14.5 - balanco, 2, 6, L.corpo);
+    parte(c, cx - 6.5, Y - 9 + balanco, 2, 1.5, L.pele); parte(c, cx + 4.5, Y - 9 - balanco, 2, 1.5, L.pele);
+    if (p === "midia") { ret(c, cx - 6.5, Y - 9.5 + balanco, 2, 0.5, "#0f172a"); ret(c, cx - 6, Y - 9.5 + balanco, 1, 0.5, "#38bdf8"); }
+  }
+
+  // pescoço e cabeça
+  ret(c, cx - 1, Y - 17.5 + resp, 2, 2, sombreia(L.pele, -0.12));
+  parte(c, cx - 3.5, Y - 25 + resp, 7, 7.5, L.pele);
+  ret(c, cx - 4, Y - 22 + resp, 0.5, 1.5, L.pele); ret(c, cx + 3.5, Y - 22 + resp, 0.5, 1.5, L.pele);
+  const ya = Y + resp;
+
+  if (frente) {
+    // cabelo e acessórios da cabeça
+    if (p === "gestor") {
+      parte(c, cx - 4, ya - 27, 8, 3.5, L.cabelo); ret(c, cx - 4, ya - 24, 1, 2.5, L.cabelo); ret(c, cx + 3, ya - 24, 1, 2.5, L.cabelo);
+      ret(c, cx - 1.5, ya - 27, 0.5, 1.5, sombreia(L.cabelo, 0.35));
+    } else if (p === "cs") {
+      parte(c, cx - 4, ya - 27, 8, 3.5, L.cabelo); ret(c, cx - 4, ya - 24, 1.5, 3, L.cabelo);
+      ret(c, cx - 4.5, ya - 27.5, 9, 0.5, "#0f172a");
+      parte(c, cx - 5.5, ya - 23.5, 2, 3.5, "#0f172a");
+      ret(c, cx - 5, ya - 20.5, 0.5, 2, "#0f172a"); ret(c, cx - 5, ya - 18.5, 3, 0.5, "#0f172a"); ret(c, cx - 2.5, ya - 19, 1, 1, "#52525b");
+    } else if (p === "ref") {
+      parte(c, cx - 4.5, ya - 27.5, 9, 4, L.cabelo); ret(c, cx - 3.5, ya - 24, 7, 1.5, L.cabelo);
+    } else if (p === "criativo") {
+      parte(c, cx - 4, ya - 27, 8, 3.5, L.cabelo);
+      parte(c, cx - 4.5, ya - 28, 2.5, 2.5, L.cabelo); parte(c, cx - 1.25, ya - 28.5, 2.5, 2.5, L.cabelo); parte(c, cx + 2, ya - 28, 2.5, 2.5, L.cabelo);
+      ret(c, cx - 4, ya - 24, 1, 2, L.cabelo); ret(c, cx + 3, ya - 24, 1, 2, L.cabelo);
+      ret(c, cx - 4.5, ya - 18, 9, 1, "#3f3f46");
+      parte(c, cx - 5.5, ya - 19.5, 2, 3, "#18181b"); parte(c, cx + 3.5, ya - 19.5, 2, 3, "#18181b");
+    } else {
+      parte(c, cx - 4, ya - 27.5, 8, 3.5, "#14532d");
+      parte(c, cx - 4.5, ya - 24.5, 9, 1.5, "#166534"); ret(c, cx - 4.5, ya - 24.5, 9, 0.5, "#22c55e");
+      ret(c, cx - 0.5, ya - 26, 1, 1, "#f0fdf4");
+      ret(c, cx - 4, ya - 23, 1, 2.5, L.cabelo); ret(c, cx + 3, ya - 23, 1, 2.5, L.cabelo);
+    }
+    // rosto
+    const dy = trabalhando ? 0.5 : 0;
+    ret(c, cx - 3, ya - 22 + dy, 2, 1.5, "#ffffff"); ret(c, cx + 1, ya - 22 + dy, 2, 1.5, "#ffffff");
+    ret(c, cx - 2.5 + gz, ya - 21.75 + dy, 1, 1, "#0f172a"); ret(c, cx + 1.5 + gz, ya - 21.75 + dy, 1, 1, "#0f172a");
+    if (p === "ref") {
+      for (const ox of [-3.5, 0.5]) {
+        ret(c, cx + ox, ya - 22.5, 3, 0.5, "#111827"); ret(c, cx + ox, ya - 20, 3, 0.5, "#111827");
+        ret(c, cx + ox, ya - 22.5, 0.5, 2.5, "#111827"); ret(c, cx + ox + 2.5, ya - 22.5, 0.5, 2.5, "#111827");
+      }
+      ret(c, cx - 0.5, ya - 21.5, 1, 0.5, "#111827");
+    }
+    const cb = sombreia(L.cabelo, 0.05);
+    if (st === "error") { ret(c, cx - 3, ya - 23, 1, 0.5, cb); ret(c, cx - 2, ya - 23.5, 1, 0.5, cb); ret(c, cx + 1, ya - 23.5, 1, 0.5, cb); ret(c, cx + 2, ya - 23, 1, 0.5, cb); }
+    else if (trabalhando) { ret(c, cx - 3, ya - 22.5, 2, 0.5, cb); ret(c, cx + 1, ya - 22.5, 2, 0.5, cb); }
+    else { ret(c, cx - 3, ya - 23, 2, 0.5, cb); ret(c, cx + 1, ya - 23, 2, 0.5, cb); }
+    if (st === "done") {
+      ret(c, cx - 1.5, ya - 19.5, 3, 0.5, "#9a3412"); ret(c, cx - 2, ya - 20, 0.5, 0.5, "#9a3412"); ret(c, cx + 1.5, ya - 20, 0.5, 0.5, "#9a3412");
+      ret(c, cx - 3, ya - 20.5, 1, 0.5, "#fca5a5"); ret(c, cx + 2, ya - 20.5, 1, 0.5, "#fca5a5");
+    } else if (st === "error") {
+      ret(c, cx - 1, ya - 19.5, 2, 0.5, "#9a3412"); ret(c, cx - 1.5, ya - 19, 0.5, 0.5, "#9a3412"); ret(c, cx + 1, ya - 19, 0.5, 0.5, "#9a3412");
+      ret(c, cx + 3.5, ya - 23, 1, 1.5, "#7dd3fc");
+    } else if (trabalhando) {
+      ret(c, cx - 0.5, ya - 19.5, 1, 0.5, "#9a3412");
+    } else {
+      ret(c, cx - 1, ya - 19.5, 2, 0.5, "#9a3412");
+    }
+  } else {
+    parte(c, cx - 4, ya - 27, 8, 8, p === "midia" ? "#14532d" : L.cabelo);
+    if (p === "midia") { ret(c, cx - 4, ya - 22, 8, 2.5, L.cabelo); ret(c, cx - 1.5, ya - 24.5, 3, 1, "#166534"); }
+    if (p === "cs") ret(c, cx - 4.5, ya - 27.5, 9, 0.5, "#0f172a");
+    if (p === "criativo") { parte(c, cx - 4.5, ya - 28, 2.5, 2.5, L.cabelo); parte(c, cx + 2, ya - 28, 2.5, 2.5, L.cabelo); }
+  }
+
+  // cochilando no sofá
+  if (a.lazer === "sofa" && sent && !m.reduzido) {
+    c.fillStyle = "#e2e8f0";
+    c.font = "bold 5px sans-serif";
+    c.textAlign = "left";
+    c.textBaseline = "alphabetic";
+    c.fillText("z", cx + 5, cy - 24 - (quadro % 6) * 0.5);
+    c.fillText("Z", cx + 8, cy - 28 - ((quadro + 3) % 6) * 0.5);
   }
 }
 
 function balao(c: CanvasRenderingContext2D, cx: number, y: number, tipo: "pontos" | "ok" | "erro" | "ask" | "cafe", f: number) {
-  const w = 18;
+  const w = 20;
   const x = Math.round(cx - w / 2);
-  ret(c, x, y, w, 11, "#0f172a");
-  ret(c, x + 1, y + 1, w - 2, 9, "#ffffff");
-  ret(c, cx - 1, y + 11, 3, 2, "#0f172a");
-  ret(c, cx, y + 10, 1, 2, "#ffffff");
+  ret(c, x + 1, y - 0.5, w - 2, 13, OUT); ret(c, x - 0.5, y + 1, w + 1, 10, OUT);
+  ret(c, x + 1, y, w - 2, 12, "#ffffff"); ret(c, x, y + 1, w, 10, "#ffffff");
+  ret(c, cx - 2, y + 12, 4, 1.5, OUT); ret(c, cx - 1.5, y + 11.5, 3, 1.5, "#ffffff"); ret(c, cx - 0.5, y + 13, 1, 1, OUT);
   if (tipo === "pontos") {
     const n = (f % 3) + 1;
-    for (let i = 0; i < 3; i++) ret(c, x + 4 + i * 4, y + 5, 2, 2, i < n ? "#0f172a" : "#cbd5e1");
+    for (let i = 0; i < 3; i++) ret(c, x + 5 + i * 4, y + 5, 2, 2, i < n ? "#0f172a" : "#cbd5e1");
   } else if (tipo === "ok") {
-    ret(c, x + 5, y + 5, 2, 2, "#16a34a"); ret(c, x + 7, y + 6, 2, 2, "#16a34a"); ret(c, x + 9, y + 3, 2, 4, "#16a34a"); ret(c, x + 11, y + 2, 2, 2, "#16a34a");
+    const g = "#16a34a";
+    ret(c, x + 6, y + 6, 1.5, 1.5, g); ret(c, x + 7.5, y + 7, 1.5, 1.5, g); ret(c, x + 9, y + 6, 1.5, 1.5, g);
+    ret(c, x + 10.5, y + 4.5, 1.5, 1.5, g); ret(c, x + 12, y + 3, 1.5, 1.5, g);
   } else if (tipo === "erro") {
-    ret(c, x + 8, y + 2, 2, 5, "#dc2626"); ret(c, x + 8, y + 8, 2, 1, "#dc2626");
+    ret(c, x + 9, y + 2.5, 2, 5, "#dc2626"); ret(c, x + 9, y + 8.5, 2, 1.5, "#dc2626");
   } else if (tipo === "cafe") {
-    ret(c, x + 6, y + 4, 5, 4, "#92400e"); ret(c, x + 11, y + 5, 1, 2, "#92400e"); ret(c, x + 7, y + 2 - (f % 2), 1, 1, "#94a3b8");
+    ret(c, x + 6, y + 4, 6, 5, "#7c2d12"); ret(c, x + 12, y + 5, 1.5, 2.5, "#7c2d12"); ret(c, x + 7, y + 4, 4, 1, "#fbbf24");
+    ret(c, x + 8 + (f % 2) * 0.5, y + 2 - (f % 2) * 0.5, 0.5, 1.5, "#94a3b8");
   } else {
-    ret(c, x + 7, y + 2, 4, 2, "#d97706"); ret(c, x + 9, y + 4, 2, 2, "#d97706"); ret(c, x + 8, y + 6, 2, 1, "#d97706"); ret(c, x + 8, y + 8, 2, 1, "#d97706");
+    ret(c, x + 8, y + 2, 4, 2, "#d97706"); ret(c, x + 10, y + 4, 2, 2, "#d97706"); ret(c, x + 9, y + 6, 2, 1.5, "#d97706"); ret(c, x + 9, y + 8.5, 2, 1.5, "#d97706");
   }
+}
+
+/** Relógio de parede com a hora real de Brasília. */
+function relogio(c: CanvasRenderingContext2D, hora: number, tema: Tema) {
+  const { x, base } = colParede("D", 4.15);
+  const cx = x;
+  const cy = base - WALL_H + 14;
+  disco(c, cx, cy, 6, OUT);
+  disco(c, cx, cy, 5.5, sombreia(tema.rodape, 0.2));
+  disco(c, cx, cy, 4.8, "#f8fafc");
+  for (let k = 0; k < 12; k++) {
+    const ang = (k / 12) * Math.PI * 2;
+    ret(c, cx + Math.sin(ang) * 4 - 0.25, cy - Math.cos(ang) * 4 - 0.25, 0.5, 0.5, "#64748b");
+  }
+  const mm = (hora % 1) * 60;
+  const reta = (ang: number, len: number, cor: string) => {
+    for (let s = 0; s <= len; s += 0.5) ret(c, cx + Math.sin(ang) * s - 0.25, cy - Math.cos(ang) * s - 0.25, 0.5, 0.5, cor);
+  };
+  reta(((hora % 12) / 12) * Math.PI * 2, 2.6, "#0f172a");
+  reta((mm / 60) * Math.PI * 2, 3.8, "#334155");
+  ret(c, cx - 0.5, cy - 0.5, 1, 1, "#dc2626");
 }
 
 export interface OpcoesDesenho {
@@ -500,123 +1029,89 @@ export interface OpcoesDesenho {
   humor: Record<Agente, Humor>;
 }
 
-function desenharAtor(c: CanvasRenderingContext2D, m: Mundo, p: Papel, op: OpcoesDesenho, quadro: number) {
-  const a = m.atores[p];
-  const cor = CORES[p];
-  const pos = isoC(a.x, a.y);
-  const cx = Math.round(pos.x);
-  const cy = Math.round(pos.y);
-  const sent = sentado(m, p);
-  const andando = a.path.length > 0 && !m.reduzido;
-  const trabalhando = p !== "gestor" && op.estados[p as Agente] === "working" && sent;
-  const frente = a.dx + a.dy >= 0;
-  const direita = a.dx - a.dy > 0;
-  const subida = sent ? 6 : 0;
-  const passoPerna = andando ? Math.round(Math.sin(a.fase)) : 0;
-
-  ret(c, cx - 5, cy - 1, 10, 2, "rgba(0,0,0,0.22)");
-  if (!sent) {
-    ret(c, cx - 3, cy - 5 + (passoPerna > 0 ? 1 : 0), 2, 5 - (passoPerna > 0 ? 1 : 0), "#1e293b");
-    ret(c, cx + 1, cy - 5 + (passoPerna < 0 ? 1 : 0), 2, 5 - (passoPerna < 0 ? 1 : 0), "#1e293b");
-  }
-  const yc = cy - 12 + subida;
-  // braços
-  const braco = trabalhando ? (quadro % 2 ? 0 : 1) : andando ? passoPerna : 0;
-  ret(c, cx - 6, yc + 1 + (trabalhando ? 2 : 0) + (braco > 0 ? 1 : 0), 2, 6, cor.corpo);
-  ret(c, cx + 4, yc + 1 + (trabalhando ? 2 : 0) + (braco < 0 ? 1 : 0), 2, 6, cor.corpo);
-  ret(c, cx - 6, yc + 7 + (trabalhando ? 2 : 0), 2, 1, PELE);
-  ret(c, cx + 4, yc + 7 + (trabalhando ? 2 : 0), 2, 1, PELE);
-  // tronco
-  ret(c, cx - 4, yc, 8, 7, cor.corpo);
-  if (frente) ret(c, cx - 1, yc, 2, 2, "#ffffff");
-  // cabeça
-  ret(c, cx - 3, yc - 7, 6, 7, PELE);
-  ret(c, cx - 4, yc - 8, 8, 3, cor.cabelo);
-  if (!frente) ret(c, cx - 3, yc - 5, 6, 3, cor.cabelo);
-  else {
-    ret(c, cx - 4, yc - 6, 1, 3, cor.cabelo);
-    const ox = direita ? 1 : -1;
-    ret(c, cx - 2 + (sent ? 0 : Math.max(0, ox)), yc - 4, 1, 2, "#0f172a");
-    ret(c, cx + 1 + (sent ? 0 : Math.min(0, ox)), yc - 4, 1, 2, "#0f172a");
-  }
+function luzRadial(c: CanvasRenderingContext2D, x: number, y: number, r: number, rgb: string, a: number) {
+  const g = c.createRadialGradient(x, y, 1, x, y, r);
+  g.addColorStop(0, `rgba(${rgb},${a.toFixed(3)})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fill();
 }
 
 /** Desenha a cena toda. `quadro` é um contador inteiro para animações curtas. */
 export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenho, quadro: number) {
   const luz = luzDoDia(op.hora);
-  c.clearRect(0, 0, W, H);
-  ret(c, 0, 0, W, H, "#0b1220");
-  desenharParedes(c, op.tema, op.hora);
-  desenharPiso(c, op.tema);
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, W * ESCALA, H * ESCALA);
+  c.imageSmoothingEnabled = false;
+  const bg = fundo(op);
+  if (bg) c.drawImage(bg, 0, 0);
+  c.setTransform(ESCALA, 0, 0, ESCALA, 0, 0);
+  if (!bg) cenarioEstatico(c, op.tema, op.hora);
+  relogio(c, op.hora, op.tema);
 
   const itens: Item[] = [];
   const add = (d: number, f: () => void) => itens.push({ d, f });
 
-  // mesas
   for (const mesa of MESAS) {
     const dono = mesa.papel;
     const st: Estado | "off" = dono === "gestor" ? "off" : op.estados[dono as Agente];
     for (let i = 0; i < 2; i++) {
       add(mesa.x + i + mesa.y, () => {
         const p = isoC(mesa.x + i, mesa.y);
-        caixa(c, p.x, p.y, 10, "#b98450", "#8a5a2e", "#a06c3c");
-        if (i === 0) ret(c, p.x - 4, p.y - 4, 8, 2, "#94a3b8");
-        if (i === 1) monitor(c, p.x + 1, p.y - 2, st, quadro);
-        if (i === 0 && dono === "gestor") { ret(c, p.x - 7, p.y - 6, 6, 3, "#f8fafc"); ret(c, p.x - 6, p.y - 5, 4, 1, "#94a3b8"); }
+        caixa(c, p.x, p.y, 10, "#c28f58", "#8a5a2e", "#a06c3c");
+        for (let g = 0; g < 4; g++) ret(c, p.x - 12 + g * 7 + (i ? 3 : 0), p.y - 9.5 + g * 0.75, 0.5, 0.5, "rgba(120,70,20,0.35)");
+        if (i === 0) acessoriosDaMesa(c, { x: p.x, y: p.y }, dono, quadro);
+        if (i === 1) monitor(c, p.x + 9, p.y - 1, st, quadro, dono);
       });
     }
-    // cadeira
     const s = ASSENTOS[dono];
-    add(s.x + s.y - 0.1, () => {
-      const p = isoC(s.x + 0.5, s.y + 0.5);
-      ret(c, p.x - 5, p.y - 8, 10, 8, "#334155");
-      ret(c, p.x - 5, p.y - 14, 10, 6, "#475569");
-    });
+    add(s.x + s.y - 0.1, () => cadeira(c, isoC(s.x + 0.5, s.y + 0.5)));
   }
 
-  // lazer: café, bebedouro, sofá, mesinha, impressora, estante, plantas
-  add(0 + 3 + 0.2, () => {
-    const p = isoC(0.5, 3.5);
-    ret(c, p.x - 5, p.y - 18, 10, 18, "#1f2937"); ret(c, p.x - 4, p.y - 16, 8, 5, "#374151");
-    ret(c, p.x - 2, p.y - 9, 4, 3, "#e5e7eb"); ret(c, p.x + 2, p.y - 15, 1, 1, quadro % 8 < 4 ? "#ef4444" : "#7f1d1d");
-  });
-  add(0 + 5 + 0.2, () => {
-    const p = isoC(0.5, 5.5);
-    ret(c, p.x - 5, p.y - 10, 10, 10, "#e5e7eb"); ret(c, p.x - 4, p.y - 20, 8, 10, "#7dd3fc"); ret(c, p.x - 4, p.y - 21, 8, 1, "#bae6fd");
-  });
+  add(0 + 3 + 0.2, () => { const p = isoC(0.5, 3.5); cafeteira(c, p.x, p.y, quadro); });
+  add(0 + 5 + 0.2, () => { const p = isoC(0.5, 5.5); bebedouro(c, p.x, p.y, quadro); });
   for (let k = 0; k < 3; k++) {
     add(1 + 8 + k, () => {
       const p = isoC(1, 8 + k);
-      caixa(c, p.x, p.y, 7, "#c0553f", "#8f3c2b", "#a84631");
-      if (k === 0) caixa(c, p.x, p.y - 7, 8, "#c0553f", "#8f3c2b", "#a84631");
+      caixa(c, p.x, p.y, 6, "#d1624a", "#923d2b", "#ab4a35");
+      caixa(c, p.x, p.y - 6, 3, "#e0745c", "#a24732", "#bd523c");
+      arestaSup(c, p.x, p.y - 9, "#f0a08c");
+      if (k === 0) { ret(c, p.x - 4, p.y - 14, 5, 4, "#fbbf24"); ret(c, p.x - 4, p.y - 14, 5, 0.5, "#fde68a"); }
+      if (k === 2) { ret(c, p.x - 1, p.y - 14, 5, 4, "#60a5fa"); ret(c, p.x - 1, p.y - 14, 5, 0.5, "#bfdbfe"); }
     });
   }
-  add(3 + 9, () => { const p = isoC(3, 9); caixa(c, p.x, p.y, 5, "#d9c4a0", "#a89377", "#bfa987"); ret(c, p.x - 3, p.y - 8, 5, 3, "#92400e"); });
+  add(3 + 9, () => {
+    const p = isoC(3, 9);
+    caixa(c, p.x, p.y, 5, "#e0cba6", "#a89377", "#bfa987");
+    ret(c, p.x - 4, p.y - 8, 3, 3, "#f8fafc"); ret(c, p.x - 4, p.y - 8, 3, 0.5, "#92400e"); ret(c, p.x + 1, p.y - 7, 4, 2.5, "#f59e0b");
+  });
   add(9 + 1, () => {
     const p = isoC(9, 1);
-    caixa(c, p.x, p.y, 8, "#e5e7eb", "#9ca3af", "#b6bcc6"); ret(c, p.x - 4, p.y - 9, 8, 1, "#f8fafc");
+    caixa(c, p.x, p.y, 9, "#eef0f3", "#9ca3af", "#b6bcc6");
+    ret(c, p.x - 5, p.y - 9.5, 9, 0.5, "#ffffff"); ret(c, p.x - 4, p.y - 11, 7, 1.5, "#f8fafc"); ret(c, p.x + 3, p.y - 7.5, 1, 1, quadro % 8 < 4 ? "#22c55e" : "#14532d");
+    ret(c, p.x - 4, p.y - 5.5, 6, 1.5, "#1f2937");
   });
   for (let i = 0; i < 3; i++) {
     add(5 + i + 0, () => {
       const p = isoC(5 + i, 0);
-      caixa(c, p.x, p.y, 30, "#a06c3c", "#7a4e26", "#8f5f31");
-      for (let b = 0; b < 16; b += 2) {
-        const cores = ["#ef4444", "#3b82f6", "#facc15", "#22c55e", "#a855f7", "#f97316"];
-        const topo = p.y - 30 + 16 - Math.floor(b / 2);
-        ret(c, p.x + b, topo + 3, 1, 7, cores[(b + i) % cores.length]);
-        ret(c, p.x + b, topo + 16, 1, 7, cores[(b + i + 2) % cores.length]);
+      caixa(c, p.x, p.y, 30, "#a8723f", "#7a4e26", "#8f5f31");
+      const cores = ["#ef4444", "#3b82f6", "#facc15", "#22c55e", "#a855f7", "#f97316", "#14b8a6"];
+      for (let b = 0; b < 32; b += 2) {
+        const topo = p.y - 30 + 16 - Math.floor(b / 4);
+        const h1 = 4 + aleat(b, i, 1) * 2.5;
+        ret(c, p.x + b * 0.5, topo + 2 + (6 - h1), 1, h1, cores[(b + i) % cores.length]);
+        const h2 = 4 + aleat(b, i, 2) * 2.5;
+        ret(c, p.x + b * 0.5, topo + 13 + (6 - h2), 1, h2, cores[(b + i + 3) % cores.length]);
       }
+      for (let b = 0; b < 32; b++) { ret(c, p.x + b * 0.5, p.y - 30 + 16 - Math.floor(b / 2) + 8.5, 0.5, 0.5, "#5a3a1c"); ret(c, p.x + b * 0.5, p.y - 30 + 16 - Math.floor(b / 2) + 19.5, 0.5, 0.5, "#5a3a1c"); }
     });
   }
   for (const [px, py] of [[11, 0], [0, 0], [0, 10], [11, 10]] as const) {
-    add(px + py, () => {
-      const p = isoC(px + 0.5, py + 0.5);
-      ret(c, p.x - 5, p.y - 8, 10, 8, "#92400e"); ret(c, p.x - 5, p.y - 8, 10, 2, "#b45309");
-      ret(c, p.x - 5, p.y - 20, 4, 12, "#16a34a"); ret(c, p.x - 1, p.y - 25, 4, 17, "#22c55e"); ret(c, p.x + 3, p.y - 18, 4, 10, "#15803d");
-    });
+    add(px + py, () => { const p = isoC(px + 0.5, py + 0.5); planta(c, p.x, p.y, quadro + px * 3 + py); });
   }
 
-  // personagens
   (Object.keys(m.atores) as Papel[]).forEach((p) => {
     const a = m.atores[p];
     add(a.x + a.y + 0.05, () => desenharAtor(c, m, p, op, quadro));
@@ -625,24 +1120,55 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
   itens.sort((x, y) => x.d - y.d);
   for (const it of itens) it.f();
 
-  // seleção, plumbob, balões, nomes
+  // iluminação: noite escurece, lâmpadas e telas acesas brilham
+  const escuro = 1 - luz;
+  if (escuro > 0.02) {
+    c.fillStyle = `rgba(6,12,38,${(0.52 * escuro).toFixed(3)})`;
+    c.fillRect(0, 0, W, H);
+    c.save();
+    c.globalCompositeOperation = "lighter";
+    for (const mesa of MESAS) {
+      const p = isoC(mesa.x + 0.5, mesa.y + 0.5);
+      luzRadial(c, p.x - 11, p.y - 10, 22, "255,205,120", 0.34 * escuro);
+      if (mesa.papel !== "gestor") {
+        const st = op.estados[mesa.papel as Agente];
+        const q = isoC(mesa.x + 1.5, mesa.y + 0.5);
+        luzRadial(c, q.x + 1, q.y - 12, st === "working" ? 24 : 12, "120,190,255", (st === "working" ? 0.3 : 0.1) * escuro);
+      }
+    }
+    luzRadial(c, isoC(0.5, 3.5).x, isoC(0.5, 3.5).y - 12, 16, "255,190,110", 0.18 * escuro);
+    c.restore();
+  } else if (luz < 0.85) {
+    c.fillStyle = `rgba(255,150,70,${(0.07 * (1 - luz)).toFixed(3)})`;
+    c.fillRect(0, 0, W, H);
+  }
+
+  // seleção, losango de humor, balões e nomes
   (Object.keys(m.atores) as Papel[]).forEach((p) => {
     const a = m.atores[p];
     const pos = isoC(a.x, a.y);
-    const cx = Math.round(pos.x);
-    const cy = Math.round(pos.y);
-    const topo = cy - (sentado(m, p) ? 18 : 24);
+    const cx = r5(pos.x);
+    const cy = r5(pos.y);
+    const topo = cy - (sentado(m, p) ? 22 : 28);
     if (m.selecionado === p) {
-      contorno(c, cx, cy - 8, "#fbbf24");
+      const pulso = m.reduzido ? 1 : 0.65 + 0.35 * Math.sin(m.t * 4);
+      losangoEsc(c, cx, cy - 0.5, 0.78, `rgba(251,191,36,${(0.22 * pulso).toFixed(3)})`);
+      c.fillStyle = `rgba(251,191,36,${pulso.toFixed(3)})`;
+      for (let i = 0; i < 25; i++) {
+        const w = (i < 12.5 ? i + 1 : 25 - i) * 2 * 0.78;
+        c.fillRect(r5(cx - w / 2), r5(cy - 6.3 + i * 0.5), 0.5, 0.5);
+        c.fillRect(r5(cx + w / 2 - 0.5), r5(cy - 6.3 + i * 0.5), 0.5, 0.5);
+      }
       const h = p === "gestor" ? "ok" : op.humor[p as Agente];
-      const corPlumb = h === "critico" ? "#ef4444" : h === "atencao" ? "#facc15" : "#4ade80";
-      const bob = m.reduzido ? 0 : Math.round(Math.sin(m.t * 3) * 2);
+      const corP = h === "critico" ? "#ef4444" : h === "atencao" ? "#facc15" : "#4ade80";
+      const bob = m.reduzido ? 0 : Math.round(Math.sin(m.t * 3) * 2) / 2 * 2;
       const py = topo - 13 + bob;
-      ret(c, cx - 1, py, 2, 1, corPlumb);
-      ret(c, cx - 2, py + 1, 4, 2, corPlumb);
-      ret(c, cx - 3, py + 3, 6, 2, corPlumb);
-      ret(c, cx - 2, py + 5, 4, 2, sombreia(corPlumb, -0.25));
-      ret(c, cx - 1, py + 7, 2, 1, sombreia(corPlumb, -0.25));
+      for (let i = 0; i < 20; i++) {
+        const w = Math.round((1 - Math.abs(i - 9.5) / 10) * 5 * 2) / 2 * 2;
+        const t = i / 20;
+        c.fillStyle = OUT; c.fillRect(r5(cx - w / 2 - 0.5), r5(py + i * 0.5), w + 1, 0.5);
+        c.fillStyle = mistura(sombreia(corP, 0.35), sombreia(corP, -0.3), t); c.fillRect(r5(cx - w / 2), r5(py + i * 0.5), w, 0.5);
+      }
     }
     let tipo: "pontos" | "ok" | "erro" | "ask" | "cafe" | null = null;
     if (p === "gestor") { if (op.aguardandoGestor) tipo = "ask"; }
@@ -654,33 +1180,20 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
       else if (st === "done" && sentado(m, p)) tipo = "ok";
       else if (em.modo === "vagando" && em.noDestino && em.lazer && em.lazer !== "sofa") tipo = "cafe";
     }
-    if (tipo && m.selecionado !== p) balao(c, cx, topo - 14, tipo, quadro);
-    if (tipo && m.selecionado === p) balao(c, cx + 12, topo - 22, tipo, quadro);
+    if (tipo && m.selecionado !== p) balao(c, cx, topo - 15, tipo, quadro);
+    if (tipo && m.selecionado === p) balao(c, cx + 14, topo - 20, tipo, quadro);
     if (m.hover === p || m.selecionado === p) {
       const nome = CORES[p].nome.toUpperCase();
-      const w = nome.length * 4 + 6;
-      ret(c, cx - w / 2, cy + 3, w, 9, "#0f172a");
-      c.fillStyle = "#f8fafc"; c.font = "bold 6px monospace"; c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText(nome, cx, cy + 8);
+      c.font = "bold 5px sans-serif";
+      const w = Math.ceil(c.measureText(nome).width) + 9;
+      const x0 = r5(cx - w / 2);
+      ret(c, x0 - 0.5, cy + 3.5, w + 1, 9, OUT);
+      ret(c, x0, cy + 4, w, 8, "#0f172a");
+      ret(c, x0 + 2, cy + 7, 2, 2, CORES[p].corpo);
+      c.fillStyle = "#f8fafc"; c.textAlign = "left"; c.textBaseline = "middle";
+      c.fillText(nome, x0 + 5.5, cy + 8.5);
     }
   });
-
-  // iluminação: noite escurece, telas acesas brilham
-  const escuro = 1 - luz;
-  if (escuro > 0.02) {
-    c.fillStyle = `rgba(8,14,40,${(0.5 * escuro).toFixed(3)})`;
-    c.fillRect(0, 0, W, H);
-    for (const mesa of MESAS) {
-      if (mesa.papel === "gestor") continue;
-      const st = op.estados[mesa.papel as Agente];
-      const p = isoC(mesa.x + 1, mesa.y);
-      const forca = (st === "working" ? 0.32 : 0.1) * escuro;
-      for (let r = 26; r > 6; r -= 5) {
-        c.fillStyle = `rgba(255,214,140,${(forca * (1 - r / 30)).toFixed(3)})`;
-        c.beginPath(); c.arc(p.x, p.y - 4, r, 0, Math.PI * 2); c.fill();
-      }
-    }
-  }
 }
 
 /** Humor (a "bolinha verde" do Sims) a partir das métricas reais do agente. */

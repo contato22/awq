@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare, FileText, Moon, Sun, Sunrise, Sunset } from "lucide-react";
 import {
-  atorNoPonto, criarMundo, desenhar, H, humorDe, moverGestor, passo, TEMAS, tileDoPonto, W,
+  atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, moverGestor, passo, TEMAS, tileDoPonto, W,
   type Agente, type Estado, type Humor, type Mundo, type Papel,
 } from "@/lib/office-iso";
 
@@ -177,8 +177,8 @@ export default function IsoOffice({
       <div className="relative mx-auto" style={{ maxWidth: 960 }}>
         <canvas
           ref={canvasRef}
-          width={W}
-          height={H}
+          width={W * ESCALA}
+          height={H * ESCALA}
           onMouseMove={mover}
           onMouseLeave={() => { if (mundoRef.current) mundoRef.current.hover = null; setCursor("default"); }}
           onClick={clicar}
