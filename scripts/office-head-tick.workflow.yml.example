@@ -1,0 +1,28 @@
+# EXEMPLO: copie para .github/workflows/office-head-tick.yml para ativar (o token usado pelo assistente não tem permissão de criar workflows).
+# Agendador do Head de CS do Office (fase 2). INATIVO por padrão: só roda manualmente.
+# Para ligar o heartbeat automático (a cada 15 min), descomente o bloco `schedule` e configure:
+#   - secret OFFICE_TICK_SECRET (o mesmo valor da variável do Vercel);
+#   - secret OFFICE_TICK_URL (ex.: https://awq-brown.vercel.app/api/office/head/tick);
+#   - no Vercel: OFFICE_HEAD_TICK=1, OFFICE_TICK_SECRET e ANTHROPIC_API_KEY;
+#   - no simulador: "Modo autônomo" ligado no painel do Head de CS.
+# Cada tick pode chamar a API da Anthropic e gasta créditos, dentro dos limites diários do painel.
+name: Office Head tick
+on:
+  workflow_dispatch: {}
+  # schedule:
+  #   - cron: "*/15 11-22 * * 1-5"   # 08h às 19h de Brasília, dias úteis (UTC)
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      OFFICE_TICK_SECRET: ${{ secrets.OFFICE_TICK_SECRET }}
+      OFFICE_TICK_URL: ${{ secrets.OFFICE_TICK_URL }}
+    steps:
+      - name: Chamar o tick
+        if: env.OFFICE_TICK_SECRET != '' && env.OFFICE_TICK_URL != ''
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $OFFICE_TICK_SECRET" "$OFFICE_TICK_URL"
+      - name: Sem configuração
+        if: env.OFFICE_TICK_SECRET == '' || env.OFFICE_TICK_URL == ''
+        run: echo "Secrets OFFICE_TICK_SECRET e OFFICE_TICK_URL não configurados; nada a fazer."
