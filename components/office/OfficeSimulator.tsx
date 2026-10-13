@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
+import { ACOES_POR_PAPEL, chavePolitica, instrucaoDoModo, MODOS, MODOS_INDISPONIVEIS, modoDe, type ModoAutonomia, type Politicas } from "@/lib/office-policy";
 import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
 import type { Empresa } from "@/lib/office-world";
@@ -92,6 +93,7 @@ const LS_KEY = "openclaw_api_key";
 const LS_RUNS = "office_runs_v1";
 const LS_CHAT = "office_chat_v1";
 const LS_EVENTOS = "office_events_v1";
+const LS_POLITICAS = "office_policies_v1";
 
 const ORIGEM_POR_KIND: Record<EntregaKind, string> = {
   triagem: "Demanda do gestor no ciclo editorial",
@@ -232,6 +234,8 @@ export default function OfficeSimulator() {
   const [reuResp, setReuResp] = useState<Record<string, { nome: string; cliente: string; status: "pensando" | "pronto" | "erro"; texto: string }>>({});
   const [reuBusy, setReuBusy] = useState(false);
   const [eventos, setEventos] = useState<EventoOffice[]>([]);
+  const [politicas, setPoliticas] = useState<Politicas>({});
+  const politicasRef = useRef<Politicas>({});
   const [filtroEvento, setFiltroEvento] = useState<string>("todos");
   const runsRef = useRef<RunRecord[]>([]);
   const eventosRef = useRef<EventoOffice[]>([]);
@@ -244,6 +248,11 @@ export default function OfficeSimulator() {
       setRuns(saved);
       runsRef.current = saved;
     } catch { /* histórico corrompido: começa vazio */ }
+    try {
+      const pol = JSON.parse(localStorage.getItem(LS_POLITICAS) ?? "{}") as Politicas;
+      setPoliticas(pol);
+      politicasRef.current = pol;
+    } catch { /* políticas corrompidas: usa o padrão */ }
     try {
       const ev = JSON.parse(localStorage.getItem(LS_EVENTOS) ?? "[]") as EventoOffice[];
       setEventos(ev);
@@ -305,6 +314,13 @@ export default function OfficeSimulator() {
   }, []);
 
   /** Executa uma tarefa em um agente da squad, analisa e registra. */
+  const mudarPolitica = (role: PapelAgente, kind: EntregaKind, modo: ModoAutonomia) => {
+    const next = { ...politicasRef.current, [chavePolitica(bu, role, kind)]: modo };
+    politicasRef.current = next;
+    setPoliticas(next);
+    try { localStorage.setItem(LS_POLITICAS, JSON.stringify(next)); } catch { /* segue só em memória */ }
+  };
+
   const registrar = useCallback((e: Omit<EventoOffice, "id" | "ts">) => {
     const next = [...eventosRef.current, novoEvento(e)].slice(-MAX_EVENTOS);
     eventosRef.current = next;
@@ -324,13 +340,20 @@ export default function OfficeSimulator() {
 
       const origem = opts.origem ?? (opts.scenarioId ? "Cenário de estresse rodado pelo gestor" : ORIGEM_POR_KIND[kind]);
       const acao = opts.scenarioId ? "Cenário de estresse" : kind === "livre" ? "Resposta livre" : `Entrega: ${kind}`;
-      registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem });
+      const modo = modoDe(politicasRef.current, bu, role, kind);
+      if (modo === "bloqueado") {
+        const motivo = `POLICY_BLOCKED: a política de autonomia bloqueia "${acao}" para este agente.`;
+        registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(motivo) });
+        setDesks((d) => ({ ...d, [role]: "error" }));
+        throw new Error(motivo.replace("POLICY_BLOCKED: ", "Bloqueado pela política de autonomia: "));
+      }
+      registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem: `${origem} · modo: ${modo === "recomendar" ? "Recomendar" : "Preparar"}` });
       setDesks((d) => ({ ...d, [role]: "working" }));
       setLive((l) => ({ ...l, [role]: "" }));
       const t0 = performance.now();
       let rec: RunRecord;
       try {
-        const { text, usage } = await streamAgent(agent.id, task, apiKey ?? "", (full) =>
+        const { text, usage } = await streamAgent(agent.id, instrucaoDoModo(modo) + task, apiKey ?? "", (full) =>
           setLive((l) => ({ ...l, [role]: full }))
         );
         const ms = performance.now() - t0;
@@ -1237,6 +1260,31 @@ export default function OfficeSimulator() {
                       </div>
                     );
                   })}
+                </div>
+                <div className="rounded-xl border border-gray-200 p-3 space-y-2">
+                  <div className="text-xs font-semibold text-gray-800">Políticas de autonomia (sala {bu})</div>
+                  <p className="text-[11px] text-gray-500">
+                    Defina o que cada agente pode fazer em cada ação. Hoje eles só geram texto, então os modos que valem são Bloqueado, Recomendar e Preparar.
+                    Modos de execução ({MODOS_INDISPONIVEIS.join(" e ")}) ficam indisponíveis até haver ferramentas externas conectadas.
+                  </p>
+                  {PAPEIS.map((p) => (
+                    <div key={p.role} className="space-y-1">
+                      <div className="text-[11px] font-medium text-gray-700">{p.role === "cs" ? nomeCS : p.label}</div>
+                      {ACOES_POR_PAPEL[p.role].map((a) => (
+                        <div key={a.kind} className="flex items-center justify-between gap-2 text-[11px] text-gray-600">
+                          <span>{a.rotulo}</span>
+                          <select
+                            value={modoDe(politicas, bu, p.role, a.kind)}
+                            onChange={(e) => mudarPolitica(p.role, a.kind, e.target.value as ModoAutonomia)}
+                            className="border border-gray-200 rounded-md px-1.5 py-1 text-[11px] bg-white"
+                            title={MODOS.find((m) => m.modo === modoDe(politicas, bu, p.role, a.kind))?.descricao}
+                          >
+                            {MODOS.map((m) => <option key={m.modo} value={m.modo}>{m.rotulo}</option>)}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {agentes.map(([k, l]) => (
