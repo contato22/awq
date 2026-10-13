@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  BarChart3, ChevronRight, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
+  BarChart3, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
   Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
@@ -17,7 +17,7 @@ import { casaNoPonto, centroDaReuniao, centroDoPredio, desenharMundo, layoutPred
  * Zoom, arrastar, minimapa, controle de tempo e transições entre os níveis.
  */
 
-export type PainelTab = "ciclo" | "conversa" | "reuniao" | "relatorio" | "analise" | "cenarios" | "registros";
+export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "relatorio" | "analise" | "cenarios" | "registros";
 
 export interface MetricaAgente {
   execs: number;
@@ -67,6 +67,7 @@ const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "ciclo", rotulo: "Ciclo editorial", Icone: ClipboardList },
   { tab: "conversa", rotulo: "Conversar", Icone: MessageSquare },
   { tab: "reuniao", rotulo: "Reunião dos CSs", Icone: Users },
+  { tab: "eventos", rotulo: "Eventos e por quês", Icone: ListChecks },
   { tab: "relatorio", rotulo: "Relatório da manhã", Icone: FileText },
   { tab: "analise", rotulo: "Análise", Icone: BarChart3 },
   { tab: "cenarios", rotulo: "Cenários de estresse", Icone: ShieldCheck },
