@@ -402,6 +402,34 @@ const AGENTES: Agente[] = ["cs", "ref", "criativo", "midia"];
 // posição (relativa à sala) da mesa de cada agente: [coluna, linha]; a cadeira fica uma linha acima
 const MESAS_SALA: Record<Agente, [number, number]> = { cs: [0, 1], ref: [3, 1], criativo: [0, 3], midia: [3, 3] };
 
+/**
+ * Cabelo com silhueta própria por papel (não só cor) — cada função reconhecível de longe,
+ * como o Sims faz com silhuetas de Create-a-Sim. `topo` é o y do topo da caixa da cabeça.
+ */
+function cabeloDoPapel(c: CanvasRenderingContext2D, cx: number, topo: number, papel: Papel, cor: string) {
+  switch (papel) {
+    case "criativo": // topete desalinhado, mais alto de um lado — o "despojado"
+      parte(c, cx - 4, topo - 3, 8, 3, cor);
+      parte(c, cx + 1.5, topo - 5, 2.5, 2.5, cor);
+      ret(c, cx + 1.5, topo - 5, 2.5, 0.5, sombreia(cor, 0.22));
+      break;
+    case "midia": // preso atrás, volume alto — o "sempre em câmera"
+      parte(c, cx - 4, topo - 3, 8, 3, cor);
+      parte(c, cx + 2.5, topo - 2.5, 2, 3, cor);
+      break;
+    case "ref": // curto e discreto, repartido de lado — o "atrás das telas"
+      parte(c, cx - 4, topo - 2.5, 8, 2.5, cor);
+      ret(c, cx - 4, topo - 2.5, 2, 0.5, sombreia(cor, 0.22));
+      break;
+    case "cs":
+    case "gestor":
+    default: // repartido ao meio, clássico — o "fala com todo mundo"
+      parte(c, cx - 4, topo - 3.5, 8, 3.5, cor);
+      ret(c, cx - 0.5, topo - 3.5, 1, 3.5, sombreia(cor, -0.22));
+      break;
+  }
+}
+
 function bonecoSentado(c: CanvasRenderingContext2D, cx: number, cy: number, papel: Papel, st: Estado, quadro: number) {
   const L = LOOK[papel];
   const Y = cy + 3.5;
@@ -415,12 +443,18 @@ function bonecoSentado(c: CanvasRenderingContext2D, cx: number, cy: number, pape
   } else {
     parte(c, cx - 6.5, Y - 14.5, 2, 6, L.corpo); parte(c, cx + 4.5, Y - 14.5, 2, 6, L.corpo);
   }
-  ret(c, cx - 1, Y - 17.5, 2, 2, sombreia(L.pele, -0.12));
-  parte(c, cx - 3.5, Y - 25, 7, 7.5, L.pele);
-  parte(c, cx - 4, Y - 27, 8, 3.5, L.cabelo);
-  ret(c, cx - 3, Y - 22, 2, 1.5, "#ffffff"); ret(c, cx + 1, Y - 22, 2, 1.5, "#ffffff");
-  ret(c, cx - 2.5, Y - 21.75, 1, 1, "#0f172a"); ret(c, cx + 1.5, Y - 21.75, 1, 1, "#0f172a");
-  ret(c, cx - 1, Y - 19.5, 2, 0.5, "#9a3412");
+  ret(c, cx - 1, Y - 18.5, 2, 3, sombreia(L.pele, -0.12));
+  // cabeça maior e mais arredondada (estilo CAS: proporção "boneco", não realista — mais legível em tamanho pequeno)
+  const hx = cx - 4, hy = Y - 28.5, hw = 8, hh = 9.5;
+  parte(c, hx, hy, hw, hh, L.pele);
+  ret(c, hx, hy, 1, 1, sombreia(L.pele, 0.15)); ret(c, hx + hw - 1, hy, 1, 1, sombreia(L.pele, 0.15)); // cantos suavizados
+  ret(c, hx, hy + hh - 2, hw, 2, sombreia(L.pele, -0.1)); // sombra de queixo/maxilar
+  cabeloDoPapel(c, cx, hy, papel, L.cabelo);
+  // olhos maiores, com reflexo de luz — mais expressivo, "estilo cartoon" em vez de realista
+  ret(c, cx - 3.2, hy + 4.8, 2.2, 1.8, "#ffffff"); ret(c, cx + 1, hy + 4.8, 2.2, 1.8, "#ffffff");
+  ret(c, cx - 2.6, hy + 5.2, 1.2, 1.2, "#0f172a"); ret(c, cx + 1.6, hy + 5.2, 1.2, 1.2, "#0f172a");
+  ret(c, cx - 2.4, hy + 5.2, 0.5, 0.5, "#f8fafc"); ret(c, cx + 1.8, hy + 5.2, 0.5, 0.5, "#f8fafc");
+  ret(c, cx - 1, hy + 8, 2, 0.5, "#9a3412");
 }
 
 function balaoMini(c: CanvasRenderingContext2D, cx: number, y: number, tipo: "pontos" | "ok" | "erro", f: number) {
