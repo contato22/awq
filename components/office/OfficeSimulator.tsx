@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
+import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
 import type { Empresa } from "@/lib/office-world";
 import type { Atividade } from "@/lib/office-iso";
@@ -88,6 +89,16 @@ interface ReportMeta {
 const LS_KEY = "openclaw_api_key";
 const LS_RUNS = "office_runs_v1";
 const LS_CHAT = "office_chat_v1";
+const LS_EVENTOS = "office_events_v1";
+
+const ORIGEM_POR_KIND: Record<EntregaKind, string> = {
+  triagem: "Demanda do gestor no ciclo editorial",
+  briefing: "Pedido de briefing feito pelo CS após a triagem",
+  peca: "Peça pedida após o briefing",
+  aprovacao: "Pacote de aprovação montado pelo CS",
+  execucao: "Aprovação explícita do gestor",
+  livre: "Pedido direto",
+};
 const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -215,7 +226,10 @@ export default function OfficeSimulator() {
   const [reuPauta, setReuPauta] = useState("");
   const [reuResp, setReuResp] = useState<Record<string, { nome: string; cliente: string; status: "pensando" | "pronto" | "erro"; texto: string }>>({});
   const [reuBusy, setReuBusy] = useState(false);
+  const [eventos, setEventos] = useState<EventoOffice[]>([]);
+  const [filtroEvento, setFiltroEvento] = useState<string>("todos");
   const runsRef = useRef<RunRecord[]>([]);
+  const eventosRef = useRef<EventoOffice[]>([]);
 
   // Chave, execuções salvas e squads disponíveis
   useEffect(() => {
@@ -225,6 +239,11 @@ export default function OfficeSimulator() {
       setRuns(saved);
       runsRef.current = saved;
     } catch { /* histórico corrompido: começa vazio */ }
+    try {
+      const ev = JSON.parse(localStorage.getItem(LS_EVENTOS) ?? "[]") as EventoOffice[];
+      setEventos(ev);
+      eventosRef.current = ev;
+    } catch { /* log corrompido: começa vazio */ }
     try {
       setChat(JSON.parse(localStorage.getItem(LS_CHAT) ?? "{}") as Record<string, ChatMsg[]>);
     } catch { /* conversa corrompida: começa vazia */ }
@@ -279,16 +298,26 @@ export default function OfficeSimulator() {
   }, []);
 
   /** Executa uma tarefa em um agente da squad, analisa e registra. */
+  const registrar = useCallback((e: Omit<EventoOffice, "id" | "ts">) => {
+    const next = [...eventosRef.current, novoEvento(e)].slice(-MAX_EVENTOS);
+    eventosRef.current = next;
+    setEventos(next);
+    try { localStorage.setItem(LS_EVENTOS, JSON.stringify(next)); } catch { /* cota estourada: segue só em memória */ }
+  }, []);
+
   const rodar = useCallback(
     async (
       role: PapelAgente,
       kind: EntregaKind,
       task: string,
-      opts: { aprovado?: boolean; scenarioId?: string } = {}
+      opts: { aprovado?: boolean; scenarioId?: string; origem?: string } = {}
     ): Promise<RunRecord> => {
       const agent = squad?.agents[role];
       if (!agent) throw new Error("Squad indisponível.");
 
+      const origem = opts.origem ?? (opts.scenarioId ? "Cenário de estresse rodado pelo gestor" : ORIGEM_POR_KIND[kind]);
+      const acao = opts.scenarioId ? "Cenário de estresse" : kind === "livre" ? "Resposta livre" : `Entrega: ${kind}`;
+      registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem });
       setDesks((d) => ({ ...d, [role]: "working" }));
       setLive((l) => ({ ...l, [role]: "" }));
       const t0 = performance.now();
@@ -306,8 +335,10 @@ export default function OfficeSimulator() {
           analise: analisar(kind, text, task, !!opts.aprovado),
         };
         setDesks((d) => ({ ...d, [role]: "done" }));
+        registrar({ tipo: "ActionCompleted", bu, ator: role, acao, origem, ms, tokens: usage });
       } catch (e) {
         setDesks((d) => ({ ...d, [role]: "error" }));
+        registrar({ tipo: "ActionFailed", bu, ator: role, acao, origem, causa: classificarErro(e instanceof Error ? e.message : String(e)) });
         if (e instanceof Error && /invalid x-api-key|authentication_error/.test(e.message)) {
           localStorage.removeItem(LS_KEY);
           setApiKey(null);
@@ -323,7 +354,7 @@ export default function OfficeSimulator() {
       salvarRuns([...runsRef.current, rec]);
       return rec;
     },
-    [squad, apiKey, bu, salvarRuns]
+    [squad, apiKey, bu, salvarRuns, registrar]
   );
 
   // ── Ciclo editorial ───────────────────────────────────────────────────────────
@@ -355,6 +386,7 @@ export default function OfficeSimulator() {
 
       const pacote = await rodar("cs", "aprovacao", pacoteTask(base, briefing.output, peca.output, 1));
       setCycle((c) => c && { ...c, estado: "AGUARDANDO APROVAÇÃO", etapa: 4, outputs: { ...c.outputs, pacote: pacote.output } });
+      registrar({ tipo: "ApprovalRequested", bu, ator: "cs", acao: "Pacote de aprovação pronto", origem: "Nada é publicado sem a decisão do gestor" });
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha no ciclo.");
     } finally {
@@ -371,6 +403,7 @@ export default function OfficeSimulator() {
     setErro(null);
     setBusy(true);
     const registro = { decisao, em: new Date().toISOString(), versao: cycle.versao, feedback: feedback.trim() || undefined };
+    registrar({ tipo: "ApprovalDecided", bu, ator: "gestor", acao: `Decisão: ${decisao} (v${cycle.versao})`, origem: feedback.trim() ? `Feedback do gestor: ${feedback.trim().slice(0, 140)}` : "Decisão do gestor sobre o pacote de aprovação" });
     try {
       if (decisao === "rejeitado") {
         setCycle({ ...cycle, estado: "CANCELADO", decisoes: [...cycle.decisoes, registro] });
@@ -396,6 +429,7 @@ export default function OfficeSimulator() {
       setCycle((c) => c && { ...c, estado: "EM REVISÃO INTERNA", etapa: 3, outputs: { ...c.outputs, peca: peca.output } });
       const pacote = await rodar("cs", "aprovacao", pacoteTask(cycle, cycle.outputs.briefing ?? "", peca.output, novaVersao));
       setCycle((c) => c && { ...c, estado: "AGUARDANDO APROVAÇÃO", etapa: 4, outputs: { ...c.outputs, pacote: pacote.output } });
+      registrar({ tipo: "ApprovalRequested", bu, ator: "cs", acao: "Pacote de aprovação pronto", origem: "Nada é publicado sem a decisão do gestor" });
       setFeedback("");
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao processar a decisão.");
@@ -459,7 +493,7 @@ export default function OfficeSimulator() {
 
     try {
       setFaseChat(ehCS ? `${nomeCS} está pensando` : null);
-      const r1 = await rodar(chatRole, "livre", partes.join("\n\n"));
+      const r1 = await rodar(chatRole, "livre", partes.join("\n\n"), { origem: "Mensagem do gestor no chat" });
 
       const pedidos = ehCS
         ? Array.from(r1.output.matchAll(BLOCO_DELEGAR))
@@ -480,7 +514,7 @@ export default function OfficeSimulator() {
           const tipo: EntregaKind = d.agente === "ref" ? "briefing" : d.agente === "criativo" ? "peca" : "livre";
           const tarefa = `TAREFA DELEGADA POR ${nomeCS} (Headcount/CS)\n${d.tarefa}\n\nDEMANDA ORIGINAL DO GESTOR:\n${texto}${reportMd ? `\n\nRELATÓRIO DA MANHÃ:\n${trecho(reportMd, 3500)}` : ""}\n\nEntregue em texto, como RASCUNHO. Você não publica nem envia nada.`;
           try {
-            const rec = await rodar(d.agente, tipo, tarefa);
+            const rec = await rodar(d.agente, tipo, tarefa, { origem: `Delegado por ${nomeCS} para atender o pedido: "${texto.slice(0, 70)}"` });
             return { agente: d.agente, tarefa: d.tarefa, resposta: rec.output, ms: rec.ms };
           } catch (e) {
             return { agente: d.agente, tarefa: d.tarefa, resposta: `[falhou: ${e instanceof Error ? e.message : "erro"}]`, ms: 0 };
@@ -495,7 +529,7 @@ export default function OfficeSimulator() {
           .map((r) => `### ${ROTULO_AGENTE[r.agente as "ref" | "criativo" | "midia"]}\nTarefa pedida: ${r.tarefa}\nResposta:\n${trecho(r.resposta, 5000)}`)
           .join("\n\n") +
         "\n\nRevise o que os agentes entregaram, aponte falhas ou riscos que você encontrou e responda ao gestor de forma direta: o que ficou pronto, o que depende de decisão dele e o próximo passo. Não delegue de novo. Não atribua aos agentes nada que não esteja nas respostas acima. Tudo continua como RASCUNHO até a aprovação explícita do gestor.";
-      const r2 = await rodar("cs", "livre", consolidacao);
+      const r2 = await rodar("cs", "livre", consolidacao, { origem: `${nomeCS} consolidando as respostas dos agentes delegados` });
       adicionar({
         de: "agente", texto: r2.output.replace(BLOCO_DELEGAR, "").trim(), ts: new Date().toISOString(),
         plano: plano || undefined, delegacoes: recebidos,
@@ -517,6 +551,7 @@ export default function OfficeSimulator() {
     if (!pauta || reuBusy || participantes.length === 0) return;
     setErro(null);
     setReuBusy(true);
+    registrar({ tipo: "MeetingStarted", bu: "AWQ", ator: "gestor", acao: `Reunião dos CSs (${participantes.length})`, origem: `Pauta: ${pauta.slice(0, 140)}` });
     setReuResp(Object.fromEntries(participantes.map((sq) => [sq.bu, {
       nome: sq.agents.cs!.name.split(" · ")[0], cliente: sq.bu, status: "pensando" as const, texto: "",
     }])));
@@ -538,6 +573,7 @@ export default function OfficeSimulator() {
           setReuResp((m) => ({ ...m, [sq.bu]: { nome, cliente: sq.bu, status: "pensando", texto: full } }))
         );
         setReuResp((m) => ({ ...m, [sq.bu]: { nome, cliente: sq.bu, status: "pronto", texto: text } }));
+        registrar({ tipo: "MeetingReply", bu: sq.bu, ator: "cs", acao: `${nome} respondeu à pauta`, origem: "Reunião dos CSs" });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "erro";
         if (/invalid x-api-key|authentication_error/.test(msg)) {
@@ -548,6 +584,7 @@ export default function OfficeSimulator() {
           setErro("Falta a chave da Anthropic. Cole a sua no campo que apareceu (ela fica só neste navegador).");
         }
         setReuResp((m) => ({ ...m, [sq.bu]: { nome, cliente: sq.bu, status: "erro", texto: msg } }));
+        registrar({ tipo: "ActionFailed", bu: sq.bu, ator: "cs", acao: `${nome} na reunião`, origem: "Reunião dos CSs", causa: classificarErro(msg) });
       }
     }));
     setReuBusy(false);
@@ -772,7 +809,7 @@ export default function OfficeSimulator() {
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
         <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
-          {([["ciclo", "Ciclo"], ["conversa", "Conversar"], ["reuniao", "Reunião"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+          {([["ciclo", "Ciclo"], ["conversa", "Conversar"], ["reuniao", "Reunião"], ["eventos", "Eventos"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
@@ -1037,6 +1074,62 @@ export default function OfficeSimulator() {
               </div>
             </div>
           )}
+
+          {tab === "eventos" && (() => {
+            const lista = eventos.filter((e) => filtroEvento === "todos" || e.ator === filtroEvento).slice().reverse().slice(0, 80);
+            const agentes: [string, string][] = [["todos", "Todos"], ["gestor", "Gestor"], ...PAPEIS.map((p) => [p.role, p.role === "cs" ? nomeCS : p.label] as [string, string])];
+            const ultimoPorAgente = (role: string) => [...eventos].reverse().find((e) => e.ator === role && e.bu === bu);
+            return (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">
+                  Fatos registrados pelo sistema (não texto gerado por IA): cada ação traz a origem e, nas falhas, a causa e a recuperação. Fica só neste navegador.
+                </p>
+                <div className="rounded-xl border border-gray-200 p-3 space-y-1.5">
+                  <div className="text-xs font-semibold text-gray-800">Por quê? Situação de cada agente nesta sala</div>
+                  {PAPEIS.map((p) => {
+                    const u = ultimoPorAgente(p.role);
+                    const st = desks[p.role];
+                    return (
+                      <div key={p.role} className="text-[11px] text-gray-600">
+                        <span className="font-medium text-gray-800">{p.role === "cs" ? nomeCS : p.label}</span>{" "}
+                        {st === "working" ? "está trabalhando" : st === "error" ? "teve um problema" : st === "done" ? "entregou" : "está ocioso"}
+                        {u ? `: ${u.acao}. Motivo: ${u.origem}.` : ": sem registros ainda (nenhuma ação foi pedida a ele)."}
+                        {u?.causa && <span className="text-red-600"> Causa: {u.causa.mensagem} Próximo passo: {u.causa.proxima}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {agentes.map(([k, l]) => (
+                    <button key={k} onClick={() => setFiltroEvento(k)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] border ${filtroEvento === k ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600"}`}>{l}</button>
+                  ))}
+                </div>
+                {lista.length === 0 && <p className="text-xs text-gray-400">Nenhum evento ainda. Rode uma ação para ver o registro.</p>}
+                <ul className="space-y-2">
+                  {lista.map((e) => (
+                    <li key={e.id} className="rounded-lg border border-gray-100 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${e.tipo === "ActionFailed" ? "bg-red-50 text-red-700" : e.tipo === "ActionCompleted" || e.tipo === "MeetingReply" ? "bg-green-50 text-green-700" : e.tipo === "ApprovalRequested" ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-600"}`}>{ROTULO_TIPO[e.tipo]}</span>
+                        <span className="text-[10px] text-gray-400">{new Date(e.ts).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {e.bu}</span>
+                      </div>
+                      <div className="text-xs text-gray-800 mt-1">{e.acao}</div>
+                      <div className="text-[11px] text-gray-500">Origem: {e.origem}</div>
+                      {(e.ms || e.tokens) && (
+                        <div className="text-[10px] text-gray-400">{e.ms ? fmtS(e.ms) : ""}{e.tokens ? ` · ${e.tokens.input} entrada / ${e.tokens.output} saída (tokens)` : ""}</div>
+                      )}
+                      {e.causa && (
+                        <div className="mt-1 text-[11px] text-red-700 bg-red-50 rounded px-2 py-1">
+                          <div><b>{e.causa.codigo}</b>: {e.causa.mensagem}</div>
+                          <div>Recuperável: {e.causa.recuperavel ? "sim" : "não"} · Próxima ação: {e.causa.proxima}</div>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
 
           {tab === "relatorio" && (
             <div className="space-y-3">
