@@ -652,16 +652,17 @@ function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, ti
       const decorrido = op.reuniaoDesde != null ? op.t - op.reuniaoDesde : 999;
       op.reuniao.slice(0, ASSENTOS.length).forEach((est, i) => {
         const [ax, ay] = ASSENTOS[i];
-        // chegada escalonada: cada CS entra ~0.12s depois do anterior, deslizando e esmaecendo até o lugar
-        const prog = clamp((decorrido - i * 0.12) / 0.45, 0, 1);
+        // chegada escalonada: cada CS entra ~0.35s depois do anterior, deslizando e esmaecendo até o lugar
+        // (duração generosa de propósito: tem que dar pra notar olhando a tela, não só em câmera lenta)
+        const prog = clamp((decorrido - i * 0.35) / 0.9, 0, 1);
         if (prog <= 0) return;
         const suave = prog * prog * (3 - 2 * prog); // smoothstep
         add(s.x + ax + s.y + ay - 0.05, () => {
           const q = iw(s.x + ax, s.y + ay);
           c.save();
           c.globalAlpha = suave;
-          const escala = 0.82 + 0.18 * suave;
-          const dy = (1 - suave) * 7; // desliza de baixo para cima até sentar
+          const escala = 0.7 + 0.3 * suave;
+          const dy = (1 - suave) * 16; // desliza de baixo para cima até sentar
           c.translate(q.x, q.y + dy);
           c.scale(escala, escala);
           bonecoSentado(c, 0, 0, LOOKS[i], est === "pensando" ? "working" : "idle", op.quadro);
@@ -809,7 +810,7 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
     const decorrido = op.reuniaoDesde != null ? op.t - op.reuniaoDesde : 999;
     op.reuniao.slice(0, ASSENTOS.length).forEach((est, i) => {
       // só mostra o balão depois que o CS terminou de "chegar" (evita balão flutuando sobre a cadeira vazia)
-      if (decorrido - i * 0.12 < 0.45) return;
+      if (decorrido - i * 0.35 < 0.9) return;
       const [ax, ay] = ASSENTOS[i];
       const q = iw(sl.x + ax, sl.y + ay);
       if (est === "pensando") balaoMini(c, q.x, q.y - 36, "pontos", op.quadro);
