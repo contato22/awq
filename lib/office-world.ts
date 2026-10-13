@@ -18,8 +18,30 @@ const GWm = 18;
 const GHm = 13;
 const WALL = 44;
 
+/** Andares do prédio: cada um é uma BU do grupo, com paleta própria. */
+export type AndarId = "jacqes" | "awaqe";
+
+export interface Andar {
+  id: AndarId;
+  numero: number;
+  nome: string;
+  descricao: string;
+}
+
+export const ANDARES: Andar[] = [
+  { id: "jacqes", numero: 1, nome: "JACQES", descricao: "BU que cuida dos clientes de social media" },
+  { id: "awaqe", numero: 2, nome: "AWAQE", descricao: "BU AWAQE" },
+];
+
+/** BUs (nomes das squads) que ficam fora do 1º andar. Hoje todas as squads de clientes são da JACQES. */
+export const ANDAR_DA_BU: Record<string, AndarId> = {};
+
+export const andarDaEmpresa = (e: { bu: string; andar?: AndarId }): AndarId => e.andar ?? ANDAR_DA_BU[e.bu] ?? "jacqes";
+
 export interface Empresa {
   bu: string;
+  /** Andar do prédio (padrão: jacqes). */
+  andar?: AndarId;
   nome: string;
   slug: string;
   tema: number;
@@ -128,13 +150,17 @@ export function casaNoPonto(x: number, y: number): "diretoria" | "reunioes" | nu
 
 // ── Cenário fixo (em cache) ────────────────────────────────────────────────────
 
-const AWQ = { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#d8cdb6", "#cfc3a9"] as [string, string] };
+interface Paleta { paredeD: string; paredeE: string; rodape: string; corredor: [string, string]; passadeira: [string, string]; faixa: string }
+const PALETAS: Record<AndarId, Paleta> = {
+  jacqes: { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#d8cdb6", "#cfc3a9"], passadeira: ["#35508f", "#30498a"], faixa: "#2c4382" },
+  awaqe: { paredeD: "#1f5e58", paredeE: "#184a46", rodape: "#0d302d", corredor: ["#dcd5c2", "#d2cab6"], passadeira: ["#2f7a6f", "#2a6e64"], faixa: "#1f5e58" },
+};
 
 function colunaParede(lado: "D" | "E", u: number) {
   return { x: lado === "D" ? WOX + u * 16 : WOX - u * 16 - 0.5, base: WOY + u * 8 };
 }
 
-function paredeExterna(c: CanvasRenderingContext2D, lado: "D" | "E") {
+function paredeExterna(c: CanvasRenderingContext2D, lado: "D" | "E", AWQ: Paleta) {
   const n = lado === "D" ? GWm : GHm;
   const cor = lado === "D" ? AWQ.paredeD : AWQ.paredeE;
   for (let k = 0; k < n * 32; k++) {
@@ -190,7 +216,7 @@ function logoAWQ(c: CanvasRenderingContext2D) {
   }
 }
 
-function pisoPlanta(c: CanvasRenderingContext2D, predios: PredioW[]) {
+function pisoPlanta(c: CanvasRenderingContext2D, predios: PredioW[], AWQ: Paleta) {
   const sala = (gx: number, gy: number) => SLOTS.find((s) => gx >= s.x && gx < s.x + LADO && gy >= s.y && gy < s.y + LADO);
   const dono = (s: { x: number; y: number }) => predios.find((p) => p.x === s.x && p.y === s.y);
   for (let gy = 0; gy < GHm; gy++) {
@@ -208,7 +234,7 @@ function pisoPlanta(c: CanvasRenderingContext2D, predios: PredioW[]) {
         cor = AWQ.corredor[(gx + gy) % 2];
       }
       const passadeira = !s && (gy === 6 || gy === 7) && gx >= 1 && gx <= 16;
-      if (passadeira) cor = (gx + gy) % 2 ? "#35508f" : "#30498a";
+      if (passadeira) cor = AWQ.passadeira[(gx + gy) % 2];
       losango(c, p.x, p.y, cor);
       if (passadeira) {
         losangoEsc(c, p.x, p.y + 8, 0.62, sombreia(cor, 0.1));
@@ -329,13 +355,14 @@ function poeira(c: CanvasRenderingContext2D, hora: number, t: number) {
   });
 }
 
-function cenarioEstatico(c: CanvasRenderingContext2D, predios: PredioW[], hora: number) {
-  paredeExterna(c, "D");
-  paredeExterna(c, "E");
+function cenarioEstatico(c: CanvasRenderingContext2D, predios: PredioW[], hora: number, andar: AndarId) {
+  const pal = PALETAS[andar];
+  paredeExterna(c, "D", pal);
+  paredeExterna(c, "E", pal);
   for (const [a, b] of [[2.2, 4.4], [10, 12.4], [14.2, 16.6]] as const) janelaExterna(c, "D", a, b, hora);
   for (const [a, b] of [[2.6, 4.8], [8, 10.2]] as const) janelaExterna(c, "E", a, b, hora);
   logoAWQ(c);
-  pisoPlanta(c, predios);
+  pisoPlanta(c, predios, pal);
   feixesDeSol(c, hora);
   penumbraDasSalas(c);
   for (const s of SLOTS) {
@@ -347,9 +374,9 @@ function cenarioEstatico(c: CanvasRenderingContext2D, predios: PredioW[], hora: 
 
 const cacheFundo = new Map<string, HTMLCanvasElement>();
 
-function fundo(predios: PredioW[], hora: number): HTMLCanvasElement | null {
+function fundo(predios: PredioW[], hora: number, andar: AndarId): HTMLCanvasElement | null {
   if (typeof document === "undefined") return null;
-  const chave = `${Math.floor(hora * 4)}|${predios.map((p) => `${p.x},${p.y},${p.empresa.tema}`).join(";")}`;
+  const chave = `${andar}|${Math.floor(hora * 4)}|${predios.map((p) => `${p.x},${p.y},${p.empresa.tema}`).join(";")}`;
   let cv = cacheFundo.get(chave);
   if (!cv) {
     cv = document.createElement("canvas");
@@ -359,7 +386,7 @@ function fundo(predios: PredioW[], hora: number): HTMLCanvasElement | null {
     if (!g) return null;
     g.setTransform(ESCALA, 0, 0, ESCALA, 0, 0);
     g.imageSmoothingEnabled = false;
-    cenarioEstatico(g, predios, hora);
+    cenarioEstatico(g, predios, hora, andar);
     if (cacheFundo.size > 12) cacheFundo.delete(cacheFundo.keys().next().value as string);
     cacheFundo.set(chave, cv);
   }
@@ -455,6 +482,29 @@ function corredor(c: CanvasRenderingContext2D, op: OpcoesMundo, add: (d: number,
   add(0 + 3 + 0.2, () => { const q = iw(0.5, 3.5); cafeteira(c, q.x, q.y, f); });
   add(0 + 4 + 0.2, () => { const q = iw(0.5, 4.5); bebedouro(c, q.x, q.y, f); });
   add(3 + 0 + 0.2, () => impressora(c, iw(3, 0), f));
+}
+
+/** Placa com o andar e a BU, acima do prédio. */
+function faixaDoAndar(c: CanvasRenderingContext2D, andar: AndarId, squads: number) {
+  const a = ANDARES.find((x) => x.id === andar)!;
+  const txt = `ANDAR ${a.numero} · ${a.nome}`;
+  c.font = "bold 6.5px sans-serif";
+  const w = Math.ceil(c.measureText(txt).width) + 14;
+  const x = Math.round(WOX - w / 2), y = 4;
+  ret(c, x - 0.5, y - 0.5, w + 1, 12, OUT);
+  ret(c, x, y, w, 11, PALETAS[andar].faixa);
+  ret(c, x, y, w, 1, "rgba(255,255,255,0.35)");
+  ret(c, x + 3, y + 3.5, 4, 4, "#fbbf24");
+  c.fillStyle = "#f8fafc"; c.textAlign = "left"; c.textBaseline = "middle";
+  c.fillText(txt, x + 10, y + 6);
+  if (squads === 0) {
+    c.font = "bold 4.5px sans-serif";
+    const sub = "SEM SQUADS CONFIGURADAS AINDA";
+    const w2 = Math.ceil(c.measureText(sub).width) + 8;
+    ret(c, Math.round(WOX - w2 / 2) - 0.5, y + 12.5, w2 + 1, 8, OUT);
+    ret(c, Math.round(WOX - w2 / 2), y + 13, w2, 7, "#0f172a");
+    c.fillStyle = "#fcd34d"; c.fillText(sub, Math.round(WOX - w2 / 2) + 4, y + 16.8);
+  }
 }
 
 function relogioParede(c: CanvasRenderingContext2D, hora: number) {
@@ -633,6 +683,8 @@ function colega(c: CanvasRenderingContext2D, x: number, y: number, cor: string, 
 export type EstadoReuniao = "chegando" | "pensando" | "pronto" | "erro";
 
 export interface OpcoesMundo {
+  /** Andar desenhado (padrão: jacqes). */
+  andar?: AndarId;
   /** CSs sentados na sala de reuniões (vazio fora da reunião). */
   reuniao?: EstadoReuniao[];
   hora: number;
@@ -647,10 +699,11 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, WW * ESCALA, WH * ESCALA);
   c.imageSmoothingEnabled = false;
-  const bg = fundo(predios, op.hora);
+  const andar = op.andar ?? "jacqes";
+  const bg = fundo(predios, op.hora, andar);
   if (bg) c.drawImage(bg, 0, 0);
   c.setTransform(ESCALA, 0, 0, ESCALA, 0, 0);
-  if (!bg) cenarioEstatico(c, predios, op.hora);
+  if (!bg) cenarioEstatico(c, predios, op.hora, andar);
 
   relogioParede(c, op.hora);
 
@@ -708,6 +761,8 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
     });
     c.restore();
   }
+
+  faixaDoAndar(c, andar, predios.length);
 
   for (const p of predios) {
     rotulo(c, p, op);

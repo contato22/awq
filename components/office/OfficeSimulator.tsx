@@ -16,7 +16,7 @@ import {
 } from "@/lib/office-missions";
 import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
-import type { Empresa } from "@/lib/office-world";
+import { ANDARES, type Empresa } from "@/lib/office-world";
 import type { Atividade } from "@/lib/office-iso";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
@@ -970,6 +970,7 @@ export default function OfficeSimulator() {
             rotulo: p.role === "cs" ? `${sq.agents.cs?.name.split(" · ")[0] ?? "CS"} (CS)` : p.label,
             sub: sq.bu, bu: sq.bu, role: p.role,
           }))),
+          ...ANDARES.map((a) => ({ id: `a:${a.id}`, tipo: "andar" as const, rotulo: `Andar ${a.numero} · ${a.nome}`, sub: a.descricao, andar: a.id })),
           { id: "s:reunioes", tipo: "sala" as const, rotulo: "Sala de reuniões", sub: "reunião dos CSs", sala: "reunioes" as const },
           { id: "s:diretoria", tipo: "sala" as const, rotulo: "Sala do Miguel", sub: "diretoria", sala: "diretoria" as const },
         ]}
