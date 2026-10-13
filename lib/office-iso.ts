@@ -723,12 +723,12 @@ type Item = { d: number; f: () => void };
 
 export const OUT = "rgba(11,17,32,0.92)";
 
-function parte(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
+export function parte(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
   ret(c, x - 0.5, y - 0.5, w + 1, h + 1, OUT);
   ret(c, x, y, w, h, cor);
 }
 
-function monitor(c: CanvasRenderingContext2D, cx: number, cy: number, st: Estado | "off", f: number, papel: Papel) {
+export function monitor(c: CanvasRenderingContext2D, cx: number, cy: number, st: Estado | "off", f: number, papel: Papel) {
   ret(c, cx - 3, cy - 0.5, 6, 1, "#52525b");
   ret(c, cx - 3, cy - 1, 6, 0.5, "#a1a1aa");
   ret(c, cx - 0.75, cy - 3, 1.5, 2.5, "#71717a");
@@ -810,7 +810,7 @@ function acessoriosDaMesa(c: CanvasRenderingContext2D, p: { x: number; y: number
   }
 }
 
-function cadeira(c: CanvasRenderingContext2D, p: { x: number; y: number }) {
+export function cadeira(c: CanvasRenderingContext2D, p: { x: number; y: number }) {
   ret(c, p.x - 4.5, p.y - 0.5, 9, 0.5, "#27272a");
   ret(c, p.x - 4.5, p.y - 1, 1, 1, "#18181b"); ret(c, p.x + 3.5, p.y - 1, 1, 1, "#18181b"); ret(c, p.x - 0.5, p.y - 1, 1, 1, "#18181b");
   ret(c, p.x - 0.5, p.y - 4.5, 1, 4, "#3f3f46");
@@ -822,7 +822,7 @@ function cadeira(c: CanvasRenderingContext2D, p: { x: number; y: number }) {
   ret(c, p.x - 7, p.y - 10.5, 1.5, 3.5, "#27272a"); ret(c, p.x + 5.5, p.y - 10.5, 1.5, 3.5, "#27272a");
 }
 
-function planta(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
+export function planta(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
   ret(c, cx - 5.5, cy - 9, 11, 9, "#7c2d12");
   ret(c, cx - 5.5, cy - 9, 11, 1.5, "#c2410c");
   ret(c, cx - 5, cy - 7.5, 10, 0.5, "#451a03");
@@ -871,7 +871,7 @@ function bebedouro(c: CanvasRenderingContext2D, cx: number, cy: number, f: numbe
 
 // ── Personagens ────────────────────────────────────────────────────────────────
 
-const LOOK: Record<Papel, { pele: string; cabelo: string; corpo: string; calca: string }> = {
+export const LOOK: Record<Papel, { pele: string; cabelo: string; corpo: string; calca: string }> = {
   gestor: { pele: "#e0b08a", cabelo: "#1f2937", corpo: "#334155", calca: "#1f2937" },
   cs: { pele: "#f1c9a5", cabelo: "#6b4423", corpo: "#0487D9", calca: "#1e293b" },
   ref: { pele: "#c98f5f", cabelo: "#111827", corpo: "#0e7490", calca: "#334155" },
