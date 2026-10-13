@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
-import IsoOffice, { type MetricaAgente } from "./IsoOffice";
+import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
+import type { Empresa } from "@/lib/office-world";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
@@ -181,12 +182,13 @@ export default function OfficeSimulator() {
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [tab, setTab] = useState<"conversa" | "relatorio" | "analise" | "cenarios" | "registros">("conversa");
+  const [tab, setTab] = useState<PainelTab>("conversa");
   const [aberto, setAberto] = useState<string | null>(null);
   const [cenarioAtual, setCenarioAtual] = useState<string | null>(null);
   const [reports, setReports] = useState<ReportMeta[]>([]);
   const [reportMd, setReportMd] = useState<string | null>(null);
   const [reportErro, setReportErro] = useState<string | null>(null);
+  const [painelAberto, setPainelAberto] = useState(false);
   const [chat, setChat] = useState<Record<string, ChatMsg[]>>({});
   const [chatRole, setChatRole] = useState<PapelAgente>("cs");
   const [chatInput, setChatInput] = useState("");
@@ -523,8 +525,24 @@ export default function OfficeSimulator() {
     );
   }
 
+  const empresas: Empresa[] = squads.map((sq, i) => {
+    const rs = runs.filter((r) => r.bu === sq.bu);
+    const rep = reports.find((r) => sq.bu.toLowerCase().includes(r.cliente.toLowerCase()));
+    return {
+      bu: sq.bu,
+      nome: sq.bu.replace(/^Social Media · /, ""),
+      slug: (sq.agents.cs?.id ?? sq.bu).replace(/^social-/, "").replace(/-cs$/, ""),
+      tema: i,
+      agentes: Object.keys(sq.agents).length,
+      execs: rs.length,
+      alta: rs.reduce((a, r) => a + contaFlags(r.analise).alta, 0),
+      trabalhando: sq.bu === bu ? PAPEIS.filter((p) => desks[p.role] === "working").length : 0,
+      relatorio: !!rep,
+    };
+  });
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs text-gray-400">
@@ -569,53 +587,40 @@ export default function OfficeSimulator() {
         </div>
       )}
 
-      {/* Salas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        {squads.map((sq) => {
-          const rep = reports.find((r) => sq.bu.toLowerCase().includes(r.cliente.toLowerCase()));
-          const n = runs.filter((r) => r.bu === sq.bu).length;
-          const ativa = sq.bu === bu;
-          return (
-            <button
-              key={sq.bu}
-              onClick={() => { setBu(sq.bu); setCycle(null); setTab("conversa"); }}
-              className={`text-left rounded-xl border p-4 bg-white transition-micro ${ativa ? "ring-2 ring-brand-400 border-brand-300" : "border-gray-200 hover:border-gray-300"}`}
-            >
-              <div className="text-sm font-semibold text-gray-800">{sq.bu.replace(/^Social Media · /, "")}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">{Object.keys(sq.agents).length} agentes · {n} execuções</div>
-              <div className={`mt-2 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded ${rep ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                {rep ? "relatório da manhã pronto" : "sem relatório"}
-              </div>
+      {/* Mundo jogável */}
+      <OfficeGame
+        empresas={empresas}
+        buAtual={bu}
+        onEscolherEmpresa={(b) => { setBu(b); setCycle(null); setTab("conversa"); }}
+        estados={desks}
+        aguardandoGestor={cycle?.estado === "AGUARDANDO APROVAÇÃO"}
+        selecionado={chatRole}
+        onSelecionar={(r) => setChatRole(r)}
+        metricas={Object.fromEntries(
+          resumo.porPapel.map((p) => [p.role, { execs: p.n, formato: p.formato, alta: p.alta, media: p.media, ms: p.ms }])
+        ) as Record<PapelAgente, MetricaAgente>}
+        tema={Math.max(0, squads.findIndex((sq) => sq.bu === bu))}
+        descricao={`Escritório da squad ${bu}. ${PAPEIS.map((p) => `${p.label}: ${desks[p.role]}`).join(". ")}.`}
+        tab={tab}
+        painelAberto={painelAberto}
+        onPainel={(aberto, t) => { if (t) setTab(t); setPainelAberto(aberto); }}
+        temRelatorio={!!reportDaSquad}
+        pendencias={cycle?.estado === "AGUARDANDO APROVAÇÃO" ? 1 : 0}
+      >
+      {/* Painéis (gaveta sobre o mundo) */}
+      <div className="h-full flex flex-col bg-white">
+        <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
+          {([["ciclo", "Ciclo"], ["conversa", "Conversar"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
+              {l}
             </button>
-          );
-        })}
-      </div>
-
-      {/* Escritório isométrico (estilo The Sims) */}
-      <div className="card p-4 space-y-4 bg-gray-50/60">
-        <IsoOffice
-          estados={desks}
-          aguardandoGestor={cycle?.estado === "AGUARDANDO APROVAÇÃO"}
-          selecionado={chatRole}
-          onSelecionar={(r) => setChatRole(r)}
-          onConversar={() => setTab("conversa")}
-          onRelatorio={reportDaSquad ? () => setTab("relatorio") : undefined}
-          metricas={Object.fromEntries(
-            resumo.porPapel.map((p) => [p.role, { execs: p.n, formato: p.formato, alta: p.alta, media: p.media, ms: p.ms }])
-          ) as Record<PapelAgente, MetricaAgente>}
-          tema={Math.max(0, squads.findIndex((sq) => sq.bu === bu))}
-          nomeSala={bu.replace(/^Social Media · /, "Sala · ")}
-          descricao={`Escritório da squad ${bu}. ${PAPEIS.map((p) => `${p.label}: ${desks[p.role]}`).join(". ")}.`}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {PAPEIS.map((p) => (
-            <MesaAgente key={p.role} papel={p} status={desks[p.role]} texto={live[p.role]} runs={runsDaSquad} />
           ))}
         </div>
-      </div>
 
-      {/* Demanda e ciclo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-4 overflow-y-auto flex-1 min-h-0">
+          {tab === "ciclo" && (
+      <div className="grid grid-cols-1 gap-4">
         <div className="card p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-800">Nova demanda</h2>
           <textarea
@@ -704,18 +709,8 @@ export default function OfficeSimulator() {
         </div>
       </div>
 
-      {/* Abas */}
-      <div className="card">
-        <div className="flex gap-1 border-b border-gray-100 px-4 pt-3">
-          {([["conversa", "Conversar"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`px-3 py-2 text-sm rounded-t-lg ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
-              {l}
-            </button>
-          ))}
-        </div>
+          )}
 
-        <div className="p-5">
           {tab === "conversa" && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -970,6 +965,7 @@ export default function OfficeSimulator() {
           )}
         </div>
       </div>
+      </OfficeGame>
     </div>
   );
 }
@@ -992,37 +988,4 @@ function Selo({ v }: { v: Veredito }) {
     revisar: "bg-amber-100 text-amber-700",
   }[v];
   return <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded ${m}`}>{v}</span>;
-}
-
-function MesaAgente({
-  papel, status, texto, runs,
-}: {
-  papel: (typeof PAPEIS)[number];
-  status: DeskStatus;
-  texto?: string;
-  runs: RunRecord[];
-}) {
-  const Icon = papel.icon;
-  const mine = runs.filter((r) => r.role === papel.role);
-  const rotulo = { idle: "ocioso", working: "trabalhando", done: "entregou", error: "erro" }[status];
-  return (
-    <div className={`rounded-xl border bg-white p-3 space-y-2 w-full ${papel.role === "cs" ? "max-w-md mx-auto" : ""} ${status === "working" ? "ring-2 ring-brand-400" : ""}`}>
-      <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center ${papel.cor}`}>
-          {status === "working" ? <Loader2 size={16} className="animate-spin" /> : <Icon size={16} />}
-        </div>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-800 truncate">{papel.label}</div>
-          <div className="text-[11px] text-gray-400">{rotulo} · {mine.length} exec.</div>
-        </div>
-        <span className={`ml-auto w-2 h-2 rounded-full ${
-          status === "working" ? "bg-brand-500 animate-pulse" : status === "done" ? "bg-emerald-500" : status === "error" ? "bg-red-500" : "bg-gray-300"}`} />
-      </div>
-      {status === "working" && (
-        <p className="text-[11px] text-gray-600 bg-gray-50 rounded-lg p-2 line-clamp-3 min-h-[2.5rem]">
-          {texto ? texto.slice(-220) : "lendo o contexto…"}
-        </p>
-      )}
-    </div>
-  );
 }

@@ -336,12 +336,12 @@ export const ESCALA = 2;
 
 const r5 = (v: number) => Math.round(v * 2) / 2;
 
-function ret(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
+export function ret(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
   c.fillStyle = cor;
   c.fillRect(r5(x), r5(y), w, h);
 }
 
-function aleat(a: number, b: number, k = 0): number {
+export function aleat(a: number, b: number, k = 0): number {
   let h = Math.imul(a + 0x9e37, 0x85ebca6b) ^ Math.imul(b + 0x7f4a, 0xc2b2ae35) ^ Math.imul(k + 1, 0x27d4eb2f);
   h ^= h >>> 15;
   h = Math.imul(h, 0x2c1b3c6d);
@@ -349,25 +349,25 @@ function aleat(a: number, b: number, k = 0): number {
   return (h >>> 0) / 4294967296;
 }
 
-function mistura(a: string, b: string, t: number): string {
+export function mistura(a: string, b: string, t: number): string {
   const pa = parseInt(a.slice(1), 16);
   const pb = parseInt(b.slice(1), 16);
   const ch = (s: number) => Math.round(((pa >> s) & 255) * (1 - t) + ((pb >> s) & 255) * t);
   return `#${[16, 8, 0].map((s) => ch(s).toString(16).padStart(2, "0")).join("")}`;
 }
 
-function sombreia(cor: string, f: number): string {
+export function sombreia(cor: string, f: number): string {
   return mistura(cor, f < 0 ? "#000000" : "#ffffff", Math.abs(f));
 }
 
-function luzDoDia(hora: number): number {
+export function luzDoDia(hora: number): number {
   if (hora >= 7 && hora <= 17) return 1;
   if (hora > 17 && hora < 19.5) return 1 - (hora - 17) / 2.5;
   if (hora >= 5 && hora < 7) return (hora - 5) / 2;
   return 0;
 }
 
-function ceu(hora: number): { topo: string; base: string } {
+export function ceu(hora: number): { topo: string; base: string } {
   const l = luzDoDia(hora);
   const dia = { topo: "#5cc0f5", base: "#c4e8fb" };
   const noite = { topo: "#0a1226", base: "#1b2a4a" };
@@ -380,7 +380,7 @@ function ceu(hora: number): { topo: string; base: string } {
 }
 
 /** Losango 32x16 com arestas em degraus de meio pixel (inclinação 2:1 exata). */
-function losango(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
+export function losango(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
   c.fillStyle = cor;
   for (let i = 0; i < 32; i++) {
     const w = (i < 16 ? i + 1 : 32 - i) * 2;
@@ -389,7 +389,7 @@ function losango(c: CanvasRenderingContext2D, x: number, y: number, cor: string)
 }
 
 /** Losango escalado (s = 1 é o tile inteiro), centrado em (cx, cy). */
-function losangoEsc(c: CanvasRenderingContext2D, cx: number, cy: number, s: number, cor: string) {
+export function losangoEsc(c: CanvasRenderingContext2D, cx: number, cy: number, s: number, cor: string) {
   const n = Math.round(32 * s);
   const meio = n / 2;
   const k = (32 * s) / meio;
@@ -408,7 +408,7 @@ function arestaInf(c: CanvasRenderingContext2D, x: number, y: number, cor: strin
   }
 }
 
-function arestaSup(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
+export function arestaSup(c: CanvasRenderingContext2D, x: number, y: number, cor: string) {
   c.fillStyle = cor;
   for (let i = 0; i < 32; i++) {
     c.fillRect(r5(x - 16 + i * 0.5), r5(y + 8 - i * 0.25), 0.5, 0.5);
@@ -417,7 +417,7 @@ function arestaSup(c: CanvasRenderingContext2D, x: number, y: number, cor: strin
 }
 
 /** Cubo de um tile; (x, y) é o vértice superior do losango no chão. */
-function caixa(c: CanvasRenderingContext2D, x: number, y: number, h: number, topo: string, esq: string, dir: string) {
+export function caixa(c: CanvasRenderingContext2D, x: number, y: number, h: number, topo: string, esq: string, dir: string) {
   const baixo = Math.round(h * 0.3 * 2) / 2;
   for (let i = 0; i < 32; i++) {
     const xe = x - 16 + i * 0.5;
@@ -461,7 +461,7 @@ function pintarParede(c: CanvasRenderingContext2D, lado: "D" | "E", tema: Tema) 
   }
 }
 
-function disco(c: CanvasRenderingContext2D, cx: number, cy: number, r: number, cor: string) {
+export function disco(c: CanvasRenderingContext2D, cx: number, cy: number, r: number, cor: string) {
   c.fillStyle = cor;
   for (let dy = -r; dy < r; dy += 0.5) {
     const w = 2 * Math.sqrt(Math.max(0, r * r - (dy + 0.25) * (dy + 0.25)));
@@ -646,7 +646,6 @@ function feixesDeLuz(c: CanvasRenderingContext2D, hora: number) {
 }
 
 function cenarioEstatico(c: CanvasRenderingContext2D, tema: Tema, hora: number) {
-  for (let k = 0; k < H; k += 4) ret(c, 0, k, W, 4, mistura("#0a101f", "#141f3a", k / H));
   pintarParede(c, "D", tema);
   pintarParede(c, "E", tema);
   pintarJanela(c, "D", 8.4, 10.6, hora, tema);
@@ -683,7 +682,7 @@ function fundo(op: OpcoesDesenho): HTMLCanvasElement | null {
 
 type Item = { d: number; f: () => void };
 
-const OUT = "rgba(11,17,32,0.92)";
+export const OUT = "rgba(11,17,32,0.92)";
 
 function parte(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, cor: string) {
   ret(c, x - 0.5, y - 0.5, w + 1, h + 1, OUT);
@@ -1123,8 +1122,11 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
   // iluminação: noite escurece, lâmpadas e telas acesas brilham
   const escuro = 1 - luz;
   if (escuro > 0.02) {
+    c.save();
+    c.globalCompositeOperation = "source-atop";
     c.fillStyle = `rgba(6,12,38,${(0.52 * escuro).toFixed(3)})`;
     c.fillRect(0, 0, W, H);
+    c.restore();
     c.save();
     c.globalCompositeOperation = "lighter";
     for (const mesa of MESAS) {
@@ -1139,8 +1141,11 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
     luzRadial(c, isoC(0.5, 3.5).x, isoC(0.5, 3.5).y - 12, 16, "255,190,110", 0.18 * escuro);
     c.restore();
   } else if (luz < 0.85) {
+    c.save();
+    c.globalCompositeOperation = "source-atop";
     c.fillStyle = `rgba(255,150,70,${(0.07 * (1 - luz)).toFixed(3)})`;
     c.fillRect(0, 0, W, H);
+    c.restore();
   }
 
   // seleção, losango de humor, balões e nomes
