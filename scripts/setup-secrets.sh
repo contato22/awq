@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # setup-secrets.sh — configura GitHub Secrets e Vercel env vars de uma vez
 # Requer: gh CLI + vercel CLI instalados e autenticados
-# Uso: bash scripts/setup-secrets.sh
+# Uso: SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_SERVICE_ROLE_KEY=... bash scripts/setup-secrets.sh
+# NUNCA cole chaves neste arquivo — o repositório é público.
 
 set -e
 
-SUPABASE_URL="https://gqkgsoglgubmaborixfb.supabase.co"
-SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxa2dzb2dsZ3VibWFib3JpeGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDYzODQsImV4cCI6MjA5NDE4MjM4NH0.jcJ_qljaUZVXiYKKhfYJrr57GKmJ0aDIjFL1sdqFLT8"
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxa2dzb2dsZ3VibWFib3JpeGZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYwNjM4NCwiZXhwIjoyMDk0MTgyMzg0fQ.M1o1TG_SbUHaw_d0ifAMAHVxGOJfV6dxDll2EmBoPPo"
+: "${SUPABASE_URL:?defina SUPABASE_URL}"
+: "${SUPABASE_ANON_KEY:?defina SUPABASE_ANON_KEY}"
+: "${SUPABASE_SERVICE_ROLE_KEY:?defina SUPABASE_SERVICE_ROLE_KEY}"
 
 echo "━━ 1/2 GitHub Secrets ━━"
 gh secret set SUPABASE_SERVICE_ROLE_KEY --body "$SUPABASE_SERVICE_ROLE_KEY" --repo contato22/awq

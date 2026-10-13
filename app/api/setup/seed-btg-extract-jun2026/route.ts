@@ -125,11 +125,10 @@ async function handle(req: NextRequest) {
   const email = (token?.email as string | undefined) ?? null;
 
   // Allow GitHub Actions post-deploy trigger via x-seed-secret header.
-  // Uses ERP anon key (public, hardcoded in lib/supabase.ts) — no extra GitHub Secret needed.
-  const ERP_ANON = process.env.NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY
-    || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs";
+  // SEED_SECRET (Vercel env + GitHub Secret) — nunca a anon key, que é pública.
+  const SEED_SECRET = process.env.SEED_SECRET;
   const seedSecret = req.headers.get("x-seed-secret");
-  const validSecret = seedSecret === ERP_ANON;
+  const validSecret = !!SEED_SECRET && seedSecret === SEED_SECRET;
 
   if (!email && !validSecret) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });

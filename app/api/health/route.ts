@@ -12,14 +12,16 @@
 import { NextResponse } from "next/server";
 import { USE_DB, USE_BLOB, sql, initDB } from "@/lib/db";
 import { isCoraConfigured, isCoraJacqesConfigured, isCoraEnerdyConfigured } from "@/lib/cora-api";
-import { USE_SUPABASE, USE_ERP_ADMIN, erpAnon } from "@/lib/supabase";
+import { USE_SUPABASE, USE_ERP_ADMIN, erpAdmin, erpAnon } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
 async function pingErpSupabase(): Promise<{ ok: boolean; rls: boolean | null; rowCount: number | null; ms: number }> {
   const t0 = Date.now();
+  // Service role quando disponível — desde a 013_rls_lockdown o anon não lê mais as tabelas.
+  const db = erpAdmin ?? erpAnon;
   try {
-    const { data, error } = await erpAnon!
+    const { data, error } = await db!
       .from("bank_transactions")
       .select("id", { count: "exact", head: false })
       .limit(1);
@@ -30,7 +32,7 @@ async function pingErpSupabase(): Promise<{ ok: boolean; rls: boolean | null; ro
       const rls = error.code === "42501";
       return { ok: false, rls, rowCount: null, ms };
     }
-    const { count } = await erpAnon!
+    const { count } = await db!
       .from("bank_transactions")
       .select("*", { count: "exact", head: true });
     return { ok: true, rls: false, rowCount: count ?? (data?.length ?? 0), ms };

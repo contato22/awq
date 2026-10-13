@@ -115,9 +115,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     results.error = err instanceof Error ? err.message : String(err);
   }
 
-  // 4. DB diagnostics — check if erpAnon can reach the financial tables
+  // 4. DB diagnostics — service role quando disponível (anon bloqueado por RLS)
   try {
-    const { erpAnon } = await import("@/lib/supabase");
+    const { erpAdmin, erpAnon: anon } = await import("@/lib/supabase");
+    const erpAnon = erpAdmin ?? anon;
     if (!erpAnon) {
       results.db_status = "erpAnon=null (IS_STATIC?)";
     } else {

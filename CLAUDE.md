@@ -15,6 +15,9 @@ Os seguintes segredos ficam **apenas** nas Vercel Environment Variables. Nunca n
 - `ERP_SUPABASE_SERVICE_ROLE_KEY` — chave de serviço do Supabase ERP (`kkhxxsrgsewjfvnnssyf`)
 - `CORA_CLIENT_ID`, `CORA_CERT`, `CORA_KEY` — credenciais mTLS + OAuth2 da Cora
 - `NEXTAUTH_SECRET`, `ANTHROPIC_API_KEY`
+- `SEED_SECRET` — header `x-seed-secret` das rotas `/api/setup/seed-*` (também como GitHub Secret)
+
+O repositório é **público**: nunca cole chave `service_role`/`sb_secret_` em script, workflow ou fallback.
 
 ---
 
@@ -26,7 +29,10 @@ Tabelas financeiras principais (migração executada uma vez no SQL Editor):
 - `financial_documents` — extratos importados (PDFs, CSVs)
 - `bank_transactions` — transações bancárias classificadas e conciliadas
 
-**RLS desabilitado** nessas tabelas. Anon key tem permissão de leitura/escrita.
+**RLS LIGADO em todas as tabelas de `public`** (migração `013_rls_lockdown.sql`, out/2026). A anon key é pública
+(está no código e no bundle do GitHub Pages), então ela **não** lê nem escreve dados. Todo acesso server-side
+usa `erpAdmin` (service role). **Nunca** use `DISABLE ROW LEVEL SECURITY` nem crie policy aberta para `anon`.
+Tabela nova → já nasce protegida quando a 013 roda de novo (ela é idempotente e roda a cada push em migrations).
 
 ### Adaptadores DB (priority chain em `lib/financial-db.ts`)
 
