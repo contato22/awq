@@ -375,6 +375,9 @@ export default function OfficeSimulator() {
           setPrecisaChave(true);
           throw new Error("A Anthropic recusou a chave salva neste navegador (inválida ou incompleta). Cole uma chave nova no campo que apareceu.");
         }
+        if (e instanceof Error && /credit balance is too low/i.test(e.message)) {
+          throw new Error("A conta da Anthropic dona da chave está sem créditos. Adicione créditos em platform.claude.com/settings/billing (na mesma organização da chave) e tente de novo.");
+        }
         if (e instanceof Error && e.message.includes("API_KEY_REQUIRED")) {
           setPrecisaChave(true);
           throw new Error("Falta a chave da Anthropic. Cole a sua no campo que apareceu acima do chat (ela fica só neste navegador).");
