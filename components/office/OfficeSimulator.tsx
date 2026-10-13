@@ -305,6 +305,12 @@ export default function OfficeSimulator() {
         setDesks((d) => ({ ...d, [role]: "done" }));
       } catch (e) {
         setDesks((d) => ({ ...d, [role]: "error" }));
+        if (e instanceof Error && /invalid x-api-key|authentication_error/.test(e.message)) {
+          localStorage.removeItem(LS_KEY);
+          setApiKey(null);
+          setPrecisaChave(true);
+          throw new Error("A Anthropic recusou a chave salva neste navegador (inválida ou incompleta). Cole uma chave nova no campo que apareceu.");
+        }
         if (e instanceof Error && e.message.includes("API_KEY_REQUIRED")) {
           setPrecisaChave(true);
           throw new Error("Falta a chave da Anthropic. Cole a sua no campo que apareceu acima do chat (ela fica só neste navegador).");
