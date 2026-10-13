@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { analisar, contaFlags, type Analise, type EntregaKind } from "@/lib/office-analysis";
 import MiniMarkdown from "./MiniMarkdown";
-import PixelOffice from "./PixelOffice";
+import IsoOffice, { type MetricaAgente } from "./IsoOffice";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
@@ -591,18 +591,22 @@ export default function OfficeSimulator() {
         })}
       </div>
 
-      {/* Escritório em pixel art */}
+      {/* Escritório isométrico (estilo The Sims) */}
       <div className="card p-4 space-y-4 bg-gray-50/60">
-        <PixelOffice
-          status={desks}
+        <IsoOffice
+          estados={desks}
           aguardandoGestor={cycle?.estado === "AGUARDANDO APROVAÇÃO"}
           selecionado={chatRole}
-          onSelecionar={(r) => { setChatRole(r); setTab("conversa"); }}
+          onSelecionar={(r) => setChatRole(r)}
+          onConversar={() => setTab("conversa")}
+          onRelatorio={reportDaSquad ? () => setTab("relatorio") : undefined}
+          metricas={Object.fromEntries(
+            resumo.porPapel.map((p) => [p.role, { execs: p.n, formato: p.formato, alta: p.alta, media: p.media, ms: p.ms }])
+          ) as Record<PapelAgente, MetricaAgente>}
+          tema={Math.max(0, squads.findIndex((sq) => sq.bu === bu))}
+          nomeSala={bu.replace(/^Social Media · /, "Sala · ")}
           descricao={`Escritório da squad ${bu}. ${PAPEIS.map((p) => `${p.label}: ${desks[p.role]}`).join(". ")}.`}
         />
-        <p className="text-[11px] text-gray-400 text-center">
-          Clique em uma mesa para conversar com o agente. O envelope mostra a demanda indo do gestor ao CS e do CS ao agente que está trabalhando.
-        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {PAPEIS.map((p) => (
             <MesaAgente key={p.role} papel={p} status={desks[p.role]} texto={live[p.role]} runs={runsDaSquad} />
