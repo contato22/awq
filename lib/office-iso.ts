@@ -951,68 +951,78 @@ function desenharAtor(c: CanvasRenderingContext2D, m: Mundo, p: Papel, op: Opcoe
     if (p === "midia") { ret(c, cx - 6.5, Y - 9.5 + balanco, 2, 0.5, "#0f172a"); ret(c, cx - 6, Y - 9.5 + balanco, 1, 0.5, "#38bdf8"); }
   }
 
-  // pescoço e cabeça
+  // pescoço
   ret(c, cx - 1, Y - 17.5 + resp, 2, 2, sombreia(L.pele, -0.12));
-  parte(c, cx - 3.5, Y - 25 + resp, 7, 7.5, L.pele);
-  ret(c, cx - 4, Y - 22 + resp, 0.5, 1.5, L.pele); ret(c, cx + 3.5, Y - 22 + resp, 0.5, 1.5, L.pele);
-  const ya = Y + resp;
+  // cabeça maior e mais expressiva (estilo CAS: proporção "boneco", não realista — mais legível em
+  // tamanho pequeno). Em vez de recalcular cada acessório (óculos, headset, boné, topete...) pro novo
+  // tamanho, escala o desenho da cabeça inteiro a partir da base do pescoço — preserva toda a silhueta
+  // por papel que já existia, só maior.
+  c.save();
+  c.translate(cx, Y - 17.5 + resp);
+  c.scale(8 / 7, 9.5 / 7.5);
+  const cxH = 0, ya = 17.5;
+  parte(c, cxH - 3.5, ya - 25, 7, 7.5, L.pele);
+  ret(c, cxH - 3.5, ya - 19.5, 7, 1.5, sombreia(L.pele, -0.08)); // sombra de queixo/maxilar
+  ret(c, cxH - 4, ya - 22, 0.5, 1.5, L.pele); ret(c, cxH + 3.5, ya - 22, 0.5, 1.5, L.pele);
 
   if (frente) {
     // cabelo e acessórios da cabeça
     if (p === "gestor") {
-      parte(c, cx - 4, ya - 27, 8, 3.5, L.cabelo); ret(c, cx - 4, ya - 24, 1, 2.5, L.cabelo); ret(c, cx + 3, ya - 24, 1, 2.5, L.cabelo);
-      ret(c, cx - 1.5, ya - 27, 0.5, 1.5, sombreia(L.cabelo, 0.35));
+      parte(c, cxH - 4, ya - 27, 8, 3.5, L.cabelo); ret(c, cxH - 4, ya - 24, 1, 2.5, L.cabelo); ret(c, cxH + 3, ya - 24, 1, 2.5, L.cabelo);
+      ret(c, cxH - 1.5, ya - 27, 0.5, 1.5, sombreia(L.cabelo, 0.35));
     } else if (p === "cs") {
-      parte(c, cx - 4, ya - 27, 8, 3.5, L.cabelo); ret(c, cx - 4, ya - 24, 1.5, 3, L.cabelo);
-      ret(c, cx - 4.5, ya - 27.5, 9, 0.5, "#0f172a");
-      parte(c, cx - 5.5, ya - 23.5, 2, 3.5, "#0f172a");
-      ret(c, cx - 5, ya - 20.5, 0.5, 2, "#0f172a"); ret(c, cx - 5, ya - 18.5, 3, 0.5, "#0f172a"); ret(c, cx - 2.5, ya - 19, 1, 1, "#52525b");
+      parte(c, cxH - 4, ya - 27, 8, 3.5, L.cabelo); ret(c, cxH - 4, ya - 24, 1.5, 3, L.cabelo);
+      ret(c, cxH - 4.5, ya - 27.5, 9, 0.5, "#0f172a");
+      parte(c, cxH - 5.5, ya - 23.5, 2, 3.5, "#0f172a");
+      ret(c, cxH - 5, ya - 20.5, 0.5, 2, "#0f172a"); ret(c, cxH - 5, ya - 18.5, 3, 0.5, "#0f172a"); ret(c, cxH - 2.5, ya - 19, 1, 1, "#52525b");
     } else if (p === "ref") {
-      parte(c, cx - 4.5, ya - 27.5, 9, 4, L.cabelo); ret(c, cx - 3.5, ya - 24, 7, 1.5, L.cabelo);
+      parte(c, cxH - 4.5, ya - 27.5, 9, 4, L.cabelo); ret(c, cxH - 3.5, ya - 24, 7, 1.5, L.cabelo);
     } else if (p === "criativo") {
-      parte(c, cx - 4, ya - 27, 8, 3.5, L.cabelo);
-      parte(c, cx - 4.5, ya - 28, 2.5, 2.5, L.cabelo); parte(c, cx - 1.25, ya - 28.5, 2.5, 2.5, L.cabelo); parte(c, cx + 2, ya - 28, 2.5, 2.5, L.cabelo);
-      ret(c, cx - 4, ya - 24, 1, 2, L.cabelo); ret(c, cx + 3, ya - 24, 1, 2, L.cabelo);
-      ret(c, cx - 4.5, ya - 18, 9, 1, "#3f3f46");
-      parte(c, cx - 5.5, ya - 19.5, 2, 3, "#18181b"); parte(c, cx + 3.5, ya - 19.5, 2, 3, "#18181b");
+      parte(c, cxH - 4, ya - 27, 8, 3.5, L.cabelo);
+      parte(c, cxH - 4.5, ya - 28, 2.5, 2.5, L.cabelo); parte(c, cxH - 1.25, ya - 28.5, 2.5, 2.5, L.cabelo); parte(c, cxH + 2, ya - 28, 2.5, 2.5, L.cabelo);
+      ret(c, cxH - 4, ya - 24, 1, 2, L.cabelo); ret(c, cxH + 3, ya - 24, 1, 2, L.cabelo);
+      ret(c, cxH - 4.5, ya - 18, 9, 1, "#3f3f46");
+      parte(c, cxH - 5.5, ya - 19.5, 2, 3, "#18181b"); parte(c, cxH + 3.5, ya - 19.5, 2, 3, "#18181b");
     } else {
-      parte(c, cx - 4, ya - 27.5, 8, 3.5, "#14532d");
-      parte(c, cx - 4.5, ya - 24.5, 9, 1.5, "#166534"); ret(c, cx - 4.5, ya - 24.5, 9, 0.5, "#22c55e");
-      ret(c, cx - 0.5, ya - 26, 1, 1, "#f0fdf4");
-      ret(c, cx - 4, ya - 23, 1, 2.5, L.cabelo); ret(c, cx + 3, ya - 23, 1, 2.5, L.cabelo);
+      parte(c, cxH - 4, ya - 27.5, 8, 3.5, "#14532d");
+      parte(c, cxH - 4.5, ya - 24.5, 9, 1.5, "#166534"); ret(c, cxH - 4.5, ya - 24.5, 9, 0.5, "#22c55e");
+      ret(c, cxH - 0.5, ya - 26, 1, 1, "#f0fdf4");
+      ret(c, cxH - 4, ya - 23, 1, 2.5, L.cabelo); ret(c, cxH + 3, ya - 23, 1, 2.5, L.cabelo);
     }
     // rosto
     const dy = trabalhando ? 0.5 : 0;
-    ret(c, cx - 3, ya - 22 + dy, 2, 1.5, "#ffffff"); ret(c, cx + 1, ya - 22 + dy, 2, 1.5, "#ffffff");
-    ret(c, cx - 2.5 + gz, ya - 21.75 + dy, 1, 1, "#0f172a"); ret(c, cx + 1.5 + gz, ya - 21.75 + dy, 1, 1, "#0f172a");
+    ret(c, cxH - 3, ya - 22 + dy, 2, 1.5, "#ffffff"); ret(c, cxH + 1, ya - 22 + dy, 2, 1.5, "#ffffff");
+    ret(c, cxH - 2.5 + gz, ya - 21.75 + dy, 1, 1, "#0f172a"); ret(c, cxH + 1.5 + gz, ya - 21.75 + dy, 1, 1, "#0f172a");
+    ret(c, cxH - 2.3 + gz, ya - 21.75 + dy, 0.4, 0.4, "#f8fafc"); ret(c, cxH + 1.9 + gz, ya - 21.75 + dy, 0.4, 0.4, "#f8fafc"); // brilho nos olhos
     if (p === "ref") {
       for (const ox of [-3.5, 0.5]) {
-        ret(c, cx + ox, ya - 22.5, 3, 0.5, "#111827"); ret(c, cx + ox, ya - 20, 3, 0.5, "#111827");
-        ret(c, cx + ox, ya - 22.5, 0.5, 2.5, "#111827"); ret(c, cx + ox + 2.5, ya - 22.5, 0.5, 2.5, "#111827");
+        ret(c, cxH + ox, ya - 22.5, 3, 0.5, "#111827"); ret(c, cxH + ox, ya - 20, 3, 0.5, "#111827");
+        ret(c, cxH + ox, ya - 22.5, 0.5, 2.5, "#111827"); ret(c, cxH + ox + 2.5, ya - 22.5, 0.5, 2.5, "#111827");
       }
-      ret(c, cx - 0.5, ya - 21.5, 1, 0.5, "#111827");
+      ret(c, cxH - 0.5, ya - 21.5, 1, 0.5, "#111827");
     }
     const cb = sombreia(L.cabelo, 0.05);
-    if (st === "error") { ret(c, cx - 3, ya - 23, 1, 0.5, cb); ret(c, cx - 2, ya - 23.5, 1, 0.5, cb); ret(c, cx + 1, ya - 23.5, 1, 0.5, cb); ret(c, cx + 2, ya - 23, 1, 0.5, cb); }
-    else if (trabalhando) { ret(c, cx - 3, ya - 22.5, 2, 0.5, cb); ret(c, cx + 1, ya - 22.5, 2, 0.5, cb); }
-    else { ret(c, cx - 3, ya - 23, 2, 0.5, cb); ret(c, cx + 1, ya - 23, 2, 0.5, cb); }
+    if (st === "error") { ret(c, cxH - 3, ya - 23, 1, 0.5, cb); ret(c, cxH - 2, ya - 23.5, 1, 0.5, cb); ret(c, cxH + 1, ya - 23.5, 1, 0.5, cb); ret(c, cxH + 2, ya - 23, 1, 0.5, cb); }
+    else if (trabalhando) { ret(c, cxH - 3, ya - 22.5, 2, 0.5, cb); ret(c, cxH + 1, ya - 22.5, 2, 0.5, cb); }
+    else { ret(c, cxH - 3, ya - 23, 2, 0.5, cb); ret(c, cxH + 1, ya - 23, 2, 0.5, cb); }
     if (st === "done") {
-      ret(c, cx - 1.5, ya - 19.5, 3, 0.5, "#9a3412"); ret(c, cx - 2, ya - 20, 0.5, 0.5, "#9a3412"); ret(c, cx + 1.5, ya - 20, 0.5, 0.5, "#9a3412");
-      ret(c, cx - 3, ya - 20.5, 1, 0.5, "#fca5a5"); ret(c, cx + 2, ya - 20.5, 1, 0.5, "#fca5a5");
+      ret(c, cxH - 1.5, ya - 19.5, 3, 0.5, "#9a3412"); ret(c, cxH - 2, ya - 20, 0.5, 0.5, "#9a3412"); ret(c, cxH + 1.5, ya - 20, 0.5, 0.5, "#9a3412");
+      ret(c, cxH - 3, ya - 20.5, 1, 0.5, "#fca5a5"); ret(c, cxH + 2, ya - 20.5, 1, 0.5, "#fca5a5");
     } else if (st === "error") {
-      ret(c, cx - 1, ya - 19.5, 2, 0.5, "#9a3412"); ret(c, cx - 1.5, ya - 19, 0.5, 0.5, "#9a3412"); ret(c, cx + 1, ya - 19, 0.5, 0.5, "#9a3412");
-      ret(c, cx + 3.5, ya - 23, 1, 1.5, "#7dd3fc");
+      ret(c, cxH - 1, ya - 19.5, 2, 0.5, "#9a3412"); ret(c, cxH - 1.5, ya - 19, 0.5, 0.5, "#9a3412"); ret(c, cxH + 1, ya - 19, 0.5, 0.5, "#9a3412");
+      ret(c, cxH + 3.5, ya - 23, 1, 1.5, "#7dd3fc");
     } else if (trabalhando) {
-      ret(c, cx - 0.5, ya - 19.5, 1, 0.5, "#9a3412");
+      ret(c, cxH - 0.5, ya - 19.5, 1, 0.5, "#9a3412");
     } else {
-      ret(c, cx - 1, ya - 19.5, 2, 0.5, "#9a3412");
+      ret(c, cxH - 1, ya - 19.5, 2, 0.5, "#9a3412");
     }
   } else {
-    parte(c, cx - 4, ya - 27, 8, 8, p === "midia" ? "#14532d" : L.cabelo);
-    if (p === "midia") { ret(c, cx - 4, ya - 22, 8, 2.5, L.cabelo); ret(c, cx - 1.5, ya - 24.5, 3, 1, "#166534"); }
-    if (p === "cs") ret(c, cx - 4.5, ya - 27.5, 9, 0.5, "#0f172a");
-    if (p === "criativo") { parte(c, cx - 4.5, ya - 28, 2.5, 2.5, L.cabelo); parte(c, cx + 2, ya - 28, 2.5, 2.5, L.cabelo); }
+    parte(c, cxH - 4, ya - 27, 8, 8, p === "midia" ? "#14532d" : L.cabelo);
+    if (p === "midia") { ret(c, cxH - 4, ya - 22, 8, 2.5, L.cabelo); ret(c, cxH - 1.5, ya - 24.5, 3, 1, "#166534"); }
+    if (p === "cs") ret(c, cxH - 4.5, ya - 27.5, 9, 0.5, "#0f172a");
+    if (p === "criativo") { parte(c, cxH - 4.5, ya - 28, 2.5, 2.5, L.cabelo); parte(c, cxH + 2, ya - 28, 2.5, 2.5, L.cabelo); }
   }
+  c.restore();
 
   // cochilando no sofá
   if (a.lazer === "sofa" && sent && !m.reduzido) {
