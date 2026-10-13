@@ -6,8 +6,8 @@
  */
 
 import {
-  aleat, cadeira, caixa, ESCALA, LOOK, losango, luzDoDia, mistura, monitor, OUT, parte, planta, ret, sombreia,
-  TEMAS, ceu, type Agente, type Estado, type Papel,
+  aleat, bebedouro, cadeira, cafeteira, caixa, disco, ESCALA, LOOK, losango, losangoEsc, luzDoDia, mistura, monitor, OUT, parte,
+  planta, ret, sombreia, TEMAS, ceu, type Agente, type Estado, type Papel,
 } from "./office-iso";
 
 export const WW = 640;
@@ -207,7 +207,15 @@ function pisoPlanta(c: CanvasRenderingContext2D, predios: PredioW[]) {
       } else {
         cor = AWQ.corredor[(gx + gy) % 2];
       }
+      const passadeira = !s && (gy === 6 || gy === 7) && gx >= 1 && gx <= 16;
+      if (passadeira) cor = (gx + gy) % 2 ? "#35508f" : "#30498a";
       losango(c, p.x, p.y, cor);
+      if (passadeira) {
+        losangoEsc(c, p.x, p.y + 8, 0.62, sombreia(cor, 0.1));
+        losangoEsc(c, p.x, p.y + 8, 0.3, sombreia(cor, -0.1));
+        c.fillStyle = "rgba(200,164,106,0.6)";
+        if (gy === 6) for (let i = 0; i < 32; i++) c.fillRect(p.x + i * 0.5, p.y + i * 0.25, 0.5, 0.5);
+      }
       for (let k = 0; k < 3; k++) {
         ret(c, p.x + (aleat(gx, gy, k) - 0.5) * 18, p.y + 8 + (aleat(gy, gx, k + 4) - 0.5) * 6, 0.5, 0.5, sombreia(cor, aleat(gx, gy, k + 9) > 0.5 ? 0.07 : -0.07));
       }
@@ -256,6 +264,71 @@ function paredesDeFundo(c: CanvasRenderingContext2D, s: { x: number; y: number }
   }
 }
 
+/** Penumbra no chão junto às duas paredes de fundo de cada sala (oclusão ambiente). */
+function penumbraDasSalas(c: CanvasRenderingContext2D) {
+  for (const s of SLOTS) {
+    for (let k = 0; k < LADO; k++) {
+      const a = iw(s.x + k, s.y), b = iw(s.x, s.y + k);
+      losango(c, a.x, a.y, "rgba(8,14,32,0.10)");
+      if (k > 0) losango(c, b.x, b.y, "rgba(8,14,32,0.10)");
+      if (k < LADO - 1) {
+        const a2 = iw(s.x + k + 1, s.y + 1), b2 = iw(s.x + 1, s.y + k + 1);
+        losango(c, a2.x, a2.y, "rgba(8,14,32,0.04)");
+        if (k > 0) losango(c, b2.x, b2.y, "rgba(8,14,32,0.04)");
+      }
+    }
+  }
+}
+
+type Pt = { x: number; y: number };
+/** Feixes de sol das janelas externas: [dois pontos na parede, dois pontos no chão], em coordenadas de grade. */
+const FEIXES: [[number, number], [number, number], [number, number], [number, number]][] = [
+  [[2.2, 0], [4.4, 0], [0.4, 5.6], [2.6, 5.6]],
+  [[10, 0], [12.4, 0], [8, 5.6], [10.4, 5.6]],
+  [[14.2, 0], [16.6, 0], [12.2, 5.6], [14.6, 5.6]],
+  [[0, 2.6], [0, 4.8], [5.4, 4.2], [5.4, 6.4]],
+  [[0, 8], [0, 10.2], [5.4, 9.6], [5.4, 11.8]],
+];
+
+function feixesDeSol(c: CanvasRenderingContext2D, hora: number) {
+  const l = luzDoDia(hora);
+  if (l < 0.05) return;
+  c.save();
+  c.beginPath();
+  const t = iw(0, 0), r = iw(GWm, 0), b = iw(GWm, GHm), e = iw(0, GHm);
+  c.moveTo(t.x, t.y); c.lineTo(r.x, r.y); c.lineTo(b.x, b.y); c.lineTo(e.x, e.y); c.closePath();
+  c.clip();
+  for (const [a0, a1, b1, b0] of FEIXES) {
+    const p0 = iw(a0[0], a0[1]), p1 = iw(a1[0], a1[1]), p2 = iw(b1[0], b1[1]), p3 = iw(b0[0], b0[1]);
+    const m0 = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 }, m1 = { x: (p2.x + p3.x) / 2, y: (p2.y + p3.y) / 2 };
+    const g = c.createLinearGradient(m0.x, m0.y, m1.x, m1.y);
+    g.addColorStop(0, `rgba(255,244,200,${(0.26 * l).toFixed(3)})`);
+    g.addColorStop(1, "rgba(255,244,200,0)");
+    c.fillStyle = g;
+    c.beginPath(); c.moveTo(p0.x, p0.y); c.lineTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(p3.x, p3.y); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+
+/** Grãos de poeira que flutuam dentro dos feixes de sol (só de dia). */
+function poeira(c: CanvasRenderingContext2D, hora: number, t: number) {
+  const l = luzDoDia(hora);
+  if (l < 0.3) return;
+  FEIXES.forEach(([a0, a1, b1, b0], f) => {
+    for (let k = 0; k < 6; k++) {
+      const s = (t * (0.025 + 0.01 * k) + aleat(f, k, 1)) % 1;
+      const w = aleat(f, k, 2) + Math.sin(t * 0.5 + k * 1.7 + f) * 0.04;
+      const lerp = (u: number[], v: number[], q: number): number[] => [u[0] + (v[0] - u[0]) * q, u[1] + (v[1] - u[1]) * q];
+      const topo = lerp(a0, a1, w), base = lerp(b0, b1, w);
+      const g = lerp(topo, base, s);
+      const q: Pt = iw(g[0], g[1]);
+      const alt = 4 + s * 10 + Math.sin(t * 0.8 + k) * 1.5;
+      c.fillStyle = `rgba(255,250,215,${(Math.sin(s * Math.PI) * 0.75 * l).toFixed(3)})`;
+      c.fillRect(Math.round(q.x * 2) / 2, Math.round((q.y - alt) * 2) / 2, 0.5, 0.5);
+    }
+  });
+}
+
 function cenarioEstatico(c: CanvasRenderingContext2D, predios: PredioW[], hora: number) {
   paredeExterna(c, "D");
   paredeExterna(c, "E");
@@ -263,6 +336,8 @@ function cenarioEstatico(c: CanvasRenderingContext2D, predios: PredioW[], hora: 
   for (const [a, b] of [[2.6, 4.8], [8, 10.2]] as const) janelaExterna(c, "E", a, b, hora);
   logoAWQ(c);
   pisoPlanta(c, predios);
+  feixesDeSol(c, hora);
+  penumbraDasSalas(c);
   for (const s of SLOTS) {
     const d = predios.find((p) => p.x === s.x && p.y === s.y);
     const tema = d ? TEMAS[d.empresa.tema % TEMAS.length] : TEMAS[0];
@@ -329,7 +404,76 @@ function balaoMini(c: CanvasRenderingContext2D, cx: number, y: number, tipo: "po
   else { ret(c, x + 6, y + 1.5, 2, 4, "#dc2626"); ret(c, x + 6, y + 6.5, 2, 1.5, "#dc2626"); }
 }
 
-function salaCliente(c: CanvasRenderingContext2D, p: PredioW, op: OpcoesMundo, add: (d: number, f: () => void) => void) {
+/** Sombra suave no chão: um losango mais escuro e um halo maior e mais claro, deslocados para a frente. */
+function sombraNoChao(c: CanvasRenderingContext2D, gx: number, gy: number, esc = 1) {
+  const q = iw(gx, gy);
+  losangoEsc(c, q.x + 4, q.y + 10, 1.22 * esc, "rgba(8,14,32,0.055)");
+  losango(c, q.x + 4, q.y + 2, "rgba(8,14,32,0.13)");
+}
+
+function sofa(c: CanvasRenderingContext2D, gx: number, gy: number) {
+  for (let i = 0; i < 2; i++) {
+    const q = iw(gx + i, gy);
+    for (let k = 0; k < 32; k++) {
+      const x = q.x + k * 0.5, y = q.y + k * 0.25 - 7;
+      ret(c, x, y - 9, 0.5, 9, k < 1 ? "#6b2a1a" : "#a8452d");
+      ret(c, x, y - 9, 0.5, 1.5, "#d56b4c");
+    }
+    caixa(c, q.x, q.y, 7, "#c4573a", "#8e3a24", "#a8452d");
+    losangoEsc(c, q.x, q.y - 7 + 8, 0.72, "#d56b4c");
+    losangoEsc(c, q.x, q.y - 7 + 8, 0.3, "#c4573a");
+  }
+}
+
+function impressora(c: CanvasRenderingContext2D, q: Pt, f: number) {
+  caixa(c, q.x, q.y, 9, "#eef0f3", "#9ca3af", "#b6bcc6");
+  ret(c, q.x - 5, q.y - 9.5, 9, 0.5, "#ffffff"); ret(c, q.x - 4, q.y - 11, 7, 1.5, "#f8fafc");
+  ret(c, q.x + 3, q.y - 7.5, 1, 1, f % 8 < 4 ? "#22c55e" : "#14532d");
+  ret(c, q.x - 4, q.y - 5.5, 6, 1.5, "#1f2937");
+  const saida = f % 40;
+  if (saida < 10) ret(c, q.x - 3, q.y - 5 + saida * 0.25, 4, 0.5 + saida * 0.25, "#ffffff");
+}
+
+function estante(c: CanvasRenderingContext2D, q: Pt) {
+  caixa(c, q.x, q.y, 18, "#a8723f", "#7a4e26", "#8f5f31");
+  const cores = ["#ef4444", "#3b82f6", "#facc15", "#22c55e", "#a855f7", "#f97316", "#14b8a6"];
+  for (let i = 0; i < 32; i += 2) {
+    const yb = q.y - 18 + 16 - i * 0.25;
+    for (let r = 0; r < 2; r++) {
+      const h = 3.5 + aleat(i, r, 3) * 2.5;
+      ret(c, q.x + i * 0.5, yb + 2.5 + r * 6.5 + (5.5 - h), 1, h, cores[(i + r * 3) % cores.length]);
+    }
+    ret(c, q.x + i * 0.5, yb + 8, 1, 0.5, "#5a3a1c");
+  }
+  ret(c, q.x - 3, q.y - 21, 3, 3, "#fbbf24"); ret(c, q.x - 2.5, q.y - 18.5, 2, 0.5, "#92400e");
+}
+
+/** Cantos da planta fora das salas: copa e impressora, encostadas nas paredes externas. */
+function corredor(c: CanvasRenderingContext2D, op: OpcoesMundo, add: (d: number, f: () => void) => void, sombra: (gx: number, gy: number, esc?: number) => void) {
+  const f = op.quadro;
+  sombra(0, 3); sombra(0, 4); sombra(3, 0);
+  add(0 + 3 + 0.2, () => { const q = iw(0.5, 3.5); cafeteira(c, q.x, q.y, f); });
+  add(0 + 4 + 0.2, () => { const q = iw(0.5, 4.5); bebedouro(c, q.x, q.y, f); });
+  add(3 + 0 + 0.2, () => impressora(c, iw(3, 0), f));
+}
+
+function relogioParede(c: CanvasRenderingContext2D, hora: number) {
+  const { x, base } = colunaParede("D", 5.4);
+  const cx = x + 0.25, cy = base - WALL + 17;
+  disco(c, cx, cy, 5, OUT);
+  disco(c, cx, cy, 4.5, "#f8fafc");
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2;
+    ret(c, cx + Math.sin(a) * 3.6 - 0.25, cy - Math.cos(a) * 3.6 - 0.25, 0.5, 0.5, "#64748b");
+  }
+  const ponteiro = (ang: number, len: number, cor: string) => {
+    for (let r = 0.5; r <= len; r += 0.5) ret(c, cx + Math.sin(ang) * r - 0.25, cy - Math.cos(ang) * r - 0.25, 0.5, 0.5, cor);
+  };
+  ponteiro(((hora % 12) / 12) * Math.PI * 2, 2.2, "#0f172a");
+  ponteiro((hora % 1) * Math.PI * 2, 3.4, "#334155");
+}
+
+function salaCliente(c: CanvasRenderingContext2D, p: PredioW, op: OpcoesMundo, add: (d: number, f: () => void) => void, sombra: (gx: number, gy: number, esc?: number) => void) {
   const e = p.empresa;
   const estados: Record<Agente, Estado> = e.estados ?? { cs: "idle", ref: "idle", criativo: "idle", midia: "idle" };
   for (const a of AGENTES) {
@@ -337,19 +481,31 @@ function salaCliente(c: CanvasRenderingContext2D, p: PredioW, op: OpcoesMundo, a
     const st = estados[a];
     const gx = p.x + dx, gy = p.y + dy;
     for (let i = 0; i < 2; i++) {
+      sombra(gx + i, gy);
       add(gx + i + gy, () => {
         const q = iw(gx + i, gy);
         caixa(c, q.x, q.y, 10, "#c28f58", "#8a5a2e", "#a06c3c");
         ret(c, q.x - 4, q.y - 4, 8, 2, "#a1a1aa");
+        if (i === 0) {
+          // caneca com vapor
+          ret(c, q.x - 9, q.y - 6.5, 2.5, 2.5, "#f8fafc"); ret(c, q.x - 9, q.y - 6.5, 2.5, 0.5, "#92400e");
+          if (st !== "error") {
+            const v = (op.quadro + gx * 3) % 6;
+            ret(c, q.x - 8.25 + (v % 2) * 0.5, q.y - 8 - v * 0.5, 0.5, 1, `rgba(255,255,255,${(0.6 - v * 0.08).toFixed(2)})`);
+          }
+        }
         if (i === 1) monitor(c, q.x + 9, q.y - 1, st, op.quadro, a);
       });
     }
+    sombra(gx, gy - 1, 0.55);
     add(gx + gy - 0.1, () => cadeira(c, iw(gx + 0.5, gy - 0.5)));
     add(gx + gy - 0.05, () => {
       const q = iw(gx + 0.5, gy - 0.5);
       bonecoSentado(c, q.x, q.y, a, st, op.quadro);
     });
   }
+  sombra(p.x + 2, p.y, 1); sombra(p.x + LADO - 1, p.y); sombra(p.x, p.y + LADO - 1);
+  add(p.x + 2 + p.y + 0.3, () => estante(c, iw(p.x + 2, p.y)));
   const cantos: [number, number][] = [[LADO - 1, 0], [0, LADO - 1]];
   for (const [dx, dy] of cantos) add(p.x + dx + p.y + dy + 0.3, () => { const q = iw(p.x + dx + 0.5, p.y + dy + 0.5); planta(c, q.x, q.y, op.quadro + dx); });
 }
@@ -451,6 +607,23 @@ function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, ti
   add(s.x + LADO - 1 + s.y + 0.3, () => { const q = iw(s.x + LADO - 0.5, s.y + 0.5); planta(c, q.x, q.y, op.quadro); });
 }
 
+/** Sala sem cliente: lounge com sofá, mesa de centro, estante e plantas. */
+function lounge(c: CanvasRenderingContext2D, s: { x: number; y: number }, op: OpcoesMundo, add: (d: number, f: () => void) => void, sombra: (gx: number, gy: number, esc?: number) => void) {
+  sombra(s.x + 1, s.y); sombra(s.x + 2, s.y); sombra(s.x + 3, s.y); sombra(s.x + 1, s.y + 2); sombra(s.x + 2, s.y + 2);
+  add(s.x + 1 + s.y + 0.2, () => sofa(c, s.x + 1, s.y));
+  add(s.x + 3 + s.y + 0.2, () => estante(c, iw(s.x + 3, s.y)));
+  add(s.x + 2 + s.y + 2.4, () => {
+    const q = iw(s.x + 2, s.y + 2);
+    caixa(c, q.x, q.y, 4, "#e5e7eb", "#9ca3af", "#cbd5e1");
+    ret(c, q.x - 4, q.y - 7, 5, 2, "#38bdf8"); ret(c, q.x - 4, q.y - 7, 5, 0.5, "#e0f2fe");
+    ret(c, q.x + 2, q.y - 8, 2.5, 2.5, "#f8fafc"); ret(c, q.x + 2, q.y - 8, 2.5, 0.5, "#92400e");
+    const v = op.quadro % 6;
+    ret(c, q.x + 2.75 + (v % 2) * 0.5, q.y - 9.5 - v * 0.5, 0.5, 1, `rgba(255,255,255,${(0.6 - v * 0.08).toFixed(2)})`);
+  });
+  add(s.x + LADO - 1 + s.y + 0.3, () => { const q = iw(s.x + LADO - 0.5, s.y + 0.5); planta(c, q.x, q.y, op.quadro + s.x); });
+  add(s.x + s.y + LADO - 1 + 0.3, () => { const q = iw(s.x + 0.5, s.y + LADO - 0.5); planta(c, q.x, q.y, op.quadro + s.y); });
+}
+
 function colega(c: CanvasRenderingContext2D, x: number, y: number, cor: string, passo: number) {
   ret(c, x - 2, y - 0.5, 4, 1, "rgba(8,14,28,0.22)");
   ret(c, x - 1.25, y - 3, 1, 3 - (passo ? 0.5 : 0), "#1e293b"); ret(c, x + 0.25, y - 3, 1, 3 - (passo ? 0 : 0.5), "#1e293b");
@@ -479,16 +652,22 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
   c.setTransform(ESCALA, 0, 0, ESCALA, 0, 0);
   if (!bg) cenarioEstatico(c, predios, op.hora);
 
+  relogioParede(c, op.hora);
+
   const itens: Item[] = [];
   const add = (d: number, f: () => void) => itens.push({ d, f });
+  const sombras: [number, number, number][] = [];
+  const sombra = (gx: number, gy: number, esc = 1) => { sombras.push([gx, gy, esc]); };
+  corredor(c, op, add, sombra);
 
   for (const p of predios) {
-    salaCliente(c, p, op, add);
+    salaCliente(c, p, op, add, sombra);
     add(p.x + p.w + p.y + p.h + 0.2, () => vidroFrontal(c, p, TEMAS[p.empresa.tema % TEMAS.length].paredeD));
   }
   SLOTS.forEach((s, i) => {
     if (predios.some((p) => p.x === s.x && p.y === s.y)) return;
-    if (i === 0) areaDaCasa(c, s, "diretoria", op, add);
+    if (SLOTS_CLIENTES.includes(i)) lounge(c, s, op, add, sombra);
+    else if (i === 0) areaDaCasa(c, s, "diretoria", op, add);
     else if (i === 5) areaDaCasa(c, s, "reunioes", op, add);
   });
   for (const [gx, gy] of [[0, 6.5], [17, 6.5], [6, 12], [12, 0]] as const) add(gx + gy + 0.3, () => { const q = iw(gx + 0.5, gy + 0.5); planta(c, q.x, q.y, op.quadro + gx); });
@@ -503,8 +682,32 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
     }
   }
 
+  for (const [gx, gy, esc] of sombras) sombraNoChao(c, gx, gy, esc);
   itens.sort((a, b) => a.d - b.d);
   for (const it of itens) it.f();
+  if (!op.reduzido) poeira(c, op.hora, op.t);
+
+  // brilho das telas ligadas (mais forte à noite e pulsando de leve)
+  {
+    const noite = 1 - luzDoDia(op.hora);
+    c.save();
+    c.globalCompositeOperation = "lighter";
+    predios.forEach((p, n) => {
+      const est = p.empresa.estados;
+      if (!est) return;
+      AGENTES.forEach((a, k) => {
+        if (est[a] !== "working") return;
+        const [dx, dy] = MESAS_SALA[a];
+        const q = iw(p.x + dx + 1, p.y + dy);
+        const pulso = op.reduzido ? 1 : 0.85 + 0.15 * Math.sin(op.t * 3 + n * 1.3 + k);
+        const g = c.createRadialGradient(q.x + 9, q.y - 9, 1, q.x + 9, q.y - 9, 16);
+        g.addColorStop(0, `rgba(120,190,255,${((0.12 + 0.2 * noite) * pulso).toFixed(3)})`);
+        g.addColorStop(1, "rgba(120,190,255,0)");
+        c.fillStyle = g; c.beginPath(); c.arc(q.x + 9, q.y - 9, 16, 0, Math.PI * 2); c.fill();
+      });
+    });
+    c.restore();
+  }
 
   for (const p of predios) {
     rotulo(c, p, op);
@@ -556,4 +759,14 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
     }
     c.restore();
   }
+
+  // vinheta suave nas bordas da planta
+  c.save();
+  c.globalCompositeOperation = "source-atop";
+  const vg = c.createRadialGradient(WW / 2, WH / 2 + 8, 90, WW / 2, WH / 2 + 8, 250);
+  vg.addColorStop(0, "rgba(6,10,28,0)");
+  vg.addColorStop(1, "rgba(6,10,28,0.2)");
+  c.fillStyle = vg;
+  c.fillRect(0, 0, WW, WH);
+  c.restore();
 }

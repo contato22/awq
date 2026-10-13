@@ -846,7 +846,7 @@ export function planta(c: CanvasRenderingContext2D, cx: number, cy: number, f: n
   }
 }
 
-function cafeteira(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
+export function cafeteira(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
   parte(c, cx - 5.5, cy - 20, 11, 20, "#27272a");
   ret(c, cx - 5, cy - 19.5, 10, 6, "#3f3f46");
   ret(c, cx - 4, cy - 18.5, 4, 3, "#18181b"); ret(c, cx + 1, cy - 18.5, 3, 1, "#ef4444"); ret(c, cx + 1, cy - 16.5, 3, 1, f % 8 < 4 ? "#22c55e" : "#14532d");
@@ -858,7 +858,7 @@ function cafeteira(c: CanvasRenderingContext2D, cx: number, cy: number, f: numbe
   ret(c, cx + 1 - (v % 2) * 0.5, cy - 11.5 - v * 0.5, 0.5, 1, "rgba(255,255,255,0.4)");
 }
 
-function bebedouro(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
+export function bebedouro(c: CanvasRenderingContext2D, cx: number, cy: number, f: number) {
   parte(c, cx - 5, cy - 11, 10, 11, "#e5e7eb");
   ret(c, cx - 4.5, cy - 10.5, 9, 0.5, "#ffffff");
   ret(c, cx - 3, cy - 8, 6, 1, "#94a3b8"); ret(c, cx - 3.5, cy - 8, 1, 1, "#3b82f6"); ret(c, cx + 2.5, cy - 8, 1, 1, "#ef4444");
