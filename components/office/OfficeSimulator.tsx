@@ -189,6 +189,7 @@ async function streamAgent(
 
 export default function OfficeSimulator() {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [precisaChave, setPrecisaChave] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [squads, setSquads] = useState<Squad[]>([]);
   const [bu, setBu] = useState<string>("");
@@ -283,14 +284,14 @@ export default function OfficeSimulator() {
       opts: { aprovado?: boolean; scenarioId?: string } = {}
     ): Promise<RunRecord> => {
       const agent = squad?.agents[role];
-      if (!agent || !apiKey) throw new Error("Squad ou chave de API indisponível.");
+      if (!agent) throw new Error("Squad indisponível.");
 
       setDesks((d) => ({ ...d, [role]: "working" }));
       setLive((l) => ({ ...l, [role]: "" }));
       const t0 = performance.now();
       let rec: RunRecord;
       try {
-        const { text, usage } = await streamAgent(agent.id, task, apiKey, (full) =>
+        const { text, usage } = await streamAgent(agent.id, task, apiKey ?? "", (full) =>
           setLive((l) => ({ ...l, [role]: full }))
         );
         const ms = performance.now() - t0;
@@ -304,6 +305,10 @@ export default function OfficeSimulator() {
         setDesks((d) => ({ ...d, [role]: "done" }));
       } catch (e) {
         setDesks((d) => ({ ...d, [role]: "error" }));
+        if (e instanceof Error && e.message.includes("API_KEY_REQUIRED")) {
+          setPrecisaChave(true);
+          throw new Error("Falta a chave da Anthropic. Cole a sua no campo que apareceu acima do chat (ela fica só neste navegador).");
+        }
         throw e;
       }
       salvarRuns([...runsRef.current, rec]);
@@ -405,7 +410,7 @@ export default function OfficeSimulator() {
 
   const enviarChat = async () => {
     const texto = chatInput.trim();
-    if (!texto || busy || !squad || !apiKey) return;
+    if (!texto || busy || !squad) return;
     setErro(null);
     setBusy(true);
     setChatInput("");
@@ -633,7 +638,7 @@ export default function OfficeSimulator() {
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 notranslate" translate="no">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs text-gray-400">
@@ -649,11 +654,11 @@ export default function OfficeSimulator() {
         )}
       </div>
 
-      {!apiKey && (
+      {precisaChave && !apiKey && (
         <div className="card p-4 flex flex-wrap items-center gap-3">
           <Key size={16} className="text-gray-500" />
           <span className="text-xs text-gray-600">
-            Sem chave da Anthropic neste navegador: dá para ler os relatórios e o histórico, mas não rodar agentes. A chave fica só no localStorage e é a mesma do /agents e do OpenClaw.
+            O servidor não tem chave da Anthropic configurada. Cole a sua para rodar os agentes: ela fica só neste navegador (localStorage) e é a mesma do /agents e do OpenClaw.
           </span>
           <input
             type="password"
@@ -665,7 +670,7 @@ export default function OfficeSimulator() {
           <button
             className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40"
             disabled={!keyInput.trim().startsWith("sk-")}
-            onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); }}
+            onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); setPrecisaChave(false); setErro(null); }}
           >
             Salvar chave
           </button>
@@ -726,7 +731,7 @@ export default function OfficeSimulator() {
           />
           <button
             onClick={iniciarCiclo}
-            disabled={busy || !demanda.trim() || !squad || !apiKey}
+            disabled={busy || !demanda.trim() || !squad}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-40"
           >
             {busy && !cenarioAtual ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
@@ -806,6 +811,33 @@ export default function OfficeSimulator() {
 
           {tab === "conversa" && (
             <div className="space-y-3">
+              {precisaChave && !apiKey && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-900"><Key size={14} /> Falta a chave da Anthropic</div>
+                  <p className="text-[11px] text-amber-800">O servidor não tem uma chave configurada. Cole a sua para conversar: ela fica só neste navegador e é a mesma do /agents e do OpenClaw.</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={keyInput}
+                      onChange={(e) => setKeyInput(e.target.value)}
+                      placeholder="sk-ant-..."
+                      className="flex-1 border border-amber-200 rounded-lg px-3 py-1.5 text-xs bg-white"
+                    />
+                    <button
+                      className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40"
+                      disabled={!keyInput.trim().startsWith("sk-")}
+                      onClick={() => { localStorage.setItem(LS_KEY, keyInput.trim()); setApiKey(keyInput.trim()); setKeyInput(""); setPrecisaChave(false); setErro(null); }}
+                    >
+                      Salvar
+                    </button>
+                  </div>
+                </div>
+              )}
+              {erro && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" /> <span>{erro}</span>
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-2">
                 {PAPEIS.map((p) => {
                   const Icon = p.icon;
@@ -877,13 +909,13 @@ export default function OfficeSimulator() {
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void enviarChat(); } }}
                   rows={2}
-                  placeholder={apiKey ? (chatRole === "cs" ? `Fale com ${nomeCS} (Cmd/Ctrl + Enter envia)` : "Escreva para o agente (Cmd/Ctrl + Enter envia)") : "Cole a chave da Anthropic no topo da página para conversar"}
+                  placeholder={chatRole === "cs" ? `Fale com ${nomeCS} (Cmd/Ctrl + Enter envia)` : "Escreva para o agente (Cmd/Ctrl + Enter envia)"}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  disabled={busy || !apiKey}
+                  disabled={busy}
                 />
                 <button
                   onClick={() => void enviarChat()}
-                  disabled={busy || !chatInput.trim() || !squad || !apiKey}
+                  disabled={busy || !chatInput.trim() || !squad}
                   className="px-4 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-40"
                 >
                   Enviar
@@ -986,7 +1018,7 @@ export default function OfficeSimulator() {
                 <p className="text-xs text-gray-500 flex-1">
                   Cada cenário tenta fazer um agente quebrar uma regra do contrato. Veredito automático por heurística; você pode corrigir.
                 </p>
-                <button onClick={rodarTodos} disabled={busy || !squad || !apiKey}
+                <button onClick={rodarTodos} disabled={busy || !squad}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-600 text-white text-xs font-medium disabled:opacity-40">
                   <ShieldCheck size={14} /> Rodar todos
                 </button>
@@ -1007,7 +1039,7 @@ export default function OfficeSimulator() {
                       <p className="text-[11px] text-gray-600 italic">&ldquo;{c.tarefa}&rdquo;</p>
                       {r && <p className="text-xs text-gray-700 whitespace-pre-wrap line-clamp-5 bg-gray-50 rounded-lg p-2">{r.output}</p>}
                       <div className="flex items-center gap-2">
-                        <button onClick={() => rodarCenario(c)} disabled={busy || !squad || !apiKey}
+                        <button onClick={() => rodarCenario(c)} disabled={busy || !squad}
                           className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-700 disabled:opacity-40 inline-flex items-center gap-1">
                           {cenarioAtual === c.id ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />} Rodar
                         </button>
