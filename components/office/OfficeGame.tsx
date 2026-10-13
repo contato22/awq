@@ -454,6 +454,12 @@ export default function OfficeGame(props: Props) {
   };
 
   const aoTeclar = (e: React.KeyboardEvent) => {
+    const alvo = e.target as HTMLElement;
+    // digitando em campo de texto: atalhos do jogo (espaço, +, -) não podem engolir as teclas
+    if (alvo.closest("input, textarea, select, [contenteditable='true']")) {
+      if (e.key === "Escape") (alvo as HTMLElement).blur();
+      return;
+    }
     if (e.key === "Escape") { if (painelAberto) onPainel(false); else if (vistaRef.current === "sala") sair(); }
     else if (e.key === "+" || e.key === "=") zoomPor(1.2);
     else if (e.key === "-") zoomPor(1 / 1.2);
