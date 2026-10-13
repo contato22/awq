@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, isoC, moverGestor, passo, TEMAS, tileDoPonto, W,
-  type Agente, type Estado, type Humor, type Mundo,
+  type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
 import { centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type Empresa } from "@/lib/office-world";
 
@@ -36,7 +36,11 @@ interface Props {
   selecionado: Agente;
   onSelecionar: (a: Agente) => void;
   metricas: Record<Agente, MetricaAgente>;
+  /** Produtividade real de cada agente (execuções de hoje, pendências, retrabalho, carga). */
+  atividade: Record<Agente, Atividade>;
   tema: number;
+  /** Nome próprio do CS da sala atual. */
+  nomeCS: string;
   descricao: string;
   tab: PainelTab;
   painelAberto: boolean;
@@ -49,7 +53,7 @@ interface Props {
 interface Cam { cx: number; cy: number; z: number }
 
 const ROTULO: Record<Agente, { nome: string; curto: string }> = {
-  cs: { nome: "Headcount/CS", curto: "CS" },
+  cs: { nome: "Headcount/CS", curto: "CS" }, // nome e curto do CS vêm de nomeCS
   ref: { nome: "Referências e Inteligência", curto: "Referências" },
   criativo: { nome: "Criativo e Editor", curto: "Criativo" },
   midia: { nome: "Mídia e Publicação", curto: "Mídia" },
@@ -103,8 +107,8 @@ function corBarra(v: number): string {
 
 export default function OfficeGame(props: Props) {
   const {
-    empresas, buAtual, onEscolherEmpresa, estados, aguardandoGestor, selecionado, onSelecionar, metricas, tema,
-    descricao, tab, painelAberto, onPainel, temRelatorio, pendencias, children,
+    empresas, buAtual, onEscolherEmpresa, estados, aguardandoGestor, selecionado, onSelecionar, metricas, atividade, tema,
+    nomeCS, descricao, tab, painelAberto, onPainel, temRelatorio, pendencias, children,
   } = props;
 
   const contRef = useRef<HTMLDivElement>(null);
@@ -275,7 +279,7 @@ export default function OfficeGame(props: Props) {
       if (v === "sala") {
         const m = mundoRef.current;
         if (m) {
-          if (velRef.current > 0) passo(m, dt, d.estados);
+          if (velRef.current > 0) passo(m, dt, d.estados, d.atividade);
           m.selecionado = d.selecionado;
           const humor = {} as Record<Agente, Humor>;
           (Object.keys(d.metricas) as Agente[]).forEach((a) => {
@@ -284,6 +288,7 @@ export default function OfficeGame(props: Props) {
           });
           desenhar(gSala, m, {
             tema: temaDe(d.tema), hora: horaRef.current, estados: d.estados, aguardandoGestor: d.aguardandoGestor, humor,
+            nomes: { cs: d.nomeCS }, atividade: d.atividade,
           }, quadro);
           if (seguirRef.current && !animacao.current) {
             const a = m.atores[d.selecionado];
@@ -497,7 +502,7 @@ export default function OfficeGame(props: Props) {
               <ChevronRight size={12} className="text-white/50" />
               <span className="font-semibold">{nomeEmpresa}</span>
               <ChevronRight size={12} className="text-white/50" />
-              <span className="text-white/80">{ROTULO[selecionado].curto}</span>
+              <span className="text-white/80">{selecionado === "cs" ? nomeCS : ROTULO[selecionado].curto}</span>
             </>
           )}
         </nav>
@@ -550,15 +555,24 @@ export default function OfficeGame(props: Props) {
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${selecionado === a ? "bg-white text-gray-900 border-white" : "border-white/15 hover:bg-white/10"}`}
                 >
                   <span className={`w-2 h-2 rounded-full ${estados[a] === "working" ? "bg-sky-400 animate-pulse" : estados[a] === "done" ? "bg-emerald-400" : estados[a] === "error" ? "bg-red-500" : "bg-gray-400"}`} />
-                  {ROTULO[a].curto}
+                  {a === "cs" ? nomeCS : ROTULO[a].curto}
                 </button>
               ))}
             </div>
             <div className="hidden md:flex items-center gap-3 border-l border-white/15 pl-3">
               <span className={`w-2.5 h-4 rotate-45 rounded-sm ${humor === "critico" ? "bg-red-500" : humor === "atencao" ? "bg-yellow-400" : "bg-emerald-400"}`} aria-hidden />
               <div className="text-[11px] leading-tight">
-                <div className="font-semibold">{ROTULO[selecionado].nome}</div>
+                <div className="font-semibold">{selecionado === "cs" ? `${nomeCS} · Headcount/CS` : ROTULO[selecionado].nome}</div>
                 <div className="text-white/60">{ESTADO_TXT[estados[selecionado]]}</div>
+                <div className="text-white/80">
+                  {atividade[selecionado].entregasHoje} entrega{atividade[selecionado].entregasHoje === 1 ? "" : "s"} hoje
+                  {atividade[selecionado].ultimaTs ? ` · última há ${Math.max(1, Math.round((Date.now() - atividade[selecionado].ultimaTs!) / 60000))} min` : ""}
+                </div>
+                {(atividade[selecionado].pendente || atividade[selecionado].retrabalho) && (
+                  <div className={atividade[selecionado].retrabalho ? "text-red-300" : "text-amber-300"}>
+                    {atividade[selecionado].retrabalho ? "retrabalho necessário" : "aguardando decisão"}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                 {necessidades(k).map((n) => (

@@ -145,8 +145,28 @@ export interface Ator {
   fase: number;
 }
 
+/** Produtividade real de um agente, calculada das execuções registradas. */
+export interface Atividade {
+  /** Entregas concluídas hoje (sem contar cenários de estresse). */
+  entregasHoje: number;
+  /** Momento (epoch ms) da última entrega, ou null. */
+  ultimaTs: number | null;
+  /** Há algo esperando decisão ou revisão deste agente. */
+  pendente: boolean;
+  /** A última entrega teve alerta alto e precisa de retrabalho. */
+  retrabalho: boolean;
+  /** Carga recente, de 0 (nenhuma) a 1 (alta). */
+  carga: number;
+}
+
+export interface Efeito { x: number; y: number; t0: number; texto: string }
+
 export interface Mundo {
   atores: Record<Papel, Ator>;
+  entregasVistas: Record<Agente, number>;
+  pausaTirada: Record<Agente, number>;
+  base: boolean;
+  efeitos: Efeito[];
   bloq: boolean[][];
   t: number;
   prev: Record<Agente, Estado>;
@@ -168,6 +188,10 @@ export function criarMundo(reduzido: boolean): Mundo {
   });
   return {
     atores, bloq: montarBloqueios(), t: 0,
+    entregasVistas: { cs: 0, ref: 0, criativo: 0, midia: 0 },
+    pausaTirada: { cs: 0, ref: 0, criativo: 0, midia: 0 },
+    base: false,
+    efeitos: [],
     prev: { cs: "idle", ref: "idle", criativo: "idle", midia: "idle" },
     reduzido, selecionado: null, hover: null,
   };
@@ -231,13 +255,22 @@ export function moverGestor(m: Mundo, tile: Pt) {
   irPara(m, a, tile);
 }
 
-export function passo(m: Mundo, dt: number, estados: Record<Agente, Estado>) {
+export function passo(m: Mundo, dt: number, estados: Record<Agente, Estado>, atividade?: Record<Agente, Atividade>) {
   m.t += dt;
+  m.efeitos = m.efeitos.filter((e) => m.t - e.t0 < 2.4);
   const agentes: Agente[] = ["cs", "ref", "criativo", "midia"];
 
   for (const p of agentes) {
     const st = estados[p];
     const a = m.atores[p];
+    const at = atividade?.[p];
+    if (at) {
+      if (m.base && at.entregasHoje > m.entregasVistas[p]) {
+        const pos = isoC(a.x, a.y);
+        m.efeitos.push({ x: pos.x, y: pos.y - 30, t0: m.t, texto: "+1 entrega" });
+      }
+      m.entregasVistas[p] = at.entregasHoje;
+    }
     if (st === "working" && m.prev[p] !== "working") {
       if (p === "cs") visitar(m, "gestor", "cs");
       else if (m.atores.cs.modo !== "visita" && estados.cs !== "working") visitar(m, "cs", p);
@@ -255,10 +288,14 @@ export function passo(m: Mundo, dt: number, estados: Record<Agente, Estado>) {
     if (a.modo === "mesa") {
       if (!noAssento(m, p) && a.path.length === 0) irPara(m, a, ASSENTOS[p]);
       mover(a, dt);
-      if (noAssento(m, p) && st !== "working") {
-        a.espera -= dt;
-        if (a.espera <= 0) {
-          const l = LAZER[Math.floor(Math.random() * LAZER.length)];
+      // Pausa só para quem entregou, sem pendência nem retrabalho e sem sobrecarga: uma por entrega.
+      if (noAssento(m, p) && st !== "working" && at && at.ultimaTs !== null) {
+        const idade = Date.now() - at.ultimaTs;
+        const merece = at.ultimaTs !== m.pausaTirada[p] && idade > 6000 && idade < 6 * 60000
+          && !at.pendente && !at.retrabalho && at.carga < 0.6 && st !== "error";
+        if (merece) {
+          m.pausaTirada[p] = at.ultimaTs;
+          const l = LAZER[at.entregasHoje % LAZER.length];
           a.modo = "vagando"; a.noDestino = false; a.lazer = l.tipo;
           irPara(m, a, l.p);
         }
@@ -277,6 +314,8 @@ export function passo(m: Mundo, dt: number, estados: Record<Agente, Estado>) {
       }
     }
   }
+
+  if (atividade) m.base = true;
 
   // gestor (avatar do jogador)
   const g = m.atores.gestor;
@@ -730,12 +769,22 @@ function monitor(c: CanvasRenderingContext2D, cx: number, cy: number, st: Estado
   ret(c, cx + 5.5, cy - 4.5, 0.5, 0.5, st === "working" ? "#22c55e" : "#ef4444");
 }
 
-function acessoriosDaMesa(c: CanvasRenderingContext2D, p: { x: number; y: number }, papel: Papel, f: number) {
+function acessoriosDaMesa(c: CanvasRenderingContext2D, p: { x: number; y: number }, papel: Papel, f: number, at?: Atividade) {
   // teclado e mouse
   ret(c, p.x - 4.5, p.y - 3.5, 9, 2.5, "#52525b");
   ret(c, p.x - 4, p.y - 3.5, 8, 2, "#a1a1aa");
   for (let k = 0; k < 7; k++) { ret(c, p.x - 3.5 + k * 1.1, p.y - 3, 0.5, 0.5, "#e4e4e7"); ret(c, p.x - 3.5 + k * 1.1, p.y - 2, 0.5, 0.5, "#e4e4e7"); }
   ret(c, p.x + 6, p.y - 3, 1.5, 2, "#d4d4d8");
+  // pilha de entregas do dia (uma folha por entrega, até 8) e etiqueta de pendência
+  if (at && at.entregasHoje > 0) {
+    const n = Math.min(8, at.entregasHoje);
+    for (let k = 0; k < n; k++) {
+      ret(c, p.x - 14 + (k % 2) * 0.5, p.y - 3.5 - k * 0.5, 4.5, 0.5, k % 2 ? "#e2e8f0" : "#f8fafc");
+    }
+    ret(c, p.x - 14, p.y - 3.5 - n * 0.5, 4.5, 0.5, "#cbd5e1");
+    if (at.pendente) ret(c, p.x - 11.5, p.y - 4.5 - n * 0.5, 1.5, 1, "#f59e0b");
+    if (at.retrabalho) ret(c, p.x - 14, p.y - 4.5 - n * 0.5, 1.5, 1, "#ef4444");
+  }
   // caneca
   ret(c, p.x - 10.5, p.y - 5, 2.5, 2.5, "#f8fafc"); ret(c, p.x - 8, p.y - 4.5, 0.5, 1.5, "#f8fafc");
   ret(c, p.x - 10.5, p.y - 5, 2.5, 0.5, "#92400e");
@@ -1026,6 +1075,9 @@ export interface OpcoesDesenho {
   estados: Record<Agente, Estado>;
   aguardandoGestor: boolean;
   humor: Record<Agente, Humor>;
+  /** Nomes próprios a exibir no lugar do papel (ex.: o CS da sala). */
+  nomes?: Partial<Record<Papel, string>>;
+  atividade?: Record<Agente, Atividade>;
 }
 
 function luzRadial(c: CanvasRenderingContext2D, x: number, y: number, r: number, rgb: string, a: number) {
@@ -1061,7 +1113,7 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
         const p = isoC(mesa.x + i, mesa.y);
         caixa(c, p.x, p.y, 10, "#c28f58", "#8a5a2e", "#a06c3c");
         for (let g = 0; g < 4; g++) ret(c, p.x - 12 + g * 7 + (i ? 3 : 0), p.y - 9.5 + g * 0.75, 0.5, 0.5, "rgba(120,70,20,0.35)");
-        if (i === 0) acessoriosDaMesa(c, { x: p.x, y: p.y }, dono, quadro);
+        if (i === 0) acessoriosDaMesa(c, { x: p.x, y: p.y }, dono, quadro, dono === "gestor" ? undefined : op.atividade?.[dono as Agente]);
         if (i === 1) monitor(c, p.x + 9, p.y - 1, st, quadro, dono);
       });
     }
@@ -1148,6 +1200,22 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
     c.restore();
   }
 
+  // "+1 entrega" quando uma execução real termina
+  for (const e of m.efeitos) {
+    const idade = m.t - e.t0;
+    const alpha = Math.max(0, 1 - idade / 2.4);
+    const y = e.y - idade * 7;
+    c.font = "bold 6px sans-serif";
+    c.textAlign = "center"; c.textBaseline = "middle";
+    const w = Math.ceil(c.measureText(e.texto).width) + 6;
+    c.globalAlpha = alpha;
+    ret(c, e.x - w / 2 - 0.5, y - 4.5, w + 1, 9, OUT);
+    ret(c, e.x - w / 2, y - 4, w, 8, "#14532d");
+    c.fillStyle = "#bbf7d0";
+    c.fillText(e.texto, e.x, y + 0.3);
+    c.globalAlpha = 1;
+  }
+
   // seleção, losango de humor, balões e nomes
   (Object.keys(m.atores) as Papel[]).forEach((p) => {
     const a = m.atores[p];
@@ -1180,15 +1248,18 @@ export function desenhar(c: CanvasRenderingContext2D, m: Mundo, op: OpcoesDesenh
     else {
       const st = op.estados[p as Agente];
       const em = m.atores[p];
+      const at = op.atividade?.[p as Agente];
       if (st === "working" && sentado(m, p)) tipo = "pontos";
       else if (st === "error") tipo = "erro";
+      else if (at?.retrabalho && sentado(m, p)) tipo = "erro";
+      else if (at?.pendente && sentado(m, p)) tipo = "ask";
       else if (st === "done" && sentado(m, p)) tipo = "ok";
       else if (em.modo === "vagando" && em.noDestino && em.lazer && em.lazer !== "sofa") tipo = "cafe";
     }
     if (tipo && m.selecionado !== p) balao(c, cx, topo - 15, tipo, quadro);
     if (tipo && m.selecionado === p) balao(c, cx + 14, topo - 20, tipo, quadro);
     if (m.hover === p || m.selecionado === p) {
-      const nome = CORES[p].nome.toUpperCase();
+      const nome = (op.nomes?.[p] ? `${op.nomes[p]} · ${CORES[p].nome}` : CORES[p].nome).toUpperCase();
       c.font = "bold 5px sans-serif";
       const w = Math.ceil(c.measureText(nome).width) + 9;
       const x0 = r5(cx - w / 2);
