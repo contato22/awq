@@ -23,6 +23,7 @@ import {
 } from "@/lib/office-head";
 import HeadCSPanel from "./HeadCSPanel";
 import { skillCSConta } from "@/lib/office-cs-skill";
+import { skillSquadConta } from "@/lib/office-squad-skill";
 import { criarSincronizador, type Sincronizador, type StatusSync, type ValoresSync } from "@/lib/office-sync";
 import type { Atividade } from "@/lib/office-iso";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
@@ -438,7 +439,7 @@ export default function OfficeSimulator() {
         resultadoEsperado: acao,
         definicaoDePronto: PRONTO_POR_KIND[kind],
         modo,
-        skill: role === "cs" ? skillCSConta(agent.name.split(" · ")[0], bu, headRef.current.tarefas.filter((t) => t.bu === bu && ["atribuido", "iniciado", "bloqueado", "concluido"].includes(t.status)).length) : undefined,
+        skill: role === "cs" ? skillCSConta(agent.name.split(" · ")[0], bu, headRef.current.tarefas.filter((t) => t.bu === bu && ["atribuido", "iniciado", "bloqueado", "concluido"].includes(t.status)).length) : role === "ref" || role === "criativo" || role === "midia" ? skillSquadConta(agent.name.split(" · ")[0], role, bu) : undefined,
         estadoAtual: ciclo ? `ciclo ${ciclo.estado}, versão v${ciclo.versao}${missao ? `; ${resumoParaContrato(missao)}` : ""}` : "sem ciclo editorial em andamento",
       });
       registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem: `${origem} · modo: ${modo === "recomendar" ? "Recomendar" : "Preparar"}` });
