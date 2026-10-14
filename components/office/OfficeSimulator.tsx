@@ -24,6 +24,7 @@ import {
 import HeadCSPanel from "./HeadCSPanel";
 import { skillCSConta } from "@/lib/office-cs-skill";
 import { skillSquadConta } from "@/lib/office-squad-skill";
+import { aplicarEstadoCS, extrairEstadoCS } from "@/lib/office-cs-state";
 import { criarSincronizador, type Sincronizador, type StatusSync, type ValoresSync } from "@/lib/office-sync";
 import type { Atividade } from "@/lib/office-iso";
 import { avaliarCenario, CENARIOS, type Cenario, type PapelAgente, type Veredito } from "@/lib/office-scenarios";
@@ -483,8 +484,22 @@ export default function OfficeSimulator() {
         throw e;
       }
       salvarRuns([...runsRef.current, rec]);
+      if (role === "cs") {
+        const estadoCS = extrairEstadoCS(rec.output);
+        if (estadoCS) {
+          const r = aplicarEstadoCS(headRef.current, estadoCS, bu, agent.name.split(" · ")[0], `cs-${rec.id}`, ctxHead());
+          if (r.criadas.length || r.aprovacoes.length || r.exigencias.length || r.rejeitadas.length) gravarHead(r.estado);
+          for (const id of r.criadas) {
+            const t = r.estado.tarefas.find((x) => x.id === id);
+            if (t) registrar({ tipo: "TaskCreated", bu, ator: "cs", acao: `${t.agenteId.split("|")[1]}: ${t.resultado.slice(0, 80)}`, origem: `Delegada pelo CS da conta (${t.prioridade}); status ${t.status}` });
+          }
+          for (const x of r.rejeitadas) registrar({ tipo: "ActionFailed", bu, ator: "cs", acao: "Despacho do CS recusado pelo motor", origem: x.motivo, causa: { codigo: "POLICY_BLOCKED", mensagem: x.motivo, recuperavel: true, proxima: "O CS corrige o despacho na próxima ativação." } });
+        }
+      }
       return rec;
     },
+    // ctxHead e gravarHead só leem refs e setters estáveis; recriá-los a cada render não muda o resultado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [squadSel, buSel, apiKey, salvarRuns, registrar, atualizarMissao]
   );
 
