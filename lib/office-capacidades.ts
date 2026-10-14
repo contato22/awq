@@ -12,7 +12,7 @@ const ABERTAS = ["atribuido", "iniciado", "aceito", "aguardando_aprovacao", "blo
 const linhaTarefa = (t: TarefaHead) =>
   `- ${t.id} (${t.role}, ${t.prioridade}, ${t.status}${t.bloqueio ? `: ${t.bloqueio.slice(0, 80)}` : ""}): ${t.resultado.slice(0, 90)}`;
 
-export function capacidadesDaExecucao(e: EstadoHead, bu: string, role: PapelAgente, nome: string, agentes: { role: PapelAgente; nome: string }[]): string {
+export function capacidadesDaExecucao(e: EstadoHead, bu: string, role: PapelAgente, nome: string, agentes: { role: PapelAgente; nome: string }[], entregas: { tarefaId: string; texto: string }[] = []): string {
   const daConta = e.tarefas.filter((t) => t.bu === bu);
   const abertas = daConta.filter((t) => ABERTAS.includes(t.status));
   const minhas = role === "cs" ? abertas : abertas.filter((t) => t.role === role);
@@ -36,6 +36,9 @@ export function capacidadesDaExecucao(e: EstadoHead, bu: string, role: PapelAgen
     `- Tarefas ${role === "cs" ? "abertas da conta" : "suas abertas"} (${minhas.length}):${minhas.length ? "\n" + minhas.slice(-8).map(linhaTarefa).join("\n") : " nenhuma"}`,
     ...(role === "cs" ? [`- Aprovações pendentes do gestor para tarefas desta conta: ${aprov}`] : []),
     ...(role === "cs" && msgs.length ? ["- Seus últimos registros ao orquestrador (inclui despachos recusados):", ...msgs] : []),
+    ...(role === "cs" && entregas.length
+      ? ["ENTREGAS DA SUA SQUAD AGUARDANDO SUA VALIDAÇÃO (conteúdo da própria conta; confira cada uma contra os critérios de aceite e devolva validations {task_id, accepted, reason} no estado estruturado):", ...entregas.map((x) => `- ${x.tarefaId}: ${x.texto}`)]
+      : []),
     e.checkpoint ? `- Último checkpoint do Head de CS (${e.checkpoint.ts.slice(0, 16).replace("T", " ")}): ${e.checkpoint.resumo.slice(0, 200) || "sem resumo"}` : "- Head de CS ainda sem checkpoint.",
   ];
   return linhas.join("\n");
