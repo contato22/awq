@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   AlertTriangle, ArrowLeft, Check, Download, Key, Loader2, Megaphone, MessageSquare, Pencil,
   Play, Search, Send, ShieldCheck, Trash2, User, Users, X,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/office-missions";
 import { classificarErro, MAX_EVENTOS, novoEvento, ROTULO_TIPO, type EventoOffice } from "@/lib/office-events";
 import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
+// Carregado sob demanda: Three.js só entra no bundle de quem liga o "Modo 3D (beta)".
+const OfficeGame3D = dynamic(() => import("./OfficeGame3D"), { ssr: false });
 import { ANDARES, type Empresa } from "@/lib/office-world";
 import {
   aplicarSaida, ativacaoDevida, atualizarTarefa, capacidadeDosAgentes, decidirAprovacao, estadoInicial, lerEstadoCS, limiteDoDia, parseSaida,
@@ -241,6 +244,11 @@ export default function OfficeSimulator() {
   const [reportMd, setReportMd] = useState<string | null>(null);
   const [reportErro, setReportErro] = useState<string | null>(null);
   const [painelAberto, setPainelAberto] = useState(false);
+  // Modo 3D (beta): renderizador alternativo em Three.js, mesma interface do mundo 2D.
+  // Desligado por padrão; a escolha do usuário fica salva no navegador.
+  const [modo3D, setModo3D] = useState(false);
+  useEffect(() => { setModo3D(localStorage.getItem("office-modo-3d") === "1"); }, []);
+  const alternarModo3D = () => setModo3D((v) => { const novo = !v; localStorage.setItem("office-modo-3d", novo ? "1" : "0"); return novo; });
   const [chat, setChat] = useState<Record<string, ChatMsg[]>>({});
   const [chatRole, setChatRole] = useState<PapelAgente>("cs");
   const [chatInput, setChatInput] = useState("");
@@ -1107,6 +1115,7 @@ export default function OfficeSimulator() {
     };
   });
   empresasRef.current = empresas;
+  const Mundo = modo3D ? OfficeGame3D : OfficeGame;
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#0a101f] notranslate" translate="no">
@@ -1144,8 +1153,17 @@ export default function OfficeSimulator() {
         </div>
       )}
 
+      {/* Alternância do renderizador: o mundo 2D (padrão) continua disponível durante a migração */}
+      <button
+        onClick={alternarModo3D}
+        className="absolute top-2 right-2 z-[70] rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-medium px-2.5 py-1.5"
+        title={modo3D ? "Voltar para o mundo 2D" : "Experimentar o mundo em 3D (beta)"}
+      >
+        {modo3D ? "Mundo 2D" : "Modo 3D (beta)"}
+      </button>
+
       {/* Mundo jogável */}
-      <OfficeGame
+      <Mundo
         empresas={empresas}
         buAtual={bu}
         onEscolherEmpresa={(b) => { setBu(b); setCycle(null); setTab("conversa"); }}
@@ -1841,7 +1859,7 @@ export default function OfficeSimulator() {
           )}
         </div>
       </div>
-      </OfficeGame>
+      </Mundo>
     </div>
   );
 }
