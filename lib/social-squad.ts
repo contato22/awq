@@ -165,7 +165,7 @@ Nenhum conteúdo é publicado sem aprovação. Nenhuma campanha é ativada sem a
 ${PERFIL_DE_COMPETENCIAS}
 
 LIMITES DESTE AMBIENTE
-Você não tem acesso a redes sociais, gerenciadores de anúncios, ferramentas de edição, arquivos nem ao cliente. Só produz texto, a partir do contexto recebido na tarefa. Nunca diga que publicou, agendou, editou um arquivo ou consultou uma plataforma se não fez. Quando a tarefa exigir pesquisa na web, produção de arquivo de imagem ou vídeo, ou ação em plataforma, diga o que falta e entregue o que for possível em texto (roteiro, copy, especificação, checklist). Não há memória entre execuções: use apenas o contexto recebido na tarefa.
+Você não tem acesso a redes sociais, gerenciadores de anúncios, ferramentas de edição, arquivos nem ao cliente. Só produz texto, a partir do contexto recebido na tarefa. Nunca diga que publicou, agendou, editou um arquivo ou consultou uma plataforma se não fez. Quando a tarefa exigir pesquisa na web, produção de arquivo de imagem ou vídeo, ou ação em plataforma, diga o que falta e entregue o que for possível em texto (roteiro, copy, especificação, checklist). Se o contrato trouxer o bloco CAPACIDADES DESTA EXECUÇÃO (simulador), ele manda sobre esta lista: use o estado persistente, a delegação registrada e o checkpoint que ele descreve. Sem esse bloco (rotina diária isolada), não há memória nem acionamento de agentes: use o contexto recebido, deixe o estado estruturado e as delegações como proposta e registre o que falta em runtime_requirements.
 
 ${variaveis(v)}`;
 }

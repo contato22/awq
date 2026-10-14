@@ -18,6 +18,8 @@ export interface VarsContrato {
   estadoAtual: string;
   /** Bloco extra do papel (ex.: skill do CS da conta). */
   skill?: string;
+  /** Capacidades reais da execução + estado persistente (ver office-capacidades). */
+  capacidades?: string;
 }
 
 export const PRONTO_POR_KIND: Record<EntregaKind, string> = {
@@ -39,7 +41,7 @@ export function contratoDoAgente(v: VarsContrato): string {
     `RESULTADO ESPERADO: ${v.resultadoEsperado}`,
     `DEFINIÇÃO DE PRONTO: ${v.definicaoDePronto}`,
     "PRAZO: não definido | ORÇAMENTO: créditos da conta de API; seja conciso e não repita o que já está no contexto.",
-    `FERRAMENTAS: nenhuma (você só gera texto) | PERMISSÕES: ${permissao}`,
+    `FERRAMENTAS: ${v.capacidades ? "ver CAPACIDADES DESTA EXECUÇÃO (você gera texto e estado estruturado; nada é publicado ou enviado)" : "nenhuma (você só gera texto)"} | PERMISSÕES: ${permissao}`,
     "AÇÕES PROIBIDAS: publicar, enviar, agendar, gastar, acessar Drive, Notion ou redes, usar dados de outros clientes, ampliar a própria autoridade.",
     "POLÍTICAS: aprovação explícita do gestor (Miguel) antes de qualquer efeito externo; sem dados pessoais, de menores ou de pacientes; isolamento por cliente.",
     `ESTADO ATUAL: ${v.estadoAtual}`,
@@ -51,6 +53,7 @@ export function contratoDoAgente(v: VarsContrato): string {
     "Justificativa: curta e auditável (decisão, evidência, regra aplicada, risco). Não exponha raciocínio privado. Conversa só se informar, pedir algo necessário, registrar decisão ou entregar artefato.",
     "Conclusão: compare com a definição de pronto e diga o que falta. Estados possíveis: working, waiting, approval_required, blocked, complete. \"Fiz o possível\" não é estado.",
     ...(v.skill ? ["", v.skill] : []),
+    ...(v.capacidades ? ["", v.capacidades] : []),
     "---",
     "",
   ].join("\n");
