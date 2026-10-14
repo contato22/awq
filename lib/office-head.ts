@@ -364,10 +364,11 @@ export function aplicarSaida(estado: EstadoHead, saida: SaidaHead, ativacaoId: s
   return { estado: e, ativacao };
 }
 
-export function registrarFalhaAtivacao(estado: EstadoHead, ativacaoId: string, motivo: string, erro: string, agora: Date, tokens?: { input: number; output: number }): EstadoHead {
+/** `contar` falso: falha de credencial/crédito não consome o limite diário de ativações (nada foi gasto nem decidido). */
+export function registrarFalhaAtivacao(estado: EstadoHead, ativacaoId: string, motivo: string, erro: string, agora: Date, tokens?: { input: number; output: number }, contar = true): EstadoHead {
   const e = zerarUsoSeNovoDia(estado);
   const a: AtivacaoHead = { id: ativacaoId, ts: agora.toISOString(), motivo, saida: null, erro, criadas: [], rejeitadas: [], aprovacoes: [], tokens };
-  return { ...e, ativacoes: [...e.ativacoes, a].slice(-20), ultimaAtivacaoEm: agora.toISOString(), uso: { ...e.uso, ativacoes: e.uso.ativacoes + 1, tokensSaida: e.uso.tokensSaida + (tokens?.output ?? 0) } };
+  return { ...e, ativacoes: [...e.ativacoes, a].slice(-20), ultimaAtivacaoEm: agora.toISOString(), uso: { ...e.uso, ativacoes: e.uso.ativacoes + (contar ? 1 : 0), tokensSaida: e.uso.tokensSaida + (tokens?.output ?? 0) } };
 }
 
 /** Tarefas prontas para entrega (atribuídas e sem dependência aberta), respeitando a concorrência global. */

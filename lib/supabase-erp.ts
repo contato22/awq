@@ -25,14 +25,17 @@ export function getErpClient(): SupabaseClient {
  * Server-only admin client using the service role key — bypasses RLS.
  * Call only from API Routes / Server Actions. Never import in "use client" files.
  */
-export function getErpAdminClient(): SupabaseClient {
+export function getErpAdminClient(opts: { noStore?: boolean } = {}): SupabaseClient {
   const serviceKey = process.env.ERP_SUPABASE_SERVICE_ROLE_KEY;
   if (!ERP_URL || !serviceKey) {
     throw new Error(
       "Missing NEXT_PUBLIC_ERP_SUPABASE_URL or ERP_SUPABASE_SERVICE_ROLE_KEY (server-only)."
     );
   }
-  return createClient(ERP_URL, serviceKey, { auth: { persistSession: false } });
+  // O Next 14 guarda em cache os fetch do servidor: leituras PostgREST repetidas podem voltar velhas.
+  // noStore força leitura fresca (necessário para estados com versão, como o do Office).
+  const global = opts.noStore ? { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: "no-store" }) } : undefined;
+  return createClient(ERP_URL, serviceKey, { auth: { persistSession: false }, ...(global ? { global } : {}) });
 }
 
 /** Returns true if the ERP Supabase connection is configured in this environment. */
