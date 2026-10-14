@@ -113,19 +113,94 @@ function Cabelo({ papel, cor }: { papel: Agente; cor: string }) {
   }
 }
 
-// ── Personagem: figura humana de várias partes (pernas, tronco, braços, cabeça, cabelo por
-// papel), com animação de respiração/digitação quando trabalhando e caminhada curta até um
-// ponto de descanso dentro da sala quando ociosa. ──────────────────────────────────────────
+// ── Navegação: grade de células por sala (todas as salas têm o mesmo layout de mesas, então
+// a grade de obstáculos é calculada uma única vez) e busca em largura (BFS) para desviar das
+// mesas/cadeiras ao caminhar — não é mais um único ponto pré-validado fixo. ───────────────────
 
-// ponto de descanso, em espaço local do personagem — como o personagem é posicionado numa
-// mesa com rotação de 180° (de costas pro monitor é a cadeira, de frente é o personagem
-// olhando a tela), um alvo local (-x,-z) sai em direção ao mundo (+x,+z): a área aberta da
-// sala, sempre para longe das paredes de fundo (sem precisar de replanejamento de rota).
-const PASSO_ALVO = new THREE.Vector3(-1.05, 0, -1.05);
+const CELULA = 0.5;
+const SALA_LADO = 5 * UNIT; // 11 — mesmo tamanho de toda sala de squad (LADO em office-world.ts)
+const GRADE_N = Math.round(SALA_LADO / CELULA); // 22×22 células
+
+function celulaDe(x: number, z: number): [number, number] {
+  return [THREE.MathUtils.clamp(Math.floor(x / CELULA), 0, GRADE_N - 1), THREE.MathUtils.clamp(Math.floor(z / CELULA), 0, GRADE_N - 1)];
+}
+function centroCelula(cx: number, cz: number): [number, number] {
+  return [(cx + 0.5) * CELULA, (cz + 0.5) * CELULA];
+}
+const chaveCel = (c: [number, number]) => `${c[0]},${c[1]}`;
+
+/** Célula ocupada por mesa+cadeira de cada papel — mesmo layout em toda sala (ver MESAS). */
+const OBSTACULOS: Set<string> = (() => {
+  const s = new Set<string>();
+  for (const papel of PAPEIS) {
+    const [dx, dy] = MESAS[papel];
+    const cx = dx * UNIT * 0.5, cz = dy * UNIT * 0.5;
+    const [i0, j0] = celulaDe(cx - 0.4, cz - 0.4);
+    const [i1, j1] = celulaDe(cx + 0.4, cz + 0.85); // cobre a mesa e a cadeira atrás dela
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) s.add(`${i},${j}`);
+  }
+  return s;
+})();
+
+/** Busca em largura na grade da sala: devolve o caminho (centros de célula) desviando das
+ * mesas, ou [] se o destino estiver inacessível. */
+function bfsCaminho(origemXZ: [number, number], destinoXZ: [number, number]): [number, number][] {
+  const oc = celulaDe(...origemXZ);
+  const dc = celulaDe(...destinoXZ);
+  if (OBSTACULOS.has(chaveCel(dc))) return [];
+  if (chaveCel(oc) === chaveCel(dc)) return [destinoXZ];
+  const visitado = new Set<string>([chaveCel(oc)]);
+  const pai = new Map<string, [number, number]>();
+  const fila: [number, number][] = [oc];
+  const dirs: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  let cabeca = 0;
+  while (cabeca < fila.length) {
+    const atual = fila[cabeca++];
+    if (chaveCel(atual) === chaveCel(dc)) break;
+    for (const [di, dj] of dirs) {
+      const prox: [number, number] = [atual[0] + di, atual[1] + dj];
+      if (prox[0] < 0 || prox[0] >= GRADE_N || prox[1] < 0 || prox[1] >= GRADE_N) continue;
+      const k = chaveCel(prox);
+      if (visitado.has(k) || OBSTACULOS.has(k)) continue;
+      visitado.add(k);
+      pai.set(k, atual);
+      fila.push(prox);
+    }
+  }
+  if (!visitado.has(chaveCel(dc))) return [];
+  const caminho: [number, number][] = [dc];
+  let cur = dc;
+  while (chaveCel(cur) !== chaveCel(oc)) {
+    const p = pai.get(chaveCel(cur));
+    if (!p) break;
+    caminho.push(p);
+    cur = p;
+  }
+  caminho.reverse();
+  return caminho.map(([i, j]) => centroCelula(i, j));
+}
+
+/** Um ponto de descanso livre, sorteado dentro da sala (nunca em cima de mesa/cadeira, com
+ * uma margem das paredes de fundo). */
+function destinoAleatorio(): [number, number] {
+  for (let tentativa = 0; tentativa < 40; tentativa++) {
+    const i = 2 + Math.floor(Math.random() * (GRADE_N - 3));
+    const j = 2 + Math.floor(Math.random() * (GRADE_N - 3));
+    if (!OBSTACULOS.has(`${i},${j}`)) return centroCelula(i, j);
+  }
+  return centroCelula(Math.floor(GRADE_N / 2), Math.floor(GRADE_N / 2));
+}
+
+// ── Personagem: figura humana de várias partes (pernas, tronco, braços, cabeça, cabelo por
+// papel), com animação de respiração/digitação quando trabalhando e caminhada com desvio real
+// de obstáculos (pathfinding por BFS na grade da sala) até um ponto de descanso quando
+// ociosa. ─────────────────────────────────────────────────────────────────────────────────
+
+type FaseAndar = "no-lugar" | "indo" | "fora" | "voltando";
 
 function Personagem({
-  papel, estado, selecionado, onClick,
-}: { papel: Agente; estado: Estado; selecionado: boolean; onClick: () => void }) {
+  papel, estado, selecionado, onClick, basePos,
+}: { papel: Agente; estado: Estado; selecionado: boolean; onClick: () => void; basePos: [number, number] }) {
   const L = LOOK[papel];
   const grupo = useRef<THREE.Group>(null);
   const corpoRef = useRef<THREE.Group>(null);
@@ -134,47 +209,32 @@ function Personagem({
   const pernaE = useRef<THREE.Mesh>(null);
   const pernaD = useRef<THREE.Mesh>(null);
   const t0 = useRef(Math.random() * 10);
-  const faseCaminhada = useRef(Math.random() * 10);
-  const pos = useRef(new THREE.Vector3(0, 0, 0));
+
+  const posAtual = useRef(new THREE.Vector3(basePos[0], 0, basePos[1]));
+  const fase = useRef<FaseAndar>("no-lugar");
+  const temporizador = useRef(2 + Math.random() * 8); // tempo sentado antes do 1º passeio
+  const caminho = useRef<[number, number][]>([]);
+  const indiceCaminho = useRef(0);
+
+  const pararPernas = () => {
+    if (pernaE.current) pernaE.current.rotation.x = 0;
+    if (pernaD.current) pernaD.current.rotation.x = 0;
+  };
 
   useFrame((_, dtBruto) => {
     const dt = Math.min(dtBruto, 0.05);
     t0.current += dt;
     if (!grupo.current || !corpoRef.current) return;
 
-    if (estado === "idle") {
-      // caminha até o ponto de descanso e volta, num ciclo (desvio de obstáculos por
-      // ponto-destino pré-validado: o ponto fica sempre na área aberta da sala)
-      faseCaminhada.current += dt;
-      const ciclo = (faseCaminhada.current % 9) / 9; // 0..1 em 9s
-      const indo = ciclo < 0.42 ? ciclo / 0.42 : ciclo < 0.58 ? 1 : 1 - (ciclo - 0.58) / 0.42;
-      const q = THREE.MathUtils.smoothstep(indo, 0, 1);
-      pos.current.lerpVectors(new THREE.Vector3(0, 0, 0), PASSO_ALVO, q);
-      const andando = indo > 0.02 && indo < 0.98;
-      grupo.current.position.set(pos.current.x, 0, pos.current.z);
-      if (andando) {
-        grupo.current.rotation.y = Math.atan2(PASSO_ALVO.x, PASSO_ALVO.z) * (ciclo < 0.5 ? 1 : 1) + (ciclo >= 0.5 ? Math.PI : 0);
-        const osc = Math.sin(t0.current * 9);
-        if (pernaE.current) pernaE.current.rotation.x = osc * 0.5;
-        if (pernaD.current) pernaD.current.rotation.x = -osc * 0.5;
-        if (bracoE.current) bracoE.current.rotation.x = -osc * 0.4;
-        if (bracoD.current) bracoD.current.rotation.x = osc * 0.4;
-        corpoRef.current.position.y = 0.55 + Math.abs(Math.sin(t0.current * 9)) * 0.015;
-      } else {
-        grupo.current.rotation.y = 0;
-        if (pernaE.current) pernaE.current.rotation.x = 0;
-        if (pernaD.current) pernaD.current.rotation.x = 0;
-        if (bracoE.current) bracoE.current.rotation.x = 0;
-        if (bracoD.current) bracoD.current.rotation.x = 0;
-        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
-      }
-    } else {
-      grupo.current.position.set(0, 0, 0);
-      grupo.current.rotation.y = 0;
-      if (pernaE.current) pernaE.current.rotation.x = 0;
-      if (pernaD.current) pernaD.current.rotation.x = 0;
+    if (estado !== "idle") {
+      // trabalhando/entregue/com erro: sentado no lugar, de frente pro monitor
+      fase.current = "no-lugar";
+      caminho.current = [];
+      posAtual.current.set(basePos[0], 0, basePos[1]);
+      grupo.current.position.copy(posAtual.current);
+      grupo.current.rotation.y = Math.PI;
+      pararPernas();
       if (estado === "working") {
-        // sentado, digitando: braços oscilam rápido e curto, tronco com leve inclinação
         const osc = Math.sin(t0.current * 7);
         if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
         if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
@@ -186,6 +246,57 @@ function Personagem({
         corpoRef.current.rotation.x = 0;
         corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
       }
+      return;
+    }
+
+    // ocioso: no-lugar (respirando) → indo (passeio) → fora (pausa) → voltando → no-lugar...
+    if (fase.current === "no-lugar" || fase.current === "fora") {
+      corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
+      if (fase.current === "no-lugar") grupo.current.rotation.y = Math.PI;
+      temporizador.current -= dt;
+      if (temporizador.current <= 0) {
+        const destino = fase.current === "no-lugar" ? destinoAleatorio() : basePos;
+        const origemXZ: [number, number] = [posAtual.current.x, posAtual.current.z];
+        const c = bfsCaminho(origemXZ, destino);
+        if (c.length > 0) {
+          caminho.current = c;
+          indiceCaminho.current = 0;
+          fase.current = fase.current === "no-lugar" ? "indo" : "voltando";
+        } else {
+          temporizador.current = 2 + Math.random() * 3; // sem rota agora: tenta de novo depois
+        }
+      }
+    } else {
+      // "indo" ou "voltando": segue o caminho (lista de centros de célula) calculado por BFS
+      const alvoXZ = caminho.current[indiceCaminho.current];
+      if (!alvoXZ) {
+        const chegouEmCasa = fase.current === "voltando";
+        fase.current = chegouEmCasa ? "no-lugar" : "fora";
+        temporizador.current = chegouEmCasa ? 6 + Math.random() * 10 : 2.5 + Math.random() * 3;
+        pararPernas();
+        if (bracoE.current) bracoE.current.rotation.x = 0;
+        if (bracoD.current) bracoD.current.rotation.x = 0;
+        if (chegouEmCasa) grupo.current.rotation.y = Math.PI;
+      } else {
+        const alvo = new THREE.Vector3(alvoXZ[0], 0, alvoXZ[1]);
+        const delta = alvo.clone().sub(posAtual.current);
+        const dist = delta.length();
+        const velocidade = 0.85;
+        if (dist < 0.04) {
+          indiceCaminho.current++;
+        } else {
+          delta.normalize();
+          posAtual.current.addScaledVector(delta, Math.min(velocidade * dt, dist));
+          grupo.current.rotation.y = Math.atan2(delta.x, delta.z);
+          const osc = Math.sin(t0.current * 9);
+          if (pernaE.current) pernaE.current.rotation.x = osc * 0.5;
+          if (pernaD.current) pernaD.current.rotation.x = -osc * 0.5;
+          if (bracoE.current) bracoE.current.rotation.x = -osc * 0.4;
+          if (bracoD.current) bracoD.current.rotation.x = osc * 0.4;
+          corpoRef.current.position.y = 0.55 + Math.abs(Math.sin(t0.current * 9)) * 0.015;
+        }
+        grupo.current.position.copy(posAtual.current);
+      }
     }
   });
 
@@ -194,6 +305,7 @@ function Personagem({
   return (
     <group
       ref={grupo}
+      position={[basePos[0], 0, basePos[1]]}
       onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(); }}
       onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { document.body.style.cursor = "default"; }}
@@ -324,10 +436,23 @@ function Sala({
                 </mesh>
               ))}
             </group>
-            <group position={[0, 0, 0.3]} rotation-y={Math.PI}>
-              <Personagem papel={a} estado={estados[a]} selecionado={ativo && selecionado === a} onClick={() => { if (!ativo) onEntrar(); onSelecionar(a); }} />
-            </group>
           </group>
+        );
+      })}
+      {/* personagens: fora do grupo fixo da mesa — cada um controla a própria posição absoluta
+          na sala (pathfinding por BFS na grade de obstáculos), não só um offset local fixo */}
+      {PAPEIS.map((a) => {
+        const [dx, dy] = MESAS[a];
+        const basePos: [number, number] = [dx * UNIT * 0.5, dy * UNIT * 0.5 + 0.3];
+        return (
+          <Personagem
+            key={a}
+            papel={a}
+            estado={estados[a]}
+            selecionado={ativo && selecionado === a}
+            onClick={() => { if (!ativo) onEntrar(); onSelecionar(a); }}
+            basePos={basePos}
+          />
         );
       })}
     </group>
