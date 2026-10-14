@@ -6,7 +6,7 @@
  * aprovação do gestor). Só vale para a conta do próprio CS.
  */
 import {
-  atualizarConta, criarTarefa, mensagemInterna, pedirAprovacao, type AgenteInfo, type CtxMotor, type DespachoHead, type EstadoHead,
+  atualizarConta, atualizarTarefa, criarTarefa, mensagemInterna, pedirAprovacao, type AgenteInfo, type CtxMotor, type DespachoHead, type EstadoHead,
 } from "./office-head";
 
 export interface EstadoCS {
@@ -14,6 +14,7 @@ export interface EstadoCS {
   operational_state?: string;
   dispatch_requests?: (DespachoHead & { agent?: string; competence?: string })[];
   approval_requests?: { reason?: string; request?: string }[];
+  validations?: { task_id?: string; accepted?: boolean; reason?: string }[];
   state_updates?: { risk?: string; owner?: string; plan?: string; due_at?: string; note?: string }[];
   runtime_requirements?: { capability?: string; impact?: string; requested_action?: string; fallback_completed?: string }[];
   wakeup?: { at?: string | null; on?: string[]; reason?: string };
@@ -49,6 +50,7 @@ export function resolverAgente(pedido: string | undefined, bu: string, agentes: 
 export interface ResultadoEstadoCS {
   estado: EstadoHead;
   criadas: string[];
+  validadas: string[];
   rejeitadas: { chave: string; motivo: string }[];
   aprovacoes: string[];
   exigencias: string[];
@@ -58,7 +60,7 @@ const lista = (x: unknown[] | undefined, n = 3) => (x ?? []).slice(0, n).map((i)
 
 export function aplicarEstadoCS(estado: EstadoHead, s: EstadoCS, bu: string, nomeCS: string, ativacaoId: string, ctx: CtxMotor): ResultadoEstadoCS {
   let e = estado;
-  const criadas: string[] = [], aprovacoes: string[] = [], exigencias: string[] = [];
+  const criadas: string[] = [], validadas: string[] = [], aprovacoes: string[] = [], exigencias: string[] = [];
   const rejeitadas: { chave: string; motivo: string }[] = [];
   for (const d of (s.dispatch_requests ?? []).slice(0, 6)) {
     const chave = d.idempotency_key ?? d.task_id ?? d.desired_outcome?.slice(0, 40) ?? "?";
@@ -69,6 +71,14 @@ export function aplicarEstadoCS(estado: EstadoHead, s: EstadoCS, bu: string, nom
     e = r.estado;
     if (r.tarefa) criadas.push(r.tarefa.id); else rejeitadas.push({ chave, motivo: r.rejeicao ?? "inválida" });
     if (r.aprovacao) aprovacoes.push(r.aprovacao.id);
+  }
+  // Validação das entregas da própria squad: só tarefas concluídas desta conta.
+  for (const v of (s.validations ?? []).slice(0, 6)) {
+    const t = e.tarefas.find((x) => x.id === v.task_id && x.bu === bu && x.status === "concluido");
+    if (!t || typeof v.accepted !== "boolean") continue;
+    const reabre = !v.accepted && t.tentativas < e.config.maxTentativasTarefa;
+    e = atualizarTarefa(e, t.id, { status: v.accepted ? "validado" : reabre ? "atribuido" : "falhou", bloqueio: v.accepted ? undefined : (v.reason ?? "Reprovada pelo CS da conta").slice(0, 200) }, ctx.agora);
+    validadas.push(t.id);
   }
   for (const a of (s.approval_requests ?? []).slice(0, 4)) {
     if (!a.request?.trim()) continue;
@@ -88,8 +98,8 @@ export function aplicarEstadoCS(estado: EstadoHead, s: EstadoCS, bu: string, nom
     }, ctx.agora);
   }
   for (const r of (s.runtime_requirements ?? []).slice(0, 5)) if (r.capability?.trim()) exigencias.push(`${r.capability}: ${r.requested_action ?? r.impact ?? ""}`.slice(0, 200));
-  if (criadas.length || aprovacoes.length || exigencias.length || rejeitadas.length) {
+  if (criadas.length || validadas.length || aprovacoes.length || exigencias.length || rejeitadas.length) {
     e = mensagemInterna(e, nomeCS, "Head de CS", `${bu}: ${criadas.length} tarefa(s) registrada(s), ${aprovacoes.length} aprovação(ões) pendente(s)${rejeitadas.length ? `; recusados: ${rejeitadas.slice(0, 3).map((x) => x.motivo).join(" | ")}` : ""}${exigencias.length ? `; capacidades pedidas: ${exigencias.slice(0, 2).join(" | ")}` : ""}.${wake}`, ctx.agora);
   }
-  return { estado: e, criadas, rejeitadas, aprovacoes, exigencias };
+  return { estado: e, criadas, validadas, rejeitadas, aprovacoes, exigencias };
 }

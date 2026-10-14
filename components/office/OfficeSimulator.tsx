@@ -399,6 +399,13 @@ export default function OfficeSimulator() {
   const squadsRef = useRef<Squad[]>([]);
   squadsRef.current = squads;
 
+  /** Entregas concluídas da própria conta (texto dos colegas da squad) para o CS validar. */
+  const entregasParaValidar = (b: string) =>
+    headRef.current.tarefas.filter((t) => t.bu === b && t.status === "concluido").slice(-3).map((t) => {
+      const run = [...runsRef.current].reverse().find((r) => r.bu === b && r.role === t.role && r.task.includes(t.id));
+      return { tarefaId: t.id, texto: run ? run.output.slice(0, 700).replace(/\s+/g, " ") : "(texto não encontrado neste navegador)" };
+    });
+
   const rodar = useCallback(
     async (
       role: PapelAgente,
@@ -442,7 +449,7 @@ export default function OfficeSimulator() {
         definicaoDePronto: PRONTO_POR_KIND[kind],
         modo,
         skill: role === "cs" ? skillCSConta(agent.name.split(" · ")[0], bu, headRef.current.tarefas.filter((t) => t.bu === bu && ["atribuido", "iniciado", "bloqueado", "concluido"].includes(t.status)).length) : role === "ref" || role === "criativo" || role === "midia" ? skillSquadConta(agent.name.split(" · ")[0], role, bu) : undefined,
-        capacidades: capacidadesDaExecucao(headRef.current, bu, role, agent.name.split(" · ")[0], agentesInfo().filter((a) => a.bu === bu)),
+        capacidades: capacidadesDaExecucao(headRef.current, bu, role, agent.name.split(" · ")[0], agentesInfo().filter((a) => a.bu === bu), entregasParaValidar(bu)),
         estadoAtual: ciclo ? `ciclo ${ciclo.estado}, versão v${ciclo.versao}${missao ? `; ${resumoParaContrato(missao)}` : ""}` : "sem ciclo editorial em andamento",
       });
       registrar({ tipo: "ActionStarted", bu, ator: role, acao, origem: `${origem} · modo: ${modo === "recomendar" ? "Recomendar" : "Preparar"}` });
@@ -490,7 +497,7 @@ export default function OfficeSimulator() {
         const estadoCS = extrairEstadoCS(rec.output);
         if (estadoCS) {
           const r = aplicarEstadoCS(headRef.current, estadoCS, bu, agent.name.split(" · ")[0], `cs-${rec.id}`, ctxHead());
-          if (r.criadas.length || r.aprovacoes.length || r.exigencias.length || r.rejeitadas.length) gravarHead(r.estado);
+          if (r.criadas.length || r.validadas.length || r.aprovacoes.length || r.exigencias.length || r.rejeitadas.length) gravarHead(r.estado);
           for (const id of r.criadas) {
             const t = r.estado.tarefas.find((x) => x.id === id);
             if (t) registrar({ tipo: "TaskCreated", bu, ator: "cs", acao: `${t.agenteId.split("|")[1]}: ${t.resultado.slice(0, 80)}`, origem: `Delegada pelo CS da conta (${t.prioridade}); status ${t.status}` });
