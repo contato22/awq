@@ -79,25 +79,50 @@ export function criarSincronizador(cb: { status: (s: StatusSync, detalhe?: strin
   const timers: Partial<Record<ChaveSync, ReturnType<typeof setTimeout>>> = {};
   let ativo = false;
 
-  async function enviar<K extends ChaveSync>(chave: K, valor: ValoresSync[K], tentativa = 0): Promise<void> {
+  // Uma gravação por vez por chave: duas PUTs simultâneas com a mesma versão base se atropelavam
+  // (uma ganha, a outra recebe 409, mescla, dispara nova gravação...) e terminavam em "Falha ao gravar (409)".
+  const emVoo: Partial<Record<ChaveSync, boolean>> = {};
+  const pendente: Partial<Record<ChaveSync, { valor: unknown }>> = {};
+  const ultimoEnviado: Partial<Record<ChaveSync, string>> = {};
+
+  async function enviarUma<K extends ChaveSync>(chave: K, valor: ValoresSync[K], tentativa = 0): Promise<void> {
     try {
-      const res = await fetch("/api/office/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: chave, value: valor, base: versoes[chave] ?? 0 }) });
-      if (res.ok) { versoes[chave] = ((await res.json()) as { version: number }).version; cb.status("servidor"); return; }
-      if (res.status === 409 && tentativa < 2) {
+      const corpo = JSON.stringify({ key: chave, value: valor, base: versoes[chave] ?? 0 });
+      const res = await fetch("/api/office/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: corpo });
+      if (res.ok) { versoes[chave] = ((await res.json()) as { version: number }).version; ultimoEnviado[chave] = JSON.stringify(valor); cb.status("servidor"); return; }
+      if (res.status === 409 && tentativa < 4) {
         const { atual } = (await res.json()) as { atual: RegistroRemoto | null };
         if (atual) {
           versoes[chave] = atual.version;
           const mesclado = mesclar(chave, valor, atual.value as ValoresSync[K]);
           cb.aoMesclar(chave, mesclado);
-          await enviar(chave, mesclado, tentativa + 1);
+          await enviarUma(chave, mesclado, tentativa + 1);
           return;
         }
+        // Registro ainda inexistente: tenta como primeira gravação.
+        versoes[chave] = 0;
+        await enviarUma(chave, valor, tentativa + 1);
+        return;
       }
       if (res.status === 503) { ativo = false; cb.status("local", "Tabela do servidor ainda não criada"); return; }
       cb.status("erro", `Falha ao gravar (${res.status})`);
     } catch {
       cb.status("erro", "Sem conexão com o servidor");
     }
+  }
+
+  async function enviar<K extends ChaveSync>(chave: K, valor: ValoresSync[K]): Promise<void> {
+    pendente[chave] = { valor };
+    if (emVoo[chave]) return;
+    emVoo[chave] = true;
+    try {
+      while (pendente[chave]) {
+        const v = pendente[chave]!.valor as ValoresSync[K];
+        pendente[chave] = undefined;
+        if (ultimoEnviado[chave] === JSON.stringify(v)) continue;
+        await enviarUma(chave, v);
+      }
+    } finally { emVoo[chave] = false; }
   }
 
   return {
