@@ -18,11 +18,15 @@ import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
  * acionado por um alerta ("Modo 3D (beta)") em `OfficeSimulator`. Consome o mesmo estado
  * operacional (empresas, estados, métricas, atividade); nenhuma lógica de negócio mora aqui.
  *
- * Estado desta entrega: cena 3D integrada, câmera (zoom/pan/rotação/recentralizar),
- * seleção de empresa/agente, troca de andar, ciclo dia/noite e indicadores de estado real
- * (idle/working/done/error) nos personagens. Personagens e mobiliário ainda são formas
- * primitivas (cápsula/esfera/caixa) — substituí-las por modelos humanos estilizados e por
- * navegação com desvio de obstáculos fica para a próxima iteração.
+ * Estado desta entrega: cena 3D integrada, câmera (zoom/pan/rotação/recentralizar), seleção
+ * de empresa/agente, troca de andar, ciclo dia/noite, minimapa (segunda câmera ortográfica
+ * sobre a mesma cena) e indicadores de estado real (idle/working/done/error). Personagens são
+ * figuras humanas estilizadas de várias partes (pernas, tronco, braços, cabeça, cabelo por
+ * papel) com animação de respiração/digitação (trabalho) e caminhada curta até um ponto de
+ * descanso dentro da própria sala quando ociosos (idle) — desvio de obstáculos é por
+ * pontos-destino pré-validados (não há replanejamento de rota em tempo real ainda). Mobiliário
+ * (mesa, cadeira, monitor) tem volume e acabamento simples. Modelos humanos esculpidos/rigged
+ * (GLTF) e desvio de obstáculos em tempo real ficam para iterações futuras.
  */
 
 interface Props {
@@ -81,19 +85,112 @@ function horaBrasilia(): number {
   return h + m / 60;
 }
 
-// ── Personagem (primitiva, estilizada por papel — a substituir por modelo humano depois) ──
+// ── Cabelo por papel: mesma ideia de silhueta reconhecível do mundo 2D (cabeloDoPapel em
+// lib/office-world.ts), só que em geometria 3D em vez de pixels. ──────────────────────────
 
-function Personagem({ papel, estado, selecionado, onClick }: { papel: Agente; estado: Estado; selecionado: boolean; onClick: () => void }) {
+function Cabelo({ papel, cor }: { papel: Agente; cor: string }) {
+  const mat = <meshStandardMaterial color={cor} roughness={0.85} />;
+  switch (papel) {
+    case "criativo": // topete desalinhado, mais alto de um lado
+      return (
+        <group>
+          <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
+          <mesh position={[0.08, 1.34, -0.02]} rotation-z={0.3} castShadow><coneGeometry args={[0.07, 0.16, 8]} />{mat}</mesh>
+        </group>
+      );
+    case "midia": // preso atrás, volume alto
+      return (
+        <group>
+          <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
+          <mesh position={[0, 1.08, -0.18]} castShadow><sphereGeometry args={[0.09, 10, 10]} />{mat}</mesh>
+        </group>
+      );
+    case "ref": // curto e discreto, repartido de lado
+      return <mesh position={[0, 1.18, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.42]} />{mat}</mesh>;
+    case "cs":
+    default: // repartido ao meio, clássico
+      return <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.52]} />{mat}</mesh>;
+  }
+}
+
+// ── Personagem: figura humana de várias partes (pernas, tronco, braços, cabeça, cabelo por
+// papel), com animação de respiração/digitação quando trabalhando e caminhada curta até um
+// ponto de descanso dentro da sala quando ociosa. ──────────────────────────────────────────
+
+// ponto de descanso, em espaço local do personagem — como o personagem é posicionado numa
+// mesa com rotação de 180° (de costas pro monitor é a cadeira, de frente é o personagem
+// olhando a tela), um alvo local (-x,-z) sai em direção ao mundo (+x,+z): a área aberta da
+// sala, sempre para longe das paredes de fundo (sem precisar de replanejamento de rota).
+const PASSO_ALVO = new THREE.Vector3(-1.05, 0, -1.05);
+
+function Personagem({
+  papel, estado, selecionado, onClick,
+}: { papel: Agente; estado: Estado; selecionado: boolean; onClick: () => void }) {
   const L = LOOK[papel];
   const grupo = useRef<THREE.Group>(null);
+  const corpoRef = useRef<THREE.Group>(null);
+  const bracoE = useRef<THREE.Mesh>(null);
+  const bracoD = useRef<THREE.Mesh>(null);
+  const pernaE = useRef<THREE.Mesh>(null);
+  const pernaD = useRef<THREE.Mesh>(null);
   const t0 = useRef(Math.random() * 10);
-  useFrame((_, dt) => {
+  const faseCaminhada = useRef(Math.random() * 10);
+  const pos = useRef(new THREE.Vector3(0, 0, 0));
+
+  useFrame((_, dtBruto) => {
+    const dt = Math.min(dtBruto, 0.05);
     t0.current += dt;
-    if (!grupo.current) return;
-    if (estado === "working") grupo.current.position.y = 0.02 * Math.sin(t0.current * 3);
-    else grupo.current.position.y = 0;
+    if (!grupo.current || !corpoRef.current) return;
+
+    if (estado === "idle") {
+      // caminha até o ponto de descanso e volta, num ciclo (desvio de obstáculos por
+      // ponto-destino pré-validado: o ponto fica sempre na área aberta da sala)
+      faseCaminhada.current += dt;
+      const ciclo = (faseCaminhada.current % 9) / 9; // 0..1 em 9s
+      const indo = ciclo < 0.42 ? ciclo / 0.42 : ciclo < 0.58 ? 1 : 1 - (ciclo - 0.58) / 0.42;
+      const q = THREE.MathUtils.smoothstep(indo, 0, 1);
+      pos.current.lerpVectors(new THREE.Vector3(0, 0, 0), PASSO_ALVO, q);
+      const andando = indo > 0.02 && indo < 0.98;
+      grupo.current.position.set(pos.current.x, 0, pos.current.z);
+      if (andando) {
+        grupo.current.rotation.y = Math.atan2(PASSO_ALVO.x, PASSO_ALVO.z) * (ciclo < 0.5 ? 1 : 1) + (ciclo >= 0.5 ? Math.PI : 0);
+        const osc = Math.sin(t0.current * 9);
+        if (pernaE.current) pernaE.current.rotation.x = osc * 0.5;
+        if (pernaD.current) pernaD.current.rotation.x = -osc * 0.5;
+        if (bracoE.current) bracoE.current.rotation.x = -osc * 0.4;
+        if (bracoD.current) bracoD.current.rotation.x = osc * 0.4;
+        corpoRef.current.position.y = 0.55 + Math.abs(Math.sin(t0.current * 9)) * 0.015;
+      } else {
+        grupo.current.rotation.y = 0;
+        if (pernaE.current) pernaE.current.rotation.x = 0;
+        if (pernaD.current) pernaD.current.rotation.x = 0;
+        if (bracoE.current) bracoE.current.rotation.x = 0;
+        if (bracoD.current) bracoD.current.rotation.x = 0;
+        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
+      }
+    } else {
+      grupo.current.position.set(0, 0, 0);
+      grupo.current.rotation.y = 0;
+      if (pernaE.current) pernaE.current.rotation.x = 0;
+      if (pernaD.current) pernaD.current.rotation.x = 0;
+      if (estado === "working") {
+        // sentado, digitando: braços oscilam rápido e curto, tronco com leve inclinação
+        const osc = Math.sin(t0.current * 7);
+        if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
+        if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
+        corpoRef.current.rotation.x = 0.06;
+        corpoRef.current.position.y = 0.55;
+      } else {
+        if (bracoE.current) bracoE.current.rotation.x = 0;
+        if (bracoD.current) bracoD.current.rotation.x = 0;
+        corpoRef.current.rotation.x = 0;
+        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
+      }
+    }
   });
+
   const corIndicador = estado === "done" ? "#22c55e" : estado === "error" ? "#ef4444" : estado === "working" ? "#38bdf8" : null;
+
   return (
     <group
       ref={grupo}
@@ -103,31 +200,50 @@ function Personagem({ papel, estado, selecionado, onClick }: { papel: Agente; es
     >
       {selecionado && (
         <mesh position={[0, 0.02, 0]} rotation-x={-Math.PI / 2}>
-          <ringGeometry args={[0.42, 0.52, 24]} />
+          <ringGeometry args={[0.32, 0.4, 24]} />
           <meshBasicMaterial color="#fbbf24" />
         </mesh>
       )}
-      {/* corpo */}
-      <mesh position={[0, 0.55, 0]} castShadow>
-        <capsuleGeometry args={[0.22, 0.5, 4, 8]} />
-        <meshStandardMaterial color={L.corpo} roughness={0.75} />
+      {/* pernas */}
+      <mesh ref={pernaE} position={[-0.1, 0.27, 0]} castShadow>
+        <capsuleGeometry args={[0.065, 0.3, 4, 8]} />
+        <meshStandardMaterial color={L.calca} roughness={0.8} />
       </mesh>
-      {/* cabeça */}
-      <mesh position={[0, 1.08, 0]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color={L.pele} roughness={0.6} />
+      <mesh ref={pernaD} position={[0.1, 0.27, 0]} castShadow>
+        <capsuleGeometry args={[0.065, 0.3, 4, 8]} />
+        <meshStandardMaterial color={L.calca} roughness={0.8} />
       </mesh>
-      {/* cabelo (calota simples) */}
-      <mesh position={[0, 1.16, 0]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
-        <meshStandardMaterial color={L.cabelo} roughness={0.8} />
-      </mesh>
-      {corIndicador && (
-        <mesh position={[0, 1.45, 0]}>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshStandardMaterial color={corIndicador} emissive={corIndicador} emissiveIntensity={estado === "working" ? 1.4 : 0.8} />
+      {/* tronco + cabeça (o grupo que "respira"/inclina) */}
+      <group ref={corpoRef} position={[0, 0.55, 0]}>
+        <RoundedBox args={[0.3, 0.38, 0.19]} radius={0.05} position={[0, 0, 0]} castShadow>
+          <meshStandardMaterial color={L.corpo} roughness={0.75} />
+        </RoundedBox>
+        {/* braços */}
+        <mesh ref={bracoE} position={[-0.19, 0.05, 0]} castShadow>
+          <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
+          <meshStandardMaterial color={L.corpo} roughness={0.75} />
         </mesh>
-      )}
+        <mesh ref={bracoD} position={[0.19, 0.05, 0]} castShadow>
+          <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
+          <meshStandardMaterial color={L.corpo} roughness={0.75} />
+        </mesh>
+        {/* pescoço + cabeça */}
+        <mesh position={[0, 0.25, 0]} castShadow>
+          <cylinderGeometry args={[0.055, 0.06, 0.08, 10]} />
+          <meshStandardMaterial color={L.pele} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.42, 0]} castShadow>
+          <sphereGeometry args={[0.145, 16, 16]} />
+          <meshStandardMaterial color={L.pele} roughness={0.6} />
+        </mesh>
+        <group position={[0, 0.42, 0]}><Cabelo papel={papel} cor={L.cabelo} /></group>
+        {corIndicador && (
+          <mesh position={[0, 0.72, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshStandardMaterial color={corIndicador} emissive={corIndicador} emissiveIntensity={estado === "working" ? 1.4 : 0.8} />
+          </mesh>
+        )}
+      </group>
     </group>
   );
 }
@@ -172,14 +288,45 @@ function Sala({
         const [dx, dy] = MESAS[a];
         return (
           <group key={a} position={[dx * UNIT * 0.5, 0, dy * UNIT * 0.5]}>
+            {/* mesa */}
             <RoundedBox args={[0.6, 0.42, 0.6]} radius={0.03} position={[0, 0.21, 0]} castShadow receiveShadow>
               <meshStandardMaterial color="#8a5a2e" roughness={0.6} />
             </RoundedBox>
-            <mesh position={[0.18, 0.55, -0.15]} castShadow>
-              <boxGeometry args={[0.28, 0.2, 0.03]} />
-              <meshStandardMaterial color="#1f2937" emissive={estados[a] === "working" ? "#1d4ed8" : "#0f172a"} emissiveIntensity={estados[a] === "working" ? 0.8 : 0.1} />
+            {/* monitor, com base e tela que acende quando trabalhando */}
+            <mesh position={[0.18, 0.42, -0.15]} castShadow>
+              <boxGeometry args={[0.02, 0.03, 0.08]} />
+              <meshStandardMaterial color="#111827" />
             </mesh>
-            <Personagem papel={a} estado={estados[a]} selecionado={ativo && selecionado === a} onClick={() => { if (!ativo) onEntrar(); onSelecionar(a); }} />
+            <mesh position={[0.18, 0.55, -0.15]} castShadow>
+              <boxGeometry args={[0.28, 0.2, 0.025]} />
+              <meshStandardMaterial color="#1f2937" />
+            </mesh>
+            <mesh position={[0.18, 0.55, -0.137]}>
+              <planeGeometry args={[0.24, 0.16]} />
+              <meshStandardMaterial
+                color={estados[a] === "working" ? "#1d4ed8" : "#0f172a"}
+                emissive={estados[a] === "working" ? "#3b82f6" : "#0f172a"}
+                emissiveIntensity={estados[a] === "working" ? 1.1 : 0.05}
+              />
+            </mesh>
+            {/* cadeira: assento + encosto + pernas finas */}
+            <group position={[0, 0, 0.4]}>
+              <RoundedBox args={[0.34, 0.05, 0.32]} radius={0.02} position={[0, 0.26, 0]} castShadow>
+                <meshStandardMaterial color="#374151" roughness={0.7} />
+              </RoundedBox>
+              <RoundedBox args={[0.32, 0.4, 0.05]} radius={0.03} position={[0, 0.48, 0.15]} rotation-x={-0.08} castShadow>
+                <meshStandardMaterial color="#374151" roughness={0.7} />
+              </RoundedBox>
+              {[[-0.14, -0.14], [0.14, -0.14], [-0.14, 0.14], [0.14, 0.14]].map(([lx, lz]) => (
+                <mesh key={`${lx}-${lz}`} position={[lx, 0.13, lz]} castShadow>
+                  <cylinderGeometry args={[0.012, 0.012, 0.26, 6]} />
+                  <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.5} />
+                </mesh>
+              ))}
+            </group>
+            <group position={[0, 0, 0.3]} rotation-y={Math.PI}>
+              <Personagem papel={a} estado={estados[a]} selecionado={ativo && selecionado === a} onClick={() => { if (!ativo) onEntrar(); onSelecionar(a); }} />
+            </group>
           </group>
         );
       })}
@@ -244,8 +391,8 @@ function Iluminacao({ hora }: { hora: number }) {
   return (
     <>
       <color attach="background" args={[ceuAtual.base]} />
-      <hemisphereLight args={[ceuAtual.topo, "#2a2a3a", 0.35 + l * 0.35]} />
-      <ambientLight intensity={0.25 + l * 0.25} />
+      <hemisphereLight args={[ceuAtual.topo, "#4b5567", 0.55 + l * 0.35]} />
+      <ambientLight intensity={0.4 + l * 0.25} />
       <directionalLight
         position={[12, 18, 8]}
         intensity={0.4 + l * 0.9}
@@ -259,12 +406,31 @@ function Iluminacao({ hora }: { hora: number }) {
         shadow-camera-top={45}
         shadow-camera-bottom={-10}
       />
+      {/* luz de preenchimento fixa do lado oposto: nenhuma face do personagem fica 100% preta
+          à noite, mesmo vista de um ângulo contrário à luz direcional principal */}
+      <directionalLight position={[-10, 10, -6]} intensity={0.3} color="#9fc0ff" />
     </>
   );
 }
 
+/** Mede o FPS real do frame loop do R3F e avisa o HUD (fora do Canvas) uma vez por segundo. */
+function FpsProbe({ onUpdate }: { onUpdate: (fps: number) => void }) {
+  const quadros = useRef(0);
+  const ultimo = useRef(0);
+  useFrame((state) => {
+    quadros.current++;
+    const t = state.clock.elapsedTime;
+    if (t - ultimo.current >= 1) {
+      onUpdate(Math.round(quadros.current / (t - ultimo.current)));
+      quadros.current = 0;
+      ultimo.current = t;
+    }
+  });
+  return null;
+}
+
 function Cena({
-  predios, estados, atividade, selecionado, buAtual, vista, onEntrar, onSelecionar, hora, alvo, apiRef,
+  predios, estados, atividade, selecionado, buAtual, vista, onEntrar, onSelecionar, hora, alvo, apiRef, onFps,
 }: {
   predios: PredioW[];
   estados: Record<Agente, Estado>;
@@ -277,6 +443,7 @@ function Cena({
   hora: number;
   alvo: [number, number, number];
   apiRef: React.MutableRefObject<CameraApi | null>;
+  onFps: (fps: number) => void;
 }) {
   const chaoW = 20 * UNIT, chaoD = 14 * UNIT;
   return (
@@ -299,7 +466,38 @@ function Cena({
         />
       ))}
       <CameraRig vista={vista} alvo={alvo} apiRef={apiRef} />
+      <FpsProbe onUpdate={onFps} />
     </>
+  );
+}
+
+/** Minimapa: segunda cena leve, bem mais simples (só as plantas das salas, sem personagens
+ * nem sombra), vista de cima por uma câmera ortográfica fixa — igual em espírito ao minimapa
+ * do mundo 2D, mas como uma cena 3D própria em vez de um redesenho em canvas 2D. */
+function Minimapa({ predios, buAtual, andarAtual }: { predios: PredioW[]; buAtual: string; andarAtual: AndarId }) {
+  const chaoW = 20 * UNIT, chaoD = 14 * UNIT;
+  const centro: [number, number, number] = [chaoW / 2 - UNIT, 0, chaoD / 2 - UNIT];
+  return (
+    <div className="absolute bottom-3 right-3 w-[168px] h-[110px] rounded-lg overflow-hidden border border-white/20 bg-black/40 pointer-events-none">
+      <Canvas orthographic camera={{ position: [centro[0], 30, centro[2]], zoom: 3.4, rotation: [-Math.PI / 2, 0, 0] }} dpr={1}>
+        <ambientLight intensity={1.1} />
+        <mesh rotation-x={-Math.PI / 2} position={centro}>
+          <planeGeometry args={[chaoW, chaoD]} />
+          <meshBasicMaterial color="#1b2440" />
+        </mesh>
+        {predios.map((p) => {
+          const tema = TEMAS[p.empresa.tema % TEMAS.length];
+          const ox = p.x * UNIT, oz = p.y * UNIT, w = p.w * UNIT, d = p.h * UNIT;
+          return (
+            <mesh key={p.empresa.bu} rotation-x={-Math.PI / 2} position={[ox + w / 2, 0.01, oz + d / 2]}>
+              <planeGeometry args={[w, d]} />
+              <meshBasicMaterial color={p.empresa.bu === buAtual ? "#fbbf24" : tema.tapete[0]} />
+            </mesh>
+          );
+        })}
+      </Canvas>
+      <span className="absolute top-1 left-1.5 text-[9px] text-white/60 font-medium">{andarAtual === "jacqes" ? "1º · JACQES" : "2º · AWAQE"}</span>
+    </div>
   );
 }
 
@@ -316,6 +514,7 @@ export default function OfficeGame3D(props: Props) {
   const camApiRef = useRef<CameraApi | null>(null);
   const [termo, setTermo] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
+  const [fps, setFps] = useState<number | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setHora((h) => vel === 0 ? h : (h + (vel * 0.01)) % 24), 1000);
@@ -374,12 +573,22 @@ export default function OfficeGame3D(props: Props) {
             hora={hora}
             alvo={alvo}
             apiRef={camApiRef}
+            onFps={setFps}
           />
         </Suspense>
       </Canvas>
 
-      <div className="absolute top-2 left-2 rounded-md bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5 pointer-events-none">
-        MODO 3D · BETA
+      <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} />
+
+      <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
+        <span className="rounded-md bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5">
+          MODO 3D · BETA
+        </span>
+        {fps !== null && (
+          <span className={`rounded-md text-[10px] font-bold px-2 py-0.5 ${fps >= 30 ? "bg-emerald-500/90 text-emerald-950" : "bg-red-500/90 text-white"}`} title="Quadros por segundo medidos nesta sessão">
+            {fps} FPS
+          </span>
+        )}
       </div>
 
       {/* Barra superior */}
