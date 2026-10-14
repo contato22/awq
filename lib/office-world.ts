@@ -152,8 +152,8 @@ export function casaNoPonto(x: number, y: number): "diretoria" | "reunioes" | nu
 
 interface Paleta { paredeD: string; paredeE: string; rodape: string; corredor: [string, string]; passadeira: [string, string]; faixa: string }
 const PALETAS: Record<AndarId, Paleta> = {
-  jacqes: { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#d8cdb6", "#cfc3a9"], passadeira: ["#35508f", "#30498a"], faixa: "#2c4382" },
-  awaqe: { paredeD: "#1f5e58", paredeE: "#184a46", rodape: "#0d302d", corredor: ["#dcd5c2", "#d2cab6"], passadeira: ["#2f7a6f", "#2a6e64"], faixa: "#1f5e58" },
+  jacqes: { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#c9a876", "#bd9a66"], passadeira: ["#35508f", "#30498a"], faixa: "#2c4382" },
+  awaqe: { paredeD: "#1f5e58", paredeE: "#184a46", rodape: "#0d302d", corredor: ["#cdb37f", "#c2a873"], passadeira: ["#2f7a6f", "#2a6e64"], faixa: "#1f5e58" },
 };
 
 function colunaParede(lado: "D" | "E", u: number) {
@@ -170,6 +170,11 @@ function paredeExterna(c: CanvasRenderingContext2D, lado: "D" | "E", AWQ: Paleta
     const principal = sombreia(cor, -ao);
     ret(c, x, base - WALL, 0.5, WALL, principal);
     ret(c, x, base - WALL, 0.5, 1.5, sombreia(cor, 0.26));
+    // chapa microperfurada (inspirada em fachadas de alumínio perfurado): grade regular de furos claros na faixa acima das janelas
+    if (k % 6 === 0) {
+      const furo = sombreia(cor, 0.16);
+      for (let fy = base - WALL + 4; fy < base - 19; fy += 3) ret(c, x, fy, 0.5, 0.5, furo);
+    }
     ret(c, x, base - 17, 0.5, 12, sombreia(principal, -0.07));
     ret(c, x, base - 5, 0.5, 5, AWQ.rodape);
     ret(c, x, base - 5, 0.5, 0.5, sombreia(AWQ.rodape, 0.38));
@@ -186,8 +191,8 @@ function janelaExterna(c: CanvasRenderingContext2D, lado: "D" | "E", a: number, 
     const off = (u - a) * 16;
     const top = base - WALL + 5;
     const alto = 13;
-    if (off < 1 || off > larg - 1 || Math.abs(off - larg / 2) < 0.5) { ret(c, x, top - 1, 0.5, alto + 2, "#e8edf4"); continue; }
-    ret(c, x, top - 1, 0.5, 1.5, "#e8edf4");
+    if (off < 1 || off > larg - 1 || Math.abs(off - larg / 2) < 0.5) { ret(c, x, top - 1, 0.5, alto + 2, "#e3d3b0"); continue; }
+    ret(c, x, top - 1, 0.5, 1.5, "#e3d3b0");
     for (let r = 0; r < alto * 2; r++) ret(c, x, top + r * 0.5, 0.5, 0.5, mistura(sky.topo, sky.base, r / (alto * 2)));
     const hb = 2 + aleat(Math.floor(off / 2.5), lado === "D" ? 1 : 2, 7) * 5;
     ret(c, x, top + alto - hb, 0.5, hb, noite ? "#070d1c" : mistura(sky.base, "#51647f", 0.5));
@@ -249,6 +254,11 @@ function pisoPlanta(c: CanvasRenderingContext2D, predios: PredioW[], AWQ: Paleta
         c.fillStyle = "rgba(0,0,0,0.07)";
         c.fillRect(p.x - 16 + i * 0.5, p.y + 8 + i * 0.25, 0.5, 0.5);
         c.fillRect(p.x + i * 0.5, p.y + 16 - i * 0.25, 0.5, 0.5);
+      }
+      // tábuas de madeira: junta a cada 3 células no corredor (piso tipo assoalho, não pedra)
+      if (!s && !passadeira && gx % 3 === 0) {
+        c.fillStyle = "rgba(0,0,0,0.1)";
+        for (let i = 0; i < 16; i++) c.fillRect(p.x - 16 + i * 1, p.y + 8 + i * 0.5, 1, 0.5);
       }
       if (gy === 0 || gx === 0) losango(c, p.x, p.y, "rgba(0,0,0,0.10)");
     }
