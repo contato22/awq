@@ -866,9 +866,12 @@ export default function OfficeSimulator() {
       const causa = classificarErro(msg);
       if (causa.codigo === "INVALID_API_KEY") { localStorage.removeItem(LS_KEY); setApiKey(null); setPrecisaChave(true); }
       if (causa.codigo === "MISSING_API_KEY") setPrecisaChave(true);
-      gravarHead(registrarFalhaAtivacao(headRef.current, aid, motivo, `${causa.mensagem} ${causa.proxima}`, new Date()));
+      // Sem chave válida ou sem crédito, repetir só queima tentativas: não conta no limite diário e pausa o modo autônomo.
+      const semAcesso = ["INVALID_API_KEY", "MISSING_API_KEY", "NO_CREDITS"].includes(causa.codigo);
+      const falhou = registrarFalhaAtivacao(headRef.current, aid, motivo, `${causa.mensagem} ${causa.proxima}`, new Date(), undefined, !semAcesso);
+      gravarHead(semAcesso ? { ...falhou, config: { ...falhou.config, autonomo: false } } : falhou);
       registrar({ tipo: "ActionFailed", bu: "AWQ", ator: "head", acao: "Ativação do Head", origem: `Motivo: ${motivo}`, causa });
-      setHeadErro(`${causa.mensagem} ${causa.proxima}`);
+      setHeadErro(`${causa.mensagem} ${causa.proxima}${semAcesso ? " O modo autônomo foi pausado; ligue de novo depois de corrigir." : ""}`);
     } finally {
       headBusyRef.current = false;
       setHeadBusy(false);

@@ -21,7 +21,7 @@ function tabelaAusente(e: { code?: string; message?: string }): boolean {
 }
 
 function cliente() {
-  try { return getErpAdminClient(); } catch { return null; }
+  try { return getErpAdminClient({ noStore: true }); } catch { return null; }
 }
 
 export async function lerEstado(chaves: readonly ChaveOffice[] = CHAVES_OFFICE): Promise<ResultadoLeitura> {
