@@ -88,8 +88,8 @@ export function aplicarEstadoCS(estado: EstadoHead, s: EstadoCS, bu: string, nom
     }, ctx.agora);
   }
   for (const r of (s.runtime_requirements ?? []).slice(0, 5)) if (r.capability?.trim()) exigencias.push(`${r.capability}: ${r.requested_action ?? r.impact ?? ""}`.slice(0, 200));
-  if (criadas.length || aprovacoes.length || exigencias.length) {
-    e = mensagemInterna(e, nomeCS, "Head de CS", `${bu}: ${criadas.length} tarefa(s) registrada(s), ${aprovacoes.length} aprovação(ões) pendente(s)${exigencias.length ? `; capacidades pedidas: ${exigencias.slice(0, 2).join(" | ")}` : ""}.${wake}`, ctx.agora);
+  if (criadas.length || aprovacoes.length || exigencias.length || rejeitadas.length) {
+    e = mensagemInterna(e, nomeCS, "Head de CS", `${bu}: ${criadas.length} tarefa(s) registrada(s), ${aprovacoes.length} aprovação(ões) pendente(s)${rejeitadas.length ? `; recusados: ${rejeitadas.slice(0, 3).map((x) => x.motivo).join(" | ")}` : ""}${exigencias.length ? `; capacidades pedidas: ${exigencias.slice(0, 2).join(" | ")}` : ""}.${wake}`, ctx.agora);
   }
   return { estado: e, criadas, rejeitadas, aprovacoes, exigencias };
 }
