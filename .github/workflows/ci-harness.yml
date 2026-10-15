@@ -2,7 +2,6 @@ name: CI Harness
 
 # Gate de pull request sem secrets de produção.
 # Não faz deploy, seed, migração nem auditoria.
-# Os outros workflows em .github/workflows/ ficam intocados.
 
 on:
   pull_request:
@@ -71,21 +70,12 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      # O spec em e2e/smoke.spec.ts não precisa de secret. Aponta para o
-      # servidor deste job (PLAYWRIGHT_BASE_URL), não para a produção.
-      #
-      # TODO (não bloqueante): no main de 2026-10-15, 2 de 4 testes falham
-      # e o dono precisa decidir se corrige o spec ou a rota.
-      #   1. /login — o campo é input[type=text], sem name=email. O spec
-      #      procura input[type=email] ou input[name=email].
-      #   2. /api/erp/health — fora da allow-list do middleware.ts, então
-      #      sem sessão responde 307 para /api/auth/signin (HTML). O spec
-      #      espera 200 e JSON com `ok` e `configured`. Confirmado também
-      #      em https://awq-brown.vercel.app (307).
-      # /api/auth/csrf e /api/health passam com o placeholder de NEXTAUTH_SECRET.
+      # Bloqueante. O spec não precisa de secret e aponta para o servidor
+      # deste job (PLAYWRIGHT_BASE_URL), não para a produção.
+      # /login permanece type=text (aceita usuário sem formato de e-mail).
+      # /api/erp/health anônimo deve redirecionar para o login, sem JSON.
       - name: Playwright smoke
         id: smoke
-        continue-on-error: true
         run: |
           set -euo pipefail
           npx next start -H 127.0.0.1 -p 3000 > /tmp/next-start.log 2>&1 &
@@ -126,13 +116,7 @@ jobs:
             echo ""
             echo "- Commit: \`${{ github.sha }}\`"
             echo "- Branch: \`${{ github.ref_name }}\`"
-            echo "- Lint, typecheck e build são **bloqueantes** e usam só placeholders."
-            echo "- Smoke Playwright: \`$SMOKE_OUTCOME\` (não bloqueia; ver TODO no workflow)."
-            echo ""
-            echo "### Baseline do smoke (main, 2026-10-15)"
-            echo ""
-            echo "1. \`/login\` não tem \`input[type=email]\` nem \`name=email\` (o campo é \`type=text\`)."
-            echo "2. \`/api/erp/health\` exige sessão (307). O spec espera JSON 200."
-            echo ""
-            echo "Nenhum secret de produção entra neste workflow."
+            echo "- Lint, typecheck, build e smoke Playwright são **bloqueantes**."
+            echo "- Smoke Playwright: \`$SMOKE_OUTCOME\`."
+            echo "- Env só com placeholders. Nenhum secret de produção entra neste workflow."
           } >> "$GITHUB_STEP_SUMMARY"

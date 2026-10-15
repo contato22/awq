@@ -123,24 +123,21 @@ O checklist seguro para PRs paralelos é [`.github/workflows/ci-harness.yml`](./
 | `npm run lint` | sim | No `main` (commit `1adcda49`, 2026-10-15) passa com warnings de `react-hooks/exhaustive-deps` em `app/crm/analytics/page.tsx`, `components/office/OfficeGame3D.tsx` e `components/patricia-canto/PatriciaCantoBoard.tsx`. Não transformar warning em erro sem limpar esse baseline. |
 | `npx tsc --noEmit` | sim | Limpo nesse mesmo commit. |
 | `npm run build` | sim | Env só com placeholders (`ci-placeholder.invalid`, `NEXTAUTH_SECRET` fictício). Não definir `NEXTAUTH_URL`. |
-| Playwright (`e2e/smoke.spec.ts`) | não | Sobe o build local. Não usa secret e não chama a produção. **TODO:** 2 de 4 testes já falham no `main` — ver a seção abaixo. |
+| Playwright (`e2e/smoke.spec.ts`) | sim | Sobe o build local. Não usa secret e não chama a produção. |
 
 `.github/workflows/vercel-deploy.yml` também roda lint, tsc e build, mas injeta GitHub Secrets. Não é o gate deste harness e não deve ser editado para “unificar” os dois.
 
-### Baseline do smoke (não bloqueante)
+O smoke cobre o contrato atual:
 
-Medido contra o build local com placeholders, e o item 2 também contra a produção pública:
-
-1. `/login` responde 200 e mostra o formulário, mas o campo é `input[type=text]`, sem `name=email`. O spec procura `input[type=email]` ou `input[name=email]`.
-2. `/api/erp/health` não está fora do middleware. Sem sessão a resposta é **307** para `/api/auth/signin`. O spec espera 200 e JSON.
-
-`/api/auth/csrf` e `/api/health` passam. O dono decide quando o spec (ou a rota) for corrigido e o passo passar a bloquear.
+- `/login` responde 200 e mostra o formulário. O identificador fica `type=text` porque o campo aceita e-mail **ou** usuário; `type=email` bloquearia usuário sem formato de e-mail na validação do browser.
+- `/api/erp/health` anônimo responde 302/307 para o login e não devolve JSON. O handler usa service role; não tornar essa rota pública.
+- `/api/auth/csrf` e `/api/health` seguem públicos.
 
 ## Não mexer
 
 - **Dados de produção.** Não rodar seed, backfill, sync Cora, bootstrap ou SQL no Supabase remoto. Em especial: `scripts/bootstrap-prod.ts`, `scripts/setup-secrets.sh`, `scripts/seed-epm-planning.ts`, `scripts/seed-enrd-*.mjs`, `scripts/seed-jacqes-clients-as-danilo.sh`, `scripts/fetch-enerdy-portal.mjs`.
 - **Segredos.** Não imprimir, não copiar para o workflow, não commitar `.env`, `.env.local`, `*.pem` ou token. O exemplo versionado é só `.env.example`, com valores falsos.
-- **Os 14 workflows já existentes** de deploy, seed, audit, migração e probe. O harness é um arquivo novo. Lista fechada:
+- **Workflows de deploy, seed, audit e probe.** Não editar para “unificar” com o harness:
   - `.github/workflows/advisor-bi.yml`
   - `.github/workflows/backfill-snapshots.yml`
   - `.github/workflows/conciliacao-bootstrap.yml`
@@ -148,13 +145,13 @@ Medido contra o build local com placeholders, e o item 2 também contra a produ�
   - `.github/workflows/deploy-website.yml`
   - `.github/workflows/epm-seed-and-test.yml`
   - `.github/workflows/live-shop-bootstrap.yml`
-  - `.github/workflows/migrate-erp-schema.yml`
   - `.github/workflows/office-head-tick.yml`
   - `.github/workflows/pages.yml`
   - `.github/workflows/post-deploy-seeds.yml`
   - `.github/workflows/probe-vercel.yml`
   - `.github/workflows/santander-seed.yml`
   - `.github/workflows/vercel-deploy.yml`
+- **`.github/workflows/migrate-erp-schema.yml`.** Não disparar (`workflow_dispatch`) e não aplicar o SQL em produção a partir de um agente. O arquivo só roda em push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**`. `secrets` não pode aparecer em `steps.if` — isso invalida o workflow em todo push. O gate dos passos `psql` é o output booleano `steps.dburl.outputs.present`.
 - **Upgrade de Next.js** e reescrita ampla de `middleware.ts`, `lib/api-guard.ts` ou das rotas de API só para “passar segurança”. Isso é outro conjunto de PRs.
 - **`noStoreFetch`**, `dynamic = "force-dynamic"` nas páginas financeiras, e o `try/catch` de `getAllTransactions()` / `getAllDocuments()`.
 - **Extratos, PDFs e relatórios de cliente** em `public/data/` que o `.gitignore` já exclui.
