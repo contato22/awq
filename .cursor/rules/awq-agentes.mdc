@@ -1,0 +1,14 @@
+---
+description: Contrato de agentes da plataforma AWQ — ler antes de editar
+alwaysApply: true
+---
+
+Leia `AGENTS.md` na raiz antes de mudar código. O resumo abaixo não substitui o arquivo.
+
+- Package manager: npm (`npm ci`). Node 20 no CI. Não atualizar Next.js fora de um PR só para isso.
+- Gate de PR sem secrets: `.github/workflows/ci-harness.yml` (lint, `tsc --noEmit`, build com placeholders, smoke Playwright não bloqueante).
+- Não editar os 14 workflows já existentes em `.github/workflows/` (deploy, seed, audit, migrate, probe).
+- Segredos só nas Environment Variables da Vercel. Nunca commitar `.env*`, service role, certificado Cora, `NEXTAUTH_SECRET` ou `ANTHROPIC_API_KEY`.
+- Não rodar seeds, `scripts/bootstrap-prod.ts`, `scripts/setup-secrets.sh` nem aplicar migração SQL no Supabase de produção.
+- Não desligar RLS, não alargar o matcher público de `middleware.ts` e não remover `noStoreFetch` nem `force-dynamic` das páginas financeiras.
+- Dados de clientes, extratos e relatórios do Office não entram no git.

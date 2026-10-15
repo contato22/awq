@@ -1,5 +1,9 @@
 # AWQ — Plataforma Central (ERP + Finanças)
 
+## Guia para agentes
+
+O contrato de trabalho (stack, comandos, estrutura, Supabase, auth e a lista do que não mexer) está em [`AGENTS.md`](./AGENTS.md). O checklist de pull request sem secrets de produção é [`.github/workflows/ci-harness.yml`](./.github/workflows/ci-harness.yml). Este arquivo continua sendo a referência operacional de finanças, Cora e SSR.
+
 ## O que é este projeto
 
 Next.js 14 App Router — ERP interno do Grupo AWQ com módulos de finanças, DRE, DFC, Balanço Patrimonial, Conciliação Bancária (Cora), Budget, Forecast, EPM e CRM.
@@ -106,8 +110,10 @@ Transações `transferencia_interna_*`, `aplicacao_financeira`, `resgate_finance
 ## Comandos úteis
 
 ```bash
+npm ci                    # igual ao CI (npm + package-lock.json, Node 20)
+npm run lint              # next lint — erro bloqueia; warning não bloqueia
 npx tsc --noEmit          # verifica TypeScript sem compilar
-npm run build             # build completo (confirma que não quebrou SSR)
+npm run build             # build SSR; no CI usa só placeholders, nunca secrets
 ```
 
 ---
