@@ -1,0 +1,50 @@
+name: Limpar issues de bot
+
+# Fecha issues antigas abertas pelos workflows de auditoria Cora e de probe
+# de deploy: relatórios de sucesso e duplicatas. Não mexe em outras issues.
+#
+# Dry-run é o padrão. O workflow só aparece em Actions depois do merge na
+# branch padrão. Para fechar de verdade, rode de novo escolhendo "fechar".
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run só lista; fechar comenta e fecha sucessos e duplicatas"
+        type: choice
+        options:
+          - dry-run
+          - fechar
+        default: dry-run
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: cleanup-bot-issues
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Sucessos e duplicatas de bot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Simular ou fechar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          CLEANUP_MODE: ${{ inputs.mode }}
+        run: |
+          set -eu
+          # Só o valor exato "fechar" altera issues. O padrão dry-run não fecha nada.
+          if [ "$CLEANUP_MODE" = "fechar" ]; then
+            python3 scripts/bot_issues.py cleanup --apply
+          else
+            python3 scripts/bot_issues.py cleanup
+          fi
