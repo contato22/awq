@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, createAccount } from "@/lib/crm-db";
+import { requireSession } from "@/lib/api-auth";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -166,6 +167,9 @@ function mapToAccountData(j: BrApiResp): CnpjData {
 // GET /api/crm/cnpj?cnpj=12345678000190
 // GET /api/crm/cnpj?cnpj=12345678000190&save=true&bu=JACQES  → also creates account in DB
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = req.nextUrl.searchParams.get("cnpj") ?? "";
     const d = digits(raw);

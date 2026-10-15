@@ -4,6 +4,7 @@
 import https from "node:https";
 import { NextRequest, NextResponse } from "next/server";
 import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,8 +46,11 @@ function httpsRequest(
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   // Uses middleware-injected header (same pattern as /api/cora/sync and /api/cora/balance)
-  const userEmail = req.headers.get("x-user-email");
+  const userEmail = auth.email;
   if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }

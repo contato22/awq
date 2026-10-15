@@ -16,13 +16,17 @@ import {
   buildMontagemKpis,
 } from "@/lib/enrd-montagem-db";
 import { getLiveMontagem } from "@/lib/enrd-montagem-live";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email") ?? null;
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email ?? null;
 
   if (!isEnerdyPortalConfigured()) {
     return NextResponse.json(
@@ -52,7 +56,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     // Tempo real: tenta o gestão ao vivo; cai para o espelho se não configurado.
     const live = await getLiveMontagem().catch(() => null);

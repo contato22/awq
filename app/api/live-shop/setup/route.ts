@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 import { LIVE_SHOP_SETUP_SQL } from "@/lib/live-shop/setup-sql";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,10 @@ function dbUrl(): string | null {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const role = req.headers.get("x-user-role") ?? "";
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const role = auth.role;
   if (!ALLOWED.has(role)) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
   return NextResponse.json({
     instructions:
@@ -39,7 +43,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const role = req.headers.get("x-user-role") ?? "";
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const role = auth.role;
   if (!ALLOWED.has(role)) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
 
   const url = dbUrl();

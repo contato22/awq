@@ -8,6 +8,7 @@
 //   { startDate?: "YYYY-MM-DD", endDate?: "YYYY-MM-DD" }
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSession, verifyBearerSecret } from "@/lib/api-auth";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured, isCoraEnerdyConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
@@ -34,6 +35,12 @@ interface AccountResult {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const session = await requireSession(req);
+  if (!session.ok) {
+    const denied = verifyBearerSecret(req, "PROBE_SECRET");
+    if (denied) return denied;
+  }
+
   if (!isCoraConfigured()) {
     return NextResponse.json({ error: "Integração Cora não configurada." }, { status: 501 });
   }

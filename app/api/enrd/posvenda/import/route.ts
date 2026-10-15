@@ -7,13 +7,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { parseTamaraCSV, conciliar, upsertOS, writeImportLog } from "@/lib/enrd-posvenda-db";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email") ?? null;
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email ?? null;
   try {
     const ct = req.headers.get("content-type") ?? "";
     let csv = "";

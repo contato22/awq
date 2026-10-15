@@ -7,18 +7,22 @@ import {
   getReconMetrics, getReconQueue, getSaldoConciliado, getRules, getMemoryList, getEnerdyRevisao,
 } from "@/lib/recon-db";
 import type { BU } from "@/lib/recon-types";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  if (!req.headers.get("x-user-email")) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  if (!auth.email) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
   const bu = (req.nextUrl.searchParams.get("bu") === "ENRD" ? "ENRD" : "AWQ") as BU;
 
   // BU-locked só lê a própria BU.
-  const lockedBU = req.headers.get("x-bu-lock");
+  const lockedBU = auth.buLock;
   if (lockedBU && lockedBU !== bu) {
     return NextResponse.json({ error: `Sem acesso à BU ${bu}` }, { status: 403 });
   }

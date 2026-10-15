@@ -18,6 +18,7 @@ import {
   type BuCode,
   type ARStatus,
 } from "@/lib/ap-ar-db";
+import { requireSession } from "@/lib/api-auth";
 
 let _dbReady = false;
 async function ensureDB() {
@@ -33,6 +34,9 @@ function err(msg: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const sp      = req.nextUrl.searchParams;
@@ -51,6 +55,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const body = await req.json();
@@ -81,6 +88,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const body = await req.json();

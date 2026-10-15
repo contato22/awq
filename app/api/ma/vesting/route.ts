@@ -11,18 +11,25 @@ import {
   DEFAULT_VESTING_CONFIG,
   type VestingConfig,
 } from "@/lib/awq-ma-vesting";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   const config = await getVestingConfig();
   const progresso = await getVestingProgressoReal(config);
   return NextResponse.json({ ok: true, config, progresso });
 }
 
 export async function PUT(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email") ?? null;
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email ?? null;
   try {
     const body = (await req.json()) as Partial<VestingConfig>;
     const merged: VestingConfig = { ...DEFAULT_VESTING_CONFIG, ...(await getVestingConfig()), ...body };

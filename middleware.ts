@@ -70,6 +70,12 @@ export default withAuth(
         );
       }
       const requestHeaders = new Headers(req.headers);
+      // Client-supplied identity headers are not authenticated. Drop them, then
+      // set only what the verified JWT says. Otherwise a role without bu-lock
+      // would keep an attacker-controlled x-bu-lock / x-user-role.
+      requestHeaders.delete("x-user-email");
+      requestHeaders.delete("x-user-role");
+      requestHeaders.delete("x-bu-lock");
       const lockedBU = ROLE_BU_LOCK[role];
       if (lockedBU)    requestHeaders.set("x-bu-lock",    lockedBU);
       if (token.email) requestHeaders.set("x-user-email", token.email as string);

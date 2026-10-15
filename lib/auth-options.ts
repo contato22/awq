@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/lib/auth-users";
 import { verifyGuest } from "@/lib/live-shop/guests";
 import { verifyJacqesGuest } from "@/lib/jacqes/guests";
+import { clientIpFromHeaders, loginAttemptBlocked, recordLoginFailure } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -14,14 +15,24 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        const email = credentials.email.toLowerCase().trim();
+        const ip = clientIpFromHeaders(req?.headers as { get?(name: string): string | null } | Record<string, string | string[] | undefined>);
+        // Same response as a wrong password — does not reveal whether the account exists.
+        if (loginAttemptBlocked(ip, email)) return null;
+
+        const fail = () => {
+          recordLoginFailure(ip, email);
+          return null;
+        };
 
         // 1) Usuário da Plataforma (hardcoded).
         const user = findUserByEmail(credentials.email);
         if (user) {
           const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-          if (!valid) return null;
+          if (!valid) return fail();
           return { id: user.id, name: user.name, email: user.email, role: user.role };
         }
 
@@ -47,7 +58,7 @@ export const authOptions: NextAuthOptions = {
         } catch {
           // DB indisponível → fail-closed.
         }
-        return null;
+        return fail();
       },
     }),
   ],

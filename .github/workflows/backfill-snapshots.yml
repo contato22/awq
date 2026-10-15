@@ -16,13 +16,19 @@ jobs:
     name: Disparar /api/setup/backfill-snapshots
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
     steps:
       - name: "Poll deploy: aguardar middleware liberar a rota (≤12 min)"
         run: |
           set -e
+          if [ -z "$PROBE_SECRET" ]; then
+            echo "Secret PROBE_SECRET ausente."
+            exit 1
+          fi
           URL="https://awq-brown.vercel.app/api/setup/backfill-snapshots"
           for i in $(seq 1 72); do
-            STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X GET "$URL?probe=1" || echo "000")
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X GET -H "Authorization: Bearer $PROBE_SECRET" "$URL?probe=1" || echo "000")
             echo "[$i/72] HTTP $STATUS"
             # 307 = middleware redirect to /login (rota ainda não pública)
             if [ "$STATUS" != "307" ] && [ "$STATUS" != "000" ]; then
@@ -38,7 +44,7 @@ jobs:
           URL="https://awq-brown.vercel.app/api/setup/backfill-snapshots"
           echo "POST $URL"
           RESP=$(mktemp)
-          STATUS=$(curl -sS --max-time 600 -o "$RESP" -w '%{http_code}' -X POST "$URL")
+          STATUS=$(curl -sS --max-time 600 -o "$RESP" -w '%{http_code}' -X POST -H "Authorization: Bearer $PROBE_SECRET" "$URL")
           echo "HTTP $STATUS"
           head -c 8000 "$RESP"
           echo

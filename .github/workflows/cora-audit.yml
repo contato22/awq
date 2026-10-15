@@ -47,12 +47,19 @@ jobs:
       - name: "FETCH /api/cora/audit-probe"
         id: audit
         continue-on-error: true
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
+          if [ -z "$PROBE_SECRET" ]; then
+            echo "Secret PROBE_SECRET ausente. Crie em GitHub → Settings → Secrets e na Vercel."
+            echo "http=503" >> $GITHUB_OUTPUT
+            exit 1
+          fi
           START=2026-01-01
           END=$(date -u +%Y-%m-%d)
           URL="https://awq-brown.vercel.app/api/cora/audit-probe?startDate=${START}&endDate=${END}"
-          BODY=$(curl -sf --max-time 58 "$URL" || echo '{}')
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 "$URL" || echo '000')
+          BODY=$(curl -sf --max-time 58 -H "Authorization: Bearer $PROBE_SECRET" "$URL" || echo '{}')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -H "Authorization: Bearer $PROBE_SECRET" "$URL" || echo '000')
           echo "http=$STATUS" >> $GITHUB_OUTPUT
           echo "HTTP $STATUS — ${BODY:0:2000}"
           if [ "$STATUS" = "200" ]; then
@@ -69,14 +76,18 @@ jobs:
         id: sync
         if: steps.audit.outputs.missing != '0' && steps.audit.outputs.http == '200'
         continue-on-error: true
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
           START=2026-01-01
           END=$(date -u +%Y-%m-%d)
           BODY=$(curl -sf --max-time 58 -X POST \
+            -H "Authorization: Bearer $PROBE_SECRET" \
             -H 'Content-Type: application/json' \
             -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
             https://awq-brown.vercel.app/api/cora/sync-probe || echo '{}')
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -X POST \
+            -H "Authorization: Bearer $PROBE_SECRET" \
             -H 'Content-Type: application/json' \
             -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
             https://awq-brown.vercel.app/api/cora/sync-probe || echo '000')
