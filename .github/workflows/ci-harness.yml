@@ -1,0 +1,122 @@
+name: CI Harness
+
+# Gate de pull request sem secrets de produção.
+# Não faz deploy, seed, migração nem auditoria.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-harness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, tipos, build e smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # Placeholders óbvios. Nunca secrets reais e nunca NEXTAUTH_URL:
+    # string vazia vira `new URL("")` no NextAuth e derruba o prerender.
+    # As NEXT_PUBLIC_* também evitam o fallback hardcoded de lib/supabase.ts
+    # (anon key do ERP) durante o build e o /api/health.
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXTAUTH_SECRET: ci-placeholder-not-a-real-secret
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_ERP_SUPABASE_URL: https://ci-placeholder.invalid
+      NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Bloqueante. No commit 1adcda49 (main, 2026-10-15) o exit code é 0.
+      # Há warnings de react-hooks/exhaustive-deps; o next lint não falha por warning.
+      # TODO: não tratar warning como erro até o dono decidir limpar o baseline.
+      - name: Lint
+        run: npm run lint
+
+      # Bloqueante. No mesmo commit, `tsc --noEmit` termina sem erros.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Bloqueante. O spec não precisa de secret e aponta para o servidor
+      # deste job (PLAYWRIGHT_BASE_URL), não para a produção.
+      # /login permanece type=text (aceita usuário sem formato de e-mail).
+      # /api/erp/health anônimo deve redirecionar para o login, sem JSON.
+      - name: Playwright smoke
+        id: smoke
+        run: |
+          set -euo pipefail
+          npx next start -H 127.0.0.1 -p 3000 > /tmp/next-start.log 2>&1 &
+          pid=$!
+          cleanup() { kill "$pid" 2>/dev/null || true; }
+          trap cleanup EXIT
+          ready=0
+          for _ in $(seq 1 40); do
+            if curl -sf -o /dev/null http://127.0.0.1:3000/login; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != "1" ]; then
+            echo "Servidor local não ficou pronto. Log:"
+            cat /tmp/next-start.log
+            exit 1
+          fi
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test
+
+      - name: Upload Playwright report
+        if: always() && steps.smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Resumo
+        if: always()
+        env:
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        run: |
+          {
+            echo "## CI Harness"
+            echo ""
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Branch: \`${{ github.ref_name }}\`"
+            echo "- Lint, typecheck, build e smoke Playwright são **bloqueantes**."
+            echo "- Smoke Playwright: \`$SMOKE_OUTCOME\`."
+            echo "- Env só com placeholders. Nenhum secret de produção entra neste workflow."
+          } >> "$GITHUB_STEP_SUMMARY"

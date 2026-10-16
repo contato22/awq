@@ -1,8 +1,11 @@
 name: Apply ERP Schema (Supabase)
 
 # ─── WHEN ─────────────────────────────────────────────────────────────────────
-# Run manually via workflow_dispatch, or automatically on every push to main
-# so the schema is always up-to-date after a deploy.
+# Run manually via workflow_dispatch, or on a push to main that changes
+# awq_erp_full_schema.sql or supabase/migrations/**.
+#
+# Do not dispatch this workflow from an agent. A feature-branch push must
+# not apply SQL. The steps that call psql stay gated on a boolean output.
 #
 # REQUIRED GitHub Secret:
 #   SUPABASE_DB_URL — Postgres connection string from Supabase dashboard:
@@ -33,24 +36,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # secrets is not a valid context in steps.if (GitHub rejects the file
+      # at parse time, which fails every push before the branch/path filters
+      # apply). Record only a boolean; never print the connection string.
       - name: Check secret present
+        id: dburl
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
-            echo "⚠️  SUPABASE_DB_URL secret not set — skipping migration."
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "SUPABASE_DB_URL secret not set — migration steps will be skipped."
             echo "Add it in: Settings → Secrets and variables → Actions → New repository secret"
-            echo "Value: your Supabase connection string (Settings → Database → URI)"
-            exit 0
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "SUPABASE_DB_URL is set — migration steps will run."
           fi
-          echo "✓ SUPABASE_DB_URL is set — proceeding with migration."
 
       - name: Install psql client
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        if: steps.dburl.outputs.present == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y postgresql-client
 
       - name: Apply ERP schema (idempotent)
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        if: steps.dburl.outputs.present == 'true'
         run: |
           echo "Applying awq_erp_full_schema.sql …"
           psql "$SUPABASE_DB_URL" -f awq_erp_full_schema.sql -v ON_ERROR_STOP=1
@@ -59,7 +69,7 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
       - name: Apply Supabase migrations (idempotent, ordered)
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        if: steps.dburl.outputs.present == 'true'
         run: |
           for f in $(ls supabase/migrations/*.sql | sort); do
             echo "Applying $f …"
@@ -70,7 +80,7 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
       - name: Verify tables
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        if: steps.dburl.outputs.present == 'true'
         run: |
           TABLES=$(psql "$SUPABASE_DB_URL" -t -c "
             SELECT tablename FROM pg_tables
