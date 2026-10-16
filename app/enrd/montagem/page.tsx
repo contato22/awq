@@ -24,7 +24,7 @@ import {
   MapPin,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 function n(v: number) {
   return v.toLocaleString("pt-BR");

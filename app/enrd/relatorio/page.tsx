@@ -17,7 +17,7 @@ import { contribuicaoOS, classificarDono, isRealizado } from "@/lib/enrd-posvend
 import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
 import { AlertTriangle, CheckCircle2, TrendingUp, Wallet, Info } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

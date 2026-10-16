@@ -4,6 +4,8 @@ const TaskDetailClient = dynamic(() => import("./TaskDetailClient"), { ssr: fals
 
 // Static export: one placeholder keeps the build happy.
 // Real task IDs are loaded client-side via the BPM API (Vercel only).
+export const dynamicParams = process.env.STATIC_EXPORT !== "1";
+
 export function generateStaticParams() {
   return [{ id: "_" }];
 }

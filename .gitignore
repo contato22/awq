@@ -10,6 +10,9 @@ node_modules/
 /.next/
 /out/
 
+# app/api movido para fora do scanner durante STATIC_EXPORT=1 (scripts/next-build.mjs)
+/.static-export-stash/
+
 # Production
 /build
 

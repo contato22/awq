@@ -9,7 +9,7 @@ import Header from "@/components/Header";
 import { ArrowLeft, ExternalLink, Tag, Calendar, ListChecks, Star, Percent, Users, BarChart3, DollarSign, ShoppingBag } from "lucide-react";
 import { authOptions } from "@/lib/auth-options";
 import {
-  getBrand, BRAND_KIND_LABEL, BRAND_STATUS_LABEL, type Brand,
+  getBrand, BRANDS_SEED, BRAND_KIND_LABEL, BRAND_STATUS_LABEL, type Brand,
 } from "@/lib/live-shop/brands";
 import { getContentGrid, type ContentBlock } from "@/lib/live-shop/content";
 import { listGuests } from "@/lib/live-shop/guests";
@@ -35,6 +35,11 @@ function KpiCard({ icon, label, value, sub }: { icon: React.ReactNode; label: st
 }
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
+export const dynamicParams = process.env.STATIC_EXPORT !== "1";
+
+export function generateStaticParams() {
+  return BRANDS_SEED.map((b) => ({ brand: b.id }));
+}
 
 export default async function BrandSectionPage({ params }: { params: { brand: string } }) {
   let brand: Brand | null = null;
@@ -42,7 +47,7 @@ export default async function BrandSectionPage({ params }: { params: { brand: st
   let guests: GuestRow[] = [];
   let loadError: string | null = null;
 
-  const session = await getServerSession(authOptions);
+  const session = process.env.NEXT_PUBLIC_STATIC_DATA === "1" ? null : await getServerSession(authOptions);
   const role = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canManage = CAN_MANAGE.has(role);
   const canSetup = CAN_SETUP.has(role);

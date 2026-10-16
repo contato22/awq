@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
-// STATIC_EXPORT=1 → GitHub Pages (sem API routes)
-// default → Vercel/Node (SSR + /api/chat proxy)
+// STATIC_EXPORT=1 → GitHub Pages (sem API routes).
+// `npm run build` esconde app/api nesse modo (scripts/next-build.mjs):
+// output:"export" rejeita `dynamic = "force-dynamic"`, e prerenderizar
+// handlers publicaria respostas de API no site estático. O deploy Vercel
+// usa `next build` (vercel.json) e não passa por esse script.
+// default → Vercel/Node (SSR + /api)
 const isStaticExport = process.env.STATIC_EXPORT === "1";
 
 // Pin NEXT_PUBLIC_STATIC_DATA to the actual build target.
