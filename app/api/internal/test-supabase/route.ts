@@ -1,10 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireSession } from "@/lib/api-auth";
 
 // Internal diagnostic endpoint — verifies Supabase connectivity from Vercel.
 // Protected: only responds if SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set.
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

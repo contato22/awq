@@ -4,9 +4,10 @@
 // nao aparece no chart: count total, range de datas, presenca de
 // running_balance e direction, txns por mes.
 //
-// Publico (sem auth) — retorna so contadores, nenhum dado sensivel.
+// Fora do middleware. Exige sessão ou Authorization: Bearer $PROBE_SECRET.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireSession, verifyBearerSecret } from "@/lib/api-auth";
 import { getTransactionsByEntity } from "@/lib/financial-db";
 
 export const runtime = "nodejs";
@@ -17,7 +18,13 @@ function validDate(v: unknown): string {
   return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : "";
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const session = await requireSession(req);
+  if (!session.ok) {
+    const denied = verifyBearerSecret(req, "PROBE_SECRET");
+    if (denied) return denied;
+  }
+
   try {
     const txns = await getTransactionsByEntity("ENERDY");
 

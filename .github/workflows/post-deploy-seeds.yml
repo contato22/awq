@@ -3,8 +3,8 @@ name: Post-Deploy Seeds (Jun 2026)
 # Triggers BTG and Itaú extract seeds automatically after a successful
 # deploy to production. Idempotent — safe to run multiple times.
 #
-# Auth: uses ERP Supabase anon key (public, hardcoded in lib/supabase.ts).
-# No GitHub Secret needed — key is already in the open codebase.
+# Auth: Authorization: Bearer $PROBE_SECRET (GitHub Secret + Vercel env).
+# A rota não aceita mais a anon key como senha.
 
 on:
   push:
@@ -29,10 +29,16 @@ jobs:
 
       - name: Seed BTG Jun 2026 (08–10/06)
         id: seed_btg
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
+          if [ -z "$PROBE_SECRET" ]; then
+            echo "Secret PROBE_SECRET ausente."
+            exit 1
+          fi
           RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
             -X POST https://awq-brown.vercel.app/api/setup/seed-btg-extract-jun2026 \
-            -H "x-seed-secret: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs" \
+            -H "Authorization: Bearer $PROBE_SECRET" \
             -H "Content-Type: application/json")
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n 1)
@@ -45,10 +51,12 @@ jobs:
 
       - name: Seed Itaú Jun 2026 (02/06)
         id: seed_itau
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
             -X POST https://awq-brown.vercel.app/api/setup/seed-itau-extract-jun2026 \
-            -H "x-seed-secret: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs" \
+            -H "Authorization: Bearer $PROBE_SECRET" \
             -H "Content-Type: application/json")
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n 1)

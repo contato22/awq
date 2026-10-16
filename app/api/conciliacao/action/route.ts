@@ -15,11 +15,15 @@ import {
   approveGroup, revertGroup, upsertPayeeMemory, upsertRule, deleteRule, deleteMemory, classifyLegacy,
 } from "@/lib/recon-db";
 import type { BU } from "@/lib/recon-types";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email;
   if (!userEmail) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   const body = (await req.json().catch(() => ({}))) as any;

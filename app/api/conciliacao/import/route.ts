@@ -12,12 +12,16 @@ import { parseOFX, parseCSV } from "@/lib/recon-ingest";
 import { upsertBankTransactions } from "@/lib/recon-db";
 import { reconcile } from "@/lib/recon-engine";
 import type { BU, ReconBankTxInput } from "@/lib/recon-types";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email;
   if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const bu = (form.get("bu") === "ENRD" ? "ENRD" : "AWQ") as BU;
   const accountId = (form.get("accountId") as string | null) ?? "import";
 
-  const lockedBU = req.headers.get("x-bu-lock");
+  const lockedBU = auth.buLock;
   if (lockedBU && lockedBU !== bu) {
     return NextResponse.json(
       { error: `Operação bloqueada: usuário ${lockedBU} não pode importar para bu=${bu}` },

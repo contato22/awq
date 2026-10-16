@@ -4,17 +4,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConfig, saveConfig } from "@/lib/enrd-posvenda-db";
 import { DEFAULT_POSVENDA_CONFIG, type PosVendaConfig } from "@/lib/enrd-posvenda-config";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   const config = await getConfig();
   return NextResponse.json({ ok: true, config, defaults: DEFAULT_POSVENDA_CONFIG });
 }
 
 export async function PUT(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email") ?? null;
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email ?? null;
   try {
     const body = (await req.json()) as Partial<PosVendaConfig>;
     // Merge sobre o DEFAULT — evita gravar config parcial inconsistente.

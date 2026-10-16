@@ -10,6 +10,7 @@
 // conexão OAuth). Sem credenciais, executa apenas o recompute local idempotente.
 
 import { NextRequest, NextResponse } from "next/server";
+import { verifyBearerSecret } from "@/lib/api-auth";
 import { isTikTokConfigured } from "@/lib/live-shop/tiktok-client";
 import { LIVE_DB_AVAILABLE, getLiveSessions } from "@/lib/live-shop/db";
 import { aggregateFunnel, unitEconKpis } from "@/lib/live-shop/kpis";
@@ -19,13 +20,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
-  }
+  const denied = verifyBearerSecret(req, "CRON_SECRET");
+  if (denied) return denied;
 
   const steps: Record<string, unknown> = {};
 

@@ -6,7 +6,7 @@
 //   MARGEM     = faturado − gasto
 // Fonte: CRM projetos (pos_venda_servicos) AO VIVO, fallback snapshot.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getConfig } from "@/lib/enrd-posvenda-db";
 import { getLiveProjetosPosVenda } from "@/lib/enerdy-projetos";
 import { getReconciliacaoMes } from "@/lib/enrd-reconciliacao";
@@ -16,13 +16,17 @@ import {
   classificarDono,
   isRealizado,
 } from "@/lib/enrd-posvenda-costing";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const config = await getConfig();
     const pv = await getLiveProjetosPosVenda();

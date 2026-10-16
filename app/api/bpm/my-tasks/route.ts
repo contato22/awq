@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initBpmDB, getPendingTasksForUser } from "@/lib/bpm-db";
 import type { WorkQueueItem, WorkQueueStats } from "@/lib/bpm-types";
+import { requireSession } from "@/lib/api-auth";
 
 let _ready = false;
 async function ensureDB() {
@@ -16,6 +17,9 @@ function ok(data: Record<string, unknown>) { return NextResponse.json({ success:
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const sp = req.nextUrl.searchParams;

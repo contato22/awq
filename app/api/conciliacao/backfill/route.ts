@@ -14,12 +14,16 @@ import {
   upsertBankTransactions, getBankAccountMap, ensureEnerdyClassificationQueue, dedupeKey,
 } from "@/lib/recon-db";
 import type { BU, ReconBankTxInput } from "@/lib/recon-types";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  if (!req.headers.get("x-user-email")) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  if (!auth.email) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
