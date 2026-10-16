@@ -4,6 +4,8 @@ const InstanceDetailClient = dynamic(() => import("./InstanceDetailClient"), { s
 
 // Static export: one placeholder keeps the build happy.
 // Real instance IDs are loaded client-side via the BPM API (Vercel only).
+export const dynamicParams = process.env.STATIC_EXPORT !== "1";
+
 export function generateStaticParams() {
   return [{ id: "_" }];
 }

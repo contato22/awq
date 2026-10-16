@@ -10,6 +10,7 @@ import {
   Radio, Eye, Users, Sparkles, Calendar, Clock, BarChart3,
   Package, UserCircle, Target, ClipboardList, Percent,
 } from "lucide-react";
+import { BRANDS_SEED } from "@/lib/live-shop/brands";
 import { getPublicBrandPage } from "@/lib/live-shop/public";
 import { LIVE_PLAN_STATUS_LABEL } from "@/lib/live-shop/agenda";
 import LiveShopPublicBI from "@/components/LiveShopPublicBI";
@@ -17,6 +18,11 @@ import LiveShopCalendar from "@/components/LiveShopCalendar";
 import LiveShopPortalTabs from "@/components/LiveShopPortalTabs";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
+export const dynamicParams = process.env.STATIC_EXPORT !== "1";
+
+export function generateStaticParams() {
+  return BRANDS_SEED.map((b) => ({ brand: b.id }));
+}
 
 export async function generateMetadata({ params }: { params: { brand: string } }) {
   const data = await getPublicBrandPage(params.brand).catch(() => null);

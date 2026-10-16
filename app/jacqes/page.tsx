@@ -17,7 +17,7 @@ export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynam
 const CAN_MANAGE_ACCESS = new Set(["owner", "admin", "jacqes"]);
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = process.env.NEXT_PUBLIC_STATIC_DATA === "1" ? null : await getServerSession(authOptions);
   const role = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canManageAccess = CAN_MANAGE_ACCESS.has(role);
 

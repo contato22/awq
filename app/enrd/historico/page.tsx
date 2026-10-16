@@ -11,7 +11,7 @@ import SectionHeader from "@/components/SectionHeader";
 import { getHistoricoOM, getHistoricoIntegracao, getHistoricoPosVendaVendido } from "@/lib/enrd-historico";
 import { TrendingUp, Wrench, Info, Zap } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

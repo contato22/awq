@@ -5,6 +5,8 @@
 import { SEED_PORTCOS } from "@/lib/ma-db";
 import PortcoDetailClient from "./PortcoDetailClient";
 
+export const dynamicParams = process.env.STATIC_EXPORT !== "1";
+
 export function generateStaticParams() {
   return SEED_PORTCOS.map(p => ({ portco_id: p.portco_id }));
 }
