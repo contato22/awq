@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { initBpmDB, markNotificationRead, getUnreadNotifications } from "@/lib/bpm-db";
+import { requireSession } from "@/lib/api-auth";
 
 let _ready = false;
 async function ensureDB() {
@@ -14,6 +15,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const body: { notification_id?: string; user_id?: string; mark_all?: boolean } = await req.json();
@@ -39,6 +43,9 @@ export async function POST(req: NextRequest) {
 
 // GET: unread count/list for a user
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const userId = req.nextUrl.searchParams.get("user_id");

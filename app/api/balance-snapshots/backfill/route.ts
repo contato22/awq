@@ -10,13 +10,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { backfillSnapshots } from "@/lib/balance-snapshots";
 import { getAllTransactions } from "@/lib/financial-db";
 import { todayBRT } from "@/lib/date-brt";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email;
   if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }

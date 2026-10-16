@@ -6,12 +6,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured, isCoraEnerdyConfigured, type CoraAccount } from "@/lib/cora-api";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   // Auth — middleware injects x-user-email after verifying the session
-  if (!req.headers.get("x-user-email")) {
+  if (!auth.email) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 

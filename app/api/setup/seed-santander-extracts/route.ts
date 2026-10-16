@@ -8,6 +8,7 @@
 // Idempotente: cada mês usa fileHash determinístico — re-rodar não duplica.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSession, verifyBearerSecret } from "@/lib/api-auth";
 import {
   saveDocument,
   saveTransactions,
@@ -158,11 +159,16 @@ async function runSeed(uploadedBy: string) {
   };
 }
 
-// Endpoint público (sem auth) — segue o padrão das rotas /api/cora/*-probe.
+// Fora do middleware. Sessão NextAuth ou Authorization: Bearer $PROBE_SECRET.
 // Idempotência via fileHash impede duplicação se chamado mais de uma vez.
-async function handle(_req: NextRequest) {
+async function handle(req: NextRequest) {
+  const session = await requireSession(req);
+  if (!session.ok) {
+    const denied = verifyBearerSecret(req, "PROBE_SECRET");
+    if (denied) return denied;
+  }
   try {
-    const result = await runSeed("seed-santander-extracts");
+    const result = await runSeed(session.ok ? session.email : "probe");
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(

@@ -12,7 +12,8 @@
 //    silenciosamente — enrd_posvenda_config não existe, getConfig() cai no
 //    catch e sempre serve o DEFAULT_POSVENDA_CONFIG hardcoded do código.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,7 +143,10 @@ ALTER TABLE enrd_posvenda_import_log       DISABLE ROW LEVEL SECURITY;
 ALTER TABLE awq_ma_vesting_config          DISABLE ROW LEVEL SECURITY;
 `;
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   return new NextResponse(MIGRATION_SQL, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });

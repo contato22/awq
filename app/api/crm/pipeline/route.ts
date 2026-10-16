@@ -3,8 +3,12 @@ import { getForcedBu } from "@/lib/api-guard";
 import { listOpportunities } from "@/lib/crm-db";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import type { CrmOpportunity } from "@/lib/crm-types";
+import { requireSession } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const forcedBu = await getForcedBu(req);
     const allOpps = await listOpportunities(forcedBu ? { bu: forcedBu } : undefined);

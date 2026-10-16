@@ -6,6 +6,7 @@ import {
   SEED_PROJECTS,
 } from "@/lib/ppm-db";
 import type { BuCode } from "@/lib/ppm-types";
+import { requireSession } from "@/lib/api-auth";
 
 export function generateStaticParams() {
   return SEED_PROJECTS.map(p => ({ id: p.project_id }));
@@ -15,9 +16,12 @@ function ok(data: unknown)          { return NextResponse.json({ success: true, 
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const { id } = params;
-    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    const lockedBU = (auth.buLock ?? undefined) as BuCode | undefined;
     const project = await getProject(id);
     if (!project) return err("Project not found", 404);
     if (lockedBU && project.bu_code !== lockedBU) return err("Project not found", 404);
@@ -36,6 +40,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const body  = await req.json();
     const updated = await updateProject(params.id, body);

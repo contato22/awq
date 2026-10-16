@@ -6,12 +6,13 @@
 // Autenticação:
 //   Vercel injeta automaticamente: Authorization: Bearer <CRON_SECRET>
 //   Configure CRON_SECRET nas Vercel Environment Variables.
-//   Sem CRON_SECRET configurado, qualquer chamada GET passa (desenvolvimento local).
+//   Sem CRON_SECRET em produção a rota responde 503. Em dev local, segue aberta.
 //
 // Período sincronizado: últimos 8 dias (cobre gaps sem sobrecarregar a API Cora).
 // Para re-importar todo o histórico, use POST /api/cora/sync-probe com startDate explícito.
 
 import { NextRequest, NextResponse } from "next/server";
+import { verifyBearerSecret } from "@/lib/api-auth";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
@@ -35,15 +36,10 @@ interface AccountResult {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  // ── Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET> ──────────────
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
-  }
-  // Sem CRON_SECRET em dev/local → livre para testes
+  // Vercel Cron envia Authorization: Bearer <CRON_SECRET> quando a env existe.
+  // Em produção, sem a env a rota fica fechada (503) em vez de pública.
+  const denied = verifyBearerSecret(req, "CRON_SECRET");
+  if (denied) return denied;
 
   // ── Pré-condições ─────────────────────────────────────────────────────────────
   if (!isCoraConfigured()) {

@@ -6,7 +6,7 @@
 // Idempotente: usa fileHash determinístico — re-rodar não duplica o documento.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { requireSession, verifyBearerSecret } from "@/lib/api-auth";
 import {
   saveDocument,
   saveTransactions,
@@ -117,20 +117,12 @@ async function runSeed(uploadedBy: string) {
 }
 
 async function handle(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const email = (token?.email as string | undefined) ?? null;
-
-  // Allow GitHub Actions post-deploy trigger via x-seed-secret header.
-  // Uses ERP anon key (public, hardcoded in lib/supabase.ts) — no extra GitHub Secret needed.
-  const ERP_ANON = process.env.NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY
-    || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs";
-  const seedSecret = req.headers.get("x-seed-secret");
-  const validSecret = seedSecret === ERP_ANON;
-
-  if (!email && !validSecret) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const session = await requireSession(req);
+  if (!session.ok) {
+    const denied = verifyBearerSecret(req, "PROBE_SECRET");
+    if (denied) return denied;
   }
-  const caller = email ?? "github-actions";
+  const caller = session.ok ? session.email : "probe";
   try {
     const result = await runSeed(caller);
     return NextResponse.json(result);
