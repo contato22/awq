@@ -10,6 +10,7 @@ import {
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
 import { ANDARES, andarDaEmpresa, casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoEstudio, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type AndarId, type Empresa, type EstadoReuniao } from "@/lib/office-world";
+import { RetratoAgente } from "./RetratoAgente";
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de
@@ -812,7 +813,7 @@ export default function OfficeGame(props: Props) {
 
       {/* Gaveta de painéis */}
       <aside
-        className={`absolute top-0 bottom-0 right-0 w-[480px] max-w-[94%] bg-white border-l border-gray-200 shadow-2xl transition-transform duration-300 ${painelAberto ? "translate-x-0" : "translate-x-full"}`}
+        className={`absolute top-0 bottom-0 right-0 w-[480px] max-w-[94%] bg-white border-l border-gray-200 shadow-2xl transition-transform duration-300 flex flex-col ${painelAberto ? "translate-x-0" : "translate-x-full"}`}
         aria-hidden={!painelAberto}
       >
         <button
@@ -822,7 +823,14 @@ export default function OfficeGame(props: Props) {
         >
           <X size={14} />
         </button>
-        <div className="h-full">{painelAberto ? children : null}</div>
+        {painelAberto && (
+          <RetratoAgente
+            semente={`${buAtual}:${selecionado}`}
+            nome={selecionado === "cs" ? nomeCS : selecionado === "ref" ? "Referências" : selecionado === "criativo" ? "Criativo" : "Mídia"}
+            papel={selecionado === "cs" ? "CS" : selecionado === "ref" ? "Referências" : selecionado === "criativo" ? "Criativo" : "Mídia"}
+          />
+        )}
+        <div className="min-h-0 flex-1">{painelAberto ? children : null}</div>
       </aside>
     </div>
   );
