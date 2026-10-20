@@ -2,8 +2,13 @@ name: Apply ERP Schema (Supabase)
 
 # Ledger de migrações. Não reaplica o diretório.
 #
-# O dono precisa gravar o baseline UMA vez, na main, antes de qualquer migrate.
-# Até lá o migrate recusa e não executa SQL. O push na main só faz dry-run.
+# O job usa o environment Production (no YAML: production). Esse environment
+# exige reviewer: baseline e migrate ficam parados até a aprovação. O job
+# também só roda em refs/heads/main. Um dispatch de outra branch não aplica SQL.
+#
+# O dono grava o baseline UMA vez, na main, antes de qualquer migrate.
+# Até lá o migrate recusa e não executa SQL. O push na main só faz dry-run,
+# e esse dry-run também passa pelo environment (não conecta sem aprovação).
 #
 # Actions → Apply ERP Schema → Run workflow (branch main):
 #   1. mode=dry-run. Confira a lista. 001_initial_schema.sql tem de aparecer
@@ -24,8 +29,7 @@ name: Apply ERP Schema (Supabase)
 # com lock advisory preso a essa transação.
 #
 # Não disparar este workflow a partir de um agente.
-# secrets não pode aparecer em steps.if. O gate do psql é steps.dburl.outputs.present.
-# O job usa environment production e só roda em refs/heads/main.
+# secrets não pode aparecer em steps.if. O gate do banco é steps.dburl.outputs.present.
 
 on:
   workflow_dispatch:
@@ -65,7 +69,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check secret present
         id: dburl
@@ -88,7 +92,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.dburl.outputs.present == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 

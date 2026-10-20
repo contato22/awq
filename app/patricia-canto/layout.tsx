@@ -1,16 +1,27 @@
 import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 
 // Instrument Serif só existe em weight 400 — mais fino e editorial que a
 // Playfair Display anterior, alinhado à referência de UI/UX aprovada
 // (títulos finos, alto contraste de traço). Classes font-semibold/font-bold
 // continuam no JSX; o navegador sintetiza o peso quando necessário.
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["normal", "italic"],
+// Arquivos locais (SIL OFL): o build não consulta o Google Fonts.
+const instrumentSerif = localFont({
+  src: [
+    {
+      path: "../fonts/instrument-serif-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../fonts/instrument-serif-latin-400-italic.woff2",
+      weight: "400",
+      style: "italic",
+    },
+  ],
   variable: "--font-canto-serif",
   display: "swap",
+  adjustFontFallback: "Times New Roman",
 });
 
 export const metadata: Metadata = {

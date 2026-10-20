@@ -1,15 +1,16 @@
 name: Post-Deploy Seeds (Jun 2026)
 
-# Triggers BTG and Itaú extract seeds automatically after a successful
-# deploy to production. Idempotent — safe to run multiple times.
+# Manual only. A push to main must not POST seeds to production.
+# The job uses the GitHub Environment `production`. It waits for a reviewer
+# only after the owner configures one on that environment. Dispatch from a
+# branch other than main is skipped.
 #
 # Auth: Authorization: Bearer $PROBE_SECRET (GitHub Secret + Vercel env).
 # A rota não aceita mais a anon key como senha.
+#
+# HTTP diferente de 200 emite WARN e não falha o job — risco residual.
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -19,14 +20,10 @@ jobs:
   seed:
     name: Seed BTG + Itaú Jun 2026
     runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.ref == 'refs/heads/main' }}
 
     steps:
-      - name: Wait for Vercel deployment
-        if: github.event_name == 'push'
-        run: |
-          echo "Waiting 90s for Vercel to build and promote deployment..."
-          sleep 90
-
       - name: Seed BTG Jun 2026 (08–10/06)
         id: seed_btg
         env:

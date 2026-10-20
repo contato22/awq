@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import LayoutShell from "@/components/LayoutShell";
 import BuildSHAGuard from "@/components/BuildSHAGuard";
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+// next/font/google baixa o CSS do Google no build. No Next 14.2.35 o loader
+// exige que a URL do arquivo termine em .woff2; quando o Google devolve
+// query string o regex falha (Cannot read properties of null (reading '1'))
+// e o harness fica vermelho de forma intermitente. O woff2 latino variável
+// (pesos 100–900, SIL OFL) fica no repositório.
+const inter = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  style: "normal",
   display: "swap",
+  adjustFontFallback: "Arial",
 });
 
 export const metadata: Metadata = {
