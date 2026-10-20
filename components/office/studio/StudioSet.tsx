@@ -11,6 +11,8 @@ import { CorpoDaCamera, OlharPelaCamera, PainelDaCamera } from "./VirtualCamera"
 import { LuzesDoEstudio, PainelDasLuzes } from "./StudioLights";
 import { FormularioDeCaptura, GanchoDeCaptura, type PedidoCaptura } from "./ShotCapture";
 import { AtorNoSet, PainelDoAtor } from "./ActorStandIn";
+import { PainelDeMontagem, PisoDeEncaixe, PropsNoSet } from "./BuildMode";
+import { colocarProp, listarProps, proximoPonto, removerProp, type PropId, type PropNoSet } from "@/lib/studio-build";
 import { definirAtor, estadoDoAtor, NOME_ATOR_PADRAO, POSE_ATOR_PADRAO, type EstadoAtor } from "@/lib/studio-actor";
 import type { ShotEstudio } from "@/lib/studio-store";
 
@@ -260,7 +262,14 @@ export function EstudioViewport() {
   const [pedido, setPedido] = useState<PedidoCaptura | null>(null);
   const [ultimo, setUltimo] = useState<ShotEstudio | null>(null);
   const [ator, setAtor] = useState<EstadoAtor>({ nome: NOME_ATOR_PADRAO, pose: POSE_ATOR_PADRAO });
-  useEffect(() => { setAtor(estadoDoAtor()); }, []);
+  const [montando, setMontando] = useState(false);
+  const [tipoProp, setTipoProp] = useState<PropId>("cadeira");
+  const [propsSet, setPropsSet] = useState<PropNoSet[]>([]);
+  const [propSel, setPropSel] = useState<string | null>(null);
+  useEffect(() => {
+    setAtor(estadoDoAtor());
+    setPropsSet(listarProps());
+  }, []);
   const mudarLuz = (id: LuzId, parcial: Partial<AjusteLuz>) => {
     setLuzes((atual) => ({ ...atual, [id]: { ...atual[id], ...parcial } }));
   };
@@ -290,7 +299,12 @@ export function EstudioViewport() {
             <StudioSet />
             <Suspense fallback={null}>
               <AtorNoSet pose={ator.pose} nome={ator.nome} />
+              <PropsNoSet props={propsSet} selecionado={propSel} montando={montando} onSelect={setPropSel} />
             </Suspense>
+            <PisoDeEncaixe
+              ativo={montando && !olhando}
+              onColocar={(x, z) => { if (colocarProp(tipoProp, x, z)) setPropsSet(listarProps()); }}
+            />
             <CorpoDaCamera visivel={!olhando} />
             <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
             <GanchoDeCaptura pedido={pedido} onFeito={aoCapturar} />
@@ -320,6 +334,23 @@ export function EstudioViewport() {
       />
       <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />
       <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />
+      <PainelDeMontagem
+        montando={montando}
+        tipo={tipoProp}
+        selecionado={propSel !== null}
+        onMontando={setMontando}
+        onTipo={setTipoProp}
+        onColocar={() => {
+          const ponto = proximoPonto(propsSet);
+          if (colocarProp(tipoProp, ponto.x, ponto.z)) setPropsSet(listarProps());
+        }}
+        onRemover={() => {
+          if (!propSel) return;
+          removerProp(propSel);
+          setPropSel(null);
+          setPropsSet(listarProps());
+        }}
+      />
       <FormularioDeCaptura
         lenteMm={lenteMm}
         sensor={sensor}
