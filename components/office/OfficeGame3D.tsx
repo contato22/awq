@@ -413,6 +413,67 @@ function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimen
   );
 }
 
+const MOLDURA_JANELA = "#f4efe6";
+
+/** Parede externa da sala: tijolo aparente e janelões com caixilho claro. */
+function ParedeExterna({ comprimento }: { comprimento: number }) {
+  const tijolo = useMemo(() => texturaTijolo(), []);
+  const n = Math.max(1, Math.round(comprimento / 3.2));
+  const mod = comprimento / n;
+  const janelaL = mod * 0.7;
+  const base = 0.46;
+  const janelaBase = 0.58;
+  const janelaTopo = 1.92;
+  const topo = 2.28;
+  const janelaH = janelaTopo - janelaBase;
+  return (
+    <group>
+      <mesh position={[comprimento / 2, base / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[comprimento, base, 0.12]} />
+        <meshStandardMaterial map={tijolo} roughness={0.92} />
+      </mesh>
+      <mesh position={[comprimento / 2, (janelaTopo + topo) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[comprimento, topo - janelaTopo, 0.12]} />
+        <meshStandardMaterial map={tijolo} roughness={0.92} />
+      </mesh>
+      {Array.from({ length: n + 1 }, (_, i) => {
+        const largura = i === 0 || i === n ? (mod - janelaL) / 2 : mod - janelaL;
+        const centro = i === 0 ? largura / 2 : i === n ? comprimento - largura / 2 : i * mod;
+        return (
+          <mesh key={i} position={[centro, (base + janelaTopo) / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[Math.max(largura, 0.08), janelaTopo - base, 0.12]} />
+            <meshStandardMaterial map={tijolo} roughness={0.92} />
+          </mesh>
+        );
+      })}
+      {Array.from({ length: n }, (_, i) => {
+        const cx = mod * (i + 0.5);
+        const meio = (janelaBase + janelaTopo) / 2;
+        return (
+          <group key={`j${i}`}>
+            <mesh position={[cx, meio, 0.03]} castShadow>
+              <boxGeometry args={[janelaL + 0.12, janelaH + 0.12, 0.07]} />
+              <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+            </mesh>
+            <mesh position={[cx, meio, 0.06]}>
+              <planeGeometry args={[janelaL, janelaH]} />
+              <meshPhysicalMaterial color="#d7e6f4" transparent opacity={0.32} roughness={0.08} metalness={0.04} />
+            </mesh>
+            <mesh position={[cx, meio, 0.07]} castShadow>
+              <boxGeometry args={[0.045, janelaH, 0.04]} />
+              <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+            </mesh>
+            <mesh position={[cx, meio, 0.07]}>
+              <boxGeometry args={[janelaL, 0.04, 0.04]} />
+              <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 function Pilar({ posicao, altura = 2.3 }: { posicao: [number, number]; altura?: number }) {
   const tijolo = useMemo(() => texturaTijolo(), []);
   return (
@@ -552,7 +613,7 @@ function Sala({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} brilho={!ativo} />
+        <ParedeExterna comprimento={w} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} brilho={!ativo} />
@@ -806,7 +867,7 @@ function SalaDaCasa({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={accent} brilho={!detalhado} />
+        <ParedeExterna comprimento={w} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={accent} brilho={!detalhado} />
