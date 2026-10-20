@@ -137,7 +137,8 @@ const chaveCel = (c: [number, number]) => `${c[0]},${c[1]}`;
 // pilar estrutural no canto interno, estante numa lateral aberta, duas plantas decorativas.
 const PILAR_POS: [number, number] = [0.32, 0.32];
 const ESTANTE_POS: [number, number] = [8.6, 0.3];
-const ESTANTE_BAIXA_POS: [number, number] = [0.48, 6.4];
+/** Entre as quatro mesas, como divisória do corredor. */
+const ESTANTE_BAIXA_POS: [number, number] = [2.42, 2.53];
 const PLANTAS_POS: [number, number][] = [[9.6, 2.1], [1.8, 9.5]];
 
 const OBSTACULOS: Set<string> = (() => {
@@ -634,35 +635,50 @@ function Sala({
   );
 }
 
-const ESTOFADO = "#6f5b4c";
+const ESTOFADO = "#8a8d8f";
+const BASE_ESTRELA = "#4e5256";
 const MADEIRA_MOVEL = "#b89a74";
 
-/** Poltrona baixa, no lugar da cadeira de escritório. */
+/** Poltrona cinza com base estrela — o marrom sumia no piso de carvalho. */
 function Poltrona({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
+  const raios = [0, 72, 144, 216, 288];
   return (
     <group position={[posicao[0], 0, posicao[1]]} rotation-y={rotacao}>
-      <RoundedBox args={[0.46, 0.1, 0.42]} radius={0.04} position={[0, 0.32, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color={ESTOFADO} roughness={0.86} />
+      <RoundedBox args={[0.46, 0.1, 0.42]} radius={0.04} position={[0, 0.36, 0]} castShadow receiveShadow>
+        <meshStandardMaterial color={ESTOFADO} roughness={0.72} />
       </RoundedBox>
-      <RoundedBox args={[0.46, 0.36, 0.08]} radius={0.04} position={[0, 0.5, 0.17]} rotation-x={-0.1} castShadow>
-        <meshStandardMaterial color={ESTOFADO} roughness={0.86} />
+      <RoundedBox args={[0.46, 0.36, 0.08]} radius={0.04} position={[0, 0.54, 0.17]} rotation-x={-0.1} castShadow>
+        <meshStandardMaterial color={ESTOFADO} roughness={0.72} />
       </RoundedBox>
       {([-0.22, 0.22] as const).map((x) => (
-        <RoundedBox key={x} args={[0.07, 0.1, 0.32]} radius={0.02} position={[x, 0.4, 0.02]} castShadow>
-          <meshStandardMaterial color={ESTOFADO} roughness={0.86} />
+        <RoundedBox key={x} args={[0.07, 0.1, 0.32]} radius={0.02} position={[x, 0.44, 0.02]} castShadow>
+          <meshStandardMaterial color={ESTOFADO} roughness={0.72} />
         </RoundedBox>
       ))}
-      {([[-0.16, -0.14], [0.16, -0.14], [-0.16, 0.12], [0.16, 0.12]] as const).map(([lx, lz]) => (
-        <mesh key={`${lx}-${lz}`} position={[lx, 0.14, lz]} castShadow>
-          <cylinderGeometry args={[0.02, 0.02, 0.28, 8]} />
-          <meshStandardMaterial color={MADEIRA_MOVEL} roughness={0.7} />
-        </mesh>
-      ))}
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <cylinderGeometry args={[0.035, 0.045, 0.22, 10]} />
+        <meshStandardMaterial color={BASE_ESTRELA} metalness={0.55} roughness={0.35} />
+      </mesh>
+      {raios.map((graus) => {
+        const a = (graus * Math.PI) / 180;
+        return (
+          <group key={graus}>
+            <mesh position={[Math.cos(a) * 0.13, 0.07, Math.sin(a) * 0.13]} rotation={[0, -a, Math.PI / 2]} castShadow>
+              <boxGeometry args={[0.26, 0.02, 0.035]} />
+              <meshStandardMaterial color={BASE_ESTRELA} metalness={0.6} roughness={0.32} />
+            </mesh>
+            <mesh position={[Math.cos(a) * 0.26, 0.035, Math.sin(a) * 0.26]} castShadow>
+              <sphereGeometry args={[0.026, 8, 8]} />
+              <meshStandardMaterial color="#2a2d30" metalness={0.35} roughness={0.45} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }
 
-/** Estante baixa encostada na parede — substitui a cadeira solta como mobiliário de sala. */
+/** Estante baixa. Na squad fica entre as mesas; na diretoria e na reunião, na parede. */
 function EstanteBaixa({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
   const livros = ["#8d5a3c", "#c4a574", "#6b705c", "#a67c52", "#4a4036", "#d4c4a8", "#7d5a3c"];
   return (
