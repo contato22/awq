@@ -91,6 +91,19 @@ function horaBrasilia(): number {
   return h + m / 60;
 }
 
+/** `localStorage.office-hora` (0–24) trava o relógio para a captura de QA. Sem a chave, vale Brasília. */
+function horaInicial(): number {
+  if (typeof window === "undefined") return 12;
+  const fixa = window.localStorage.getItem("office-hora");
+  if (fixa == null || fixa === "") return horaBrasilia();
+  const n = Number(fixa);
+  return Number.isFinite(n) ? ((n % 24) + 24) % 24 : horaBrasilia();
+}
+
+function horaTravada(): boolean {
+  return typeof window !== "undefined" && !!window.localStorage.getItem("office-hora");
+}
+
 // ── Cabelo por papel: mesma ideia de silhueta reconhecível do mundo 2D (cabeloDoPapel em
 // lib/office-world.ts), só que em geometria 3D em vez de pixels. ──────────────────────────
 
@@ -627,7 +640,14 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
-      <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={0.7} distance={10} decay={2} />
+      {ativo ? (
+        <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={12} distance={12} decay={2} />
+      ) : (
+        <mesh position={[w / 2, 1.35, 0.06]}>
+          <planeGeometry args={[Math.min(w * 0.42, 2.6), 0.85]} />
+          <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.9} />
+        </mesh>
+      )}
       <group position={[0, 0, 0.02]}>
         <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} />
       </group>
@@ -805,7 +825,14 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
-      <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={0.7} distance={10} decay={2} />
+      {detalhado ? (
+        <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={12} distance={12} decay={2} />
+      ) : (
+        <mesh position={[w / 2, 1.35, 0.06]}>
+          <planeGeometry args={[Math.min(w * 0.42, 2.6), 0.85]} />
+          <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.9} />
+        </mesh>
+      )}
       <group position={[0, 0, 0.02]}>
         <ParedeDetalhada comprimento={w} corAccent={accent} />
       </group>
@@ -995,13 +1022,15 @@ function Iluminacao({ hora }: { hora: number }) {
   return (
     <>
       <color attach="background" args={[ceuAtual.base]} />
-      <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.22]} />
-      <ambientLight intensity={0.2} />
-      {/* Sol baixo, cor #ffcf8a, entrando pela fachada (z negativo) e cruzando as salas. */}
+      <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.08 + l * 0.18]} />
+      <ambientLight intensity={0.08 + l * 0.12} />
+      {/* Preenchimento frio do céu: de noite fica no piso, de dia sobe com a luz. */}
+      <directionalLight position={[-16, 9, 14]} color="#9fc0ff" intensity={0.15 + l * 0.2} />
+      {/* Sol baixo, cor #ffcf8a, entrando pela fachada. Intensidade segue luzDoDia (0 à noite). */}
       <directionalLight
         ref={sol}
         position={[20, 5.4, -16]}
-        intensity={0.55 + l * 0.75}
+        intensity={l * 1.3}
         color="#ffcf8a"
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -1009,10 +1038,10 @@ function Iluminacao({ hora }: { hora: number }) {
         shadow-normalBias={0.035}
         shadow-camera-near={2}
         shadow-camera-far={80}
-        shadow-camera-left={-26}
-        shadow-camera-right={26}
-        shadow-camera-top={24}
-        shadow-camera-bottom={-24}
+        shadow-camera-left={-(20 * UNIT) / 2}
+        shadow-camera-right={(20 * UNIT) / 2}
+        shadow-camera-top={(14 * UNIT) / 2}
+        shadow-camera-bottom={-(14 * UNIT) / 2}
       />
       <object3D ref={alvoSol} position={[20, 1.1, 14]} />
     </>
@@ -1268,14 +1297,14 @@ export default function OfficeGame3D(props: Props) {
   const [vista, setVista] = useState<"mundo" | "sala" | "casa" | "estudio">("mundo");
   const [focoCasa, setFocoCasa] = useState<CasaId>("diretoria");
   const [vel, setVel] = useState(1);
-  const [hora, setHora] = useState(horaBrasilia());
+  const [hora, setHora] = useState(horaInicial);
   const camApiRef = useRef<CameraApi | null>(null);
   const [termo, setTermo] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [fps, setFps] = useState<number | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setHora((h) => vel === 0 ? h : (h + (vel * 0.01)) % 24), 1000);
+    const id = setInterval(() => setHora((h) => vel === 0 || horaTravada() ? h : (h + vel * 0.01) % 24), 1000);
     return () => clearInterval(id);
   }, [vel]);
 
