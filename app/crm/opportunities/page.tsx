@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import type { DragEvent, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLockedBU } from "@/lib/use-locked-bu";
@@ -11,10 +11,11 @@ import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, Plus, X,
   Calendar, Building2, AlertCircle, Phone, Mail, Users,
-  CheckCircle2, FileText, MessageSquare, Clock, Trash2, User,
+  CheckCircle2, FileText, MessageSquare, Clock, Trash2, User, UserPlus,
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
+import { persistOutcome, planStageMove, rowsFromPipeline } from "@/lib/crm-pipeline-move";
 
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
@@ -32,7 +33,7 @@ const STAGE_CONFIG: Record<string, {
   qualification: { label: "Qualificação",  prob: 40,  bg: "bg-brand-50", border: "border-brand-200", header: "bg-brand-500", tag: "bg-brand-100 text-brand-700", bar: "bg-brand-500" },
   proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
   negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
-  closed_won:    { label: "Ganho",         prob: 100, bg: "bg-emerald-50", border: "border-emerald-200", header: "bg-emerald-600", tag: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" },
+  closed_won:    { label: "Fechado Ganho",  prob: 100, bg: "bg-emerald-50", border: "border-emerald-200", header: "bg-emerald-600", tag: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" },
   closed_lost:   { label: "Perdido",       prob: 0,   bg: "bg-red-50",     border: "border-red-200",     header: "bg-red-600",     tag: "bg-red-100 text-red-700",         bar: "bg-red-500" },
 };
 
@@ -53,6 +54,21 @@ const ACTIVITY_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: str
 };
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
+
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500";
+
+function agingDays(created: string | null | undefined): number | null {
+  if (!created) return null;
+  const time = new Date(created).getTime();
+  if (Number.isNaN(time)) return null;
+  return Math.max(0, Math.floor((Date.now() - time) / 86400000));
+}
+
+function riskOf(daysUntilClose: number | null): "Alto" | "Médio" | "Baixo" {
+  if (daysUntilClose !== null && daysUntilClose < 0) return "Alto";
+  if (daysUntilClose !== null && daysUntilClose <= 7) return "Médio";
+  return "Baixo";
+}
 
 // ─── Detail Modal (Detalhes + Atividades) ────────────────────────────────────
 
@@ -544,6 +560,8 @@ function OppCard({
   onClick,
   onActivityClick,
   onDeleteClick,
+  onMove,
+  onConvert,
 }: {
   opp: CrmOpportunity;
   activityCount?: number;
@@ -551,125 +569,174 @@ function OppCard({
   onClick: () => void;
   onActivityClick: (e: React.MouseEvent) => void;
   onDeleteClick: (e: React.MouseEvent) => void;
+  onMove: (id: string, stage: string) => void;
+  onConvert: (opp: CrmOpportunity) => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const days = daysUntil(opp.expected_close_date);
   const isUrgent = days !== null && days <= 7 && days >= 0;
   const isOverdue = days !== null && days < 0;
   const hasNoActivity = activityCount === 0;
+  const age = agingDays(opp.created_at);
+  const risk = riskOf(days);
+  const probability = Math.max(0, Math.min(100, opp.probability || 0));
+  const probColor = probability >= 75 ? "bg-emerald-500" : probability >= 50 ? "bg-amber-500" : probability >= 25 ? "bg-orange-400" : "bg-red-400";
+  const riskColor = risk === "Alto" ? "bg-red-500" : risk === "Médio" ? "bg-amber-500" : "bg-emerald-500";
 
   return (
     <div
+      role="listitem"
       draggable
+      data-opp-id={opp.opportunity_id}
       onDragStart={e => onDragStart(e, opp.opportunity_id)}
       onClick={confirmDelete ? undefined : onClick}
-      className="bg-white border border-gray-200 rounded-xl p-3.5 cursor-pointer active:cursor-grabbing shadow-sm hover:shadow-md hover:border-brand-300 transition-all group"
+      className="bg-white border border-gray-200 rounded-xl p-3.5 cursor-pointer active:cursor-grabbing shadow-sm hover:shadow-md hover:border-brand-300 transition-all"
     >
-      {/* Code + BU + Delete */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-mono text-gray-400">{opp.opportunity_code}</span>
+        <span className="text-xs font-mono text-gray-600">{opp.opportunity_code}</span>
         <div className="flex items-center gap-1.5">
+          {age !== null && (
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${age > 30 ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-600"}`}>
+              {age}d
+            </span>
+          )}
           <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${BU_COLORS[opp.bu] ?? "bg-gray-100 text-gray-600"}`}>
             {opp.bu}
           </span>
           <button
             type="button"
+            aria-label="Apagar oportunidade"
             onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
-            className="p-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+            className={`p-0.5 rounded text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors ${FOCUS}`}
           >
-            <Trash2 size={11} />
+            <Trash2 size={12} />
           </button>
         </div>
       </div>
 
-      {/* Name */}
       <p className="text-xs font-semibold text-gray-900 leading-snug mb-1 line-clamp-2">
         {opp.opportunity_name}
       </p>
 
-      {/* Account + Contact */}
       {(opp.account_name || opp.contact_name) && (
         <div className="flex flex-col gap-0.5 mb-2">
           {opp.account_name && (
             <div className="flex items-center gap-1">
-              <Building2 size={10} className="text-gray-400 shrink-0" />
-              <span className="text-xs text-gray-500 truncate">{opp.account_name}</span>
+              <Building2 size={12} className="text-gray-600 shrink-0" />
+              <span className="text-xs text-gray-600 truncate">{opp.account_name}</span>
             </div>
           )}
           {opp.contact_name && (
             <div className="flex items-center gap-1">
-              <User size={10} className="text-gray-400 shrink-0" />
-              <span className="text-xs text-gray-500 truncate">{opp.contact_name}</span>
+              <User size={12} className="text-gray-600 shrink-0" />
+              <span className="text-xs text-gray-600 truncate">{opp.contact_name}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Value */}
       <div className="text-sm font-bold text-gray-900 mb-2">{formatBRL(opp.deal_value)}</div>
 
-      {/* Activity log button */}
+      <div className="flex items-center gap-1.5 mb-2" title={`Probabilidade ${probability}%`}>
+        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${probColor}`} style={{ width: `${probability}%` }} />
+        </div>
+        <span className="text-xs font-semibold text-gray-600 tabular-nums">{probability}%</span>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${riskColor}`} />
+          Risco {risk}
+        </span>
+        <span className="text-xs text-gray-600 truncate">
+          {opp.expected_close_date ? `Próximo marco ${formatDateBR(opp.expected_close_date)}` : "Sem próxima ação"}
+        </span>
+      </div>
+
       <button
         type="button"
         onClick={onActivityClick}
-        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium mb-2 border transition-all ${
+        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium mb-2 border transition-all ${FOCUS} ${
           hasNoActivity
-            ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
-            : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600"
+            ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+            : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700"
         }`}
       >
         <span className="flex items-center gap-1">
-          <MessageSquare size={10} />
+          <MessageSquare size={12} />
           {hasNoActivity
             ? "Sem atividades — registrar agora"
             : `${activityCount} atividade${activityCount !== 1 ? "s" : ""} registrada${activityCount !== 1 ? "s" : ""}`}
         </span>
-        {hasNoActivity && <AlertCircle size={9} className="text-red-400" />}
+        {hasNoActivity && <AlertCircle size={12} className="text-red-600" />}
       </button>
 
-      {/* Footer */}
+      <label className="block mb-2" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+        <span className="text-xs font-semibold text-gray-600 block mb-1">Mover para etapa</span>
+        <select
+          aria-label={`Mover ${opp.opportunity_name} para etapa`}
+          value={opp.stage}
+          onChange={e => onMove(opp.opportunity_id, e.target.value)}
+          className={`w-full text-xs text-gray-600 border border-gray-300 rounded-lg px-2 py-1.5 bg-white ${FOCUS}`}
+        >
+          {ACTIVE_STAGES.map(stage => (
+            <option key={stage} value={stage}>{STAGE_CONFIG[stage]!.label}</option>
+          ))}
+        </select>
+      </label>
+
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <div className="flex items-center gap-1">
-          <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[9px] font-bold text-brand-700">
+          <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700">
             {opp.owner.slice(0, 1)}
           </div>
-          <span className="text-xs text-gray-500">{opp.owner}</span>
+          <span className="text-xs text-gray-600">{opp.owner}</span>
         </div>
         {opp.expected_close_date && (
-          <div className={`flex items-center gap-0.5 text-xs font-medium ${isOverdue ? "text-red-500" : isUrgent ? "text-amber-600" : "text-gray-400"}`}>
-            <Calendar size={9} />
+          <div className={`flex items-center gap-0.5 text-xs font-medium ${isOverdue ? "text-red-600" : isUrgent ? "text-amber-700" : "text-gray-600"}`}>
+            <Calendar size={12} />
             {formatDateBR(opp.expected_close_date)}
           </div>
         )}
       </div>
 
       {(isOverdue || isUrgent) && (
-        <div className={`mt-2 text-xs font-semibold flex items-center gap-1 ${isOverdue ? "text-red-500" : "text-amber-600"}`}>
-          <AlertCircle size={10} />
+        <div className={`mt-2 text-xs font-semibold flex items-center gap-1 ${isOverdue ? "text-red-600" : "text-amber-700"}`}>
+          <AlertCircle size={12} />
           {isOverdue ? `${Math.abs(days!)} dias atraso` : `${days} dias restantes`}
         </div>
       )}
 
       {opp.stage === "closed_won" && (
-        <Link
-          href={`/awq/ppm/add?opportunity_id=${opp.opportunity_id}&customer=${encodeURIComponent(opp.account_name ?? "")}&revenue=${opp.deal_value}&bu=${opp.bu}`}
-          className="mt-2 flex items-center justify-center gap-1 w-full text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors"
-          onClick={e => e.stopPropagation()}
-        >
-          🚀 Criar Projeto PPM
-        </Link>
+        <>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onConvert(opp); }}
+            className={`mt-2 flex items-center justify-center gap-1 w-full text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-1 hover:bg-emerald-100 transition-colors ${FOCUS}`}
+          >
+            <UserPlus size={12} /> Converter em Cliente
+          </button>
+          <Link
+            href={`/awq/ppm/add?opportunity_id=${opp.opportunity_id}&customer=${encodeURIComponent(opp.account_name ?? "")}&revenue=${opp.deal_value}&bu=${opp.bu}`}
+            className={`mt-2 flex items-center justify-center gap-1 w-full text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors ${FOCUS}`}
+            onClick={e => e.stopPropagation()}
+          >
+            Criar Projeto PPM
+          </Link>
+        </>
       )}
 
       {confirmDelete && (
         <div className="mt-2 flex items-center justify-between gap-2 p-2 bg-red-50 border border-red-200 rounded-lg" onClick={e => e.stopPropagation()}>
-          <span className="text-xs text-red-600 font-medium">Apagar oportunidade?</span>
+          <span className="text-xs text-red-700 font-medium">Apagar oportunidade?</span>
           <div className="flex gap-1">
             <button type="button" onClick={e => { e.stopPropagation(); onDeleteClick(e); }}
-              className="px-2 py-0.5 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors">
+              className={`px-2 py-0.5 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors ${FOCUS}`}>
               Apagar
             </button>
             <button type="button" onClick={e => { e.stopPropagation(); setConfirmDelete(false); }}
-              className="px-2 py-0.5 bg-white border border-gray-300 text-gray-600 text-xs font-medium rounded hover:bg-gray-50 transition-colors">
+              className={`px-2 py-0.5 bg-white border border-gray-300 text-gray-600 text-xs font-medium rounded hover:bg-gray-50 transition-colors ${FOCUS}`}>
               Não
             </button>
           </div>
@@ -682,7 +749,7 @@ function OppCard({
 // ─── Column ───────────────────────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage, opps, activityCounts, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onActivityClick, onDeleteClick,
+  stage, opps, activityCounts, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onActivityClick, onDeleteClick, onMove, onConvert,
 }: {
   stage: string;
   opps: CrmOpportunity[];
@@ -694,6 +761,8 @@ function KanbanColumn({
   onCardClick: (opp: CrmOpportunity) => void;
   onActivityClick: (opp: CrmOpportunity) => void;
   onDeleteClick: (opp: CrmOpportunity) => void;
+  onMove: (id: string, stage: string) => void;
+  onConvert: (opp: CrmOpportunity) => void;
 }) {
   const cfg = STAGE_CONFIG[stage]!;
   const total = opps.reduce((s, o) => s + o.deal_value, 0);
@@ -714,34 +783,38 @@ function KanbanColumn({
           <div className="text-xs font-bold text-white flex items-center gap-1.5">
             {cfg.label}
             {missingActivity > 0 && (
-              <span className="text-[9px] font-bold bg-white/30 text-white rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
-                <AlertCircle size={8} /> {missingActivity} sem ativ.
+              <span className="text-xs font-bold bg-white/30 text-white rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
+                <AlertCircle size={12} /> {missingActivity} sem ativ.
               </span>
             )}
           </div>
-          <div className="text-xs text-white/80">{cfg.prob}% win rate</div>
+          <div className="text-xs text-white">{cfg.prob}% win rate</div>
         </div>
         <div className="text-right">
           <div className="text-xs font-bold text-white">{formatBRL(total)}</div>
-          <div className="text-xs text-white/80">{opps.length} deals</div>
+          <div className="text-xs text-white">{opps.length} deals</div>
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="flex-1 p-2 space-y-2 min-h-[120px]">
+      <div role="list" aria-label={cfg.label} className="flex-1 p-2 space-y-2 min-h-[120px]">
         {opps.map(o => (
           <OppCard
             key={o.opportunity_id}
             opp={o}
             activityCount={activityCounts[o.opportunity_id] ?? 0}
-            onDragStart={(e, id) => { e.dataTransfer.setData("text/plain", id); }}
+            onDragStart={(e, id) => {
+              e.dataTransfer.setData("text/plain", id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
             onClick={() => onCardClick(o)}
             onActivityClick={e => { e.stopPropagation(); onActivityClick(o); }}
             onDeleteClick={e => { e.stopPropagation(); onDeleteClick(o); }}
+            onMove={onMove}
+            onConvert={onConvert}
           />
         ))}
         {opps.length === 0 && (
-          <div className="flex items-center justify-center h-20 text-xs text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+          <div className="flex items-center justify-center h-20 text-xs text-gray-600 border-2 border-dashed border-gray-200 rounded-lg">
             Arraste aqui
           </div>
         )}
@@ -752,7 +825,7 @@ function KanbanColumn({
         <div className="p-2 border-t border-gray-200">
           <Link
             href={`/crm/opportunities/add?stage=${stage}`}
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300"
+            className={`flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium text-gray-600 hover:text-brand-700 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300 ${FOCUS}`}
           >
             <Plus size={12} /> Nova oportunidade
           </Link>
@@ -782,21 +855,22 @@ function PipelinePageInner() {
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
   const [editingTab, setEditingTab] = useState<"edit" | "activity">("edit");
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
+  const [canScroll, setCanScroll] = useState(false);
+  const [convertOpp, setConvertOpp] = useState<CrmOpportunity | null>(null);
+  const [convertName, setConvertName] = useState("");
+  const [convertSaving, setConvertSaving] = useState(false);
+  const draggingId = useRef<string | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
 
     fetch("/api/crm/pipeline")
       .then(r => r.json())
-      .then((json: { success: boolean; data?: { byStage: Record<string, CrmOpportunity[]>; closedWon: CrmOpportunity[]; closedLost: CrmOpportunity[] }; error?: string }) => {
-        if (!json.success) throw new Error(json.error ?? "API error");
-        const d = json.data!;
-        const allOpps: CrmOpportunity[] = [
-          ...Object.values(d.byStage).flat(),
-          ...(d.closedWon ?? []),
-          ...(d.closedLost ?? []),
-        ];
-        setOpps(allOpps);
+      .then((json: { success: boolean; data?: { byStage?: Record<string, CrmOpportunity[]>; closedWon?: CrmOpportunity[]; closedLost?: CrmOpportunity[] }; error?: string }) => {
+        const parsed = rowsFromPipeline<CrmOpportunity>(json);
+        if (parsed.error) throw new Error(parsed.error);
+        setOpps(parsed.rows);
         setApiError(null);
       })
       .catch(e => { setApiError(String(e)); setOpps([]); })
@@ -826,6 +900,47 @@ function PipelinePageInner() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const update = () => setCanScroll(el.scrollWidth > el.clientWidth + 8);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [loading, opps, filterBU, filterOwner]);
+
+  async function postAction(body: unknown, previous: CrmOpportunity[], failure: string) {
+    try {
+      const res = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      let payload: { success?: boolean; error?: string } | null = null;
+      try { payload = await res.json(); } catch { payload = null; }
+      if (persistOutcome(res.ok, payload) === "rollback") {
+        setOpps(previous);
+        showToast(payload?.error ?? failure, false);
+        return false;
+      }
+      return true;
+    } catch {
+      setOpps(previous);
+      showToast(failure, false);
+      return false;
+    }
+  }
+
+  function persistStageMove(id: string, toStage: string) {
+    const plan = planStageMove(opps, id, toStage);
+    if (!plan) return;
+    setOpps(plan.next);
+    const label = STAGE_CONFIG[toStage]?.label ?? toStage;
+    void postAction(plan.body, plan.previous, "Não foi possível mover. A etapa voltou ao lugar.").then(ok => {
+      if (ok) showToast(`Movido para ${label}`, true);
+    });
+  }
+
   function filtered(stage: string) {
     return opps.filter(o => {
       if (o.stage !== stage) return false;
@@ -843,51 +958,72 @@ function PipelinePageInner() {
   function handleDrop(e: DragEvent, toStage: string) {
     e.preventDefault();
     setDragOverStage(null);
-    const id = e.dataTransfer.getData("text/plain");
+    const id = e.dataTransfer.getData("text/plain") || draggingId.current || "";
+    draggingId.current = null;
     if (!id) return;
-    const opp = opps.find(o => o.opportunity_id === id);
-    if (!opp || opp.stage === toStage) return;
-
-    const next = opps.map(o =>
-      o.opportunity_id === id
-        ? { ...o, stage: toStage as CrmOpportunity["stage"], probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? o.probability }
-        : o
-    );
-    updateOpps(next);
-    showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
-
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage, probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability }),
-    }).catch(() => undefined);
+    persistStageMove(id, toStage);
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
+    const previous = opps;
     const next = opps.map(o => o.opportunity_id === updated.opportunity_id ? updated : o);
     updateOpps(next);
     setEditingOpp(null);
-    showToast("Oportunidade atualizada", true);
 
     const { opportunity_id, account_name, contact_name, opportunity_code, created_at, updated_at, ...fields } = updated;
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", opportunity_id, ...fields }),
-    }).catch(() => undefined);
+    void postAction(
+      { action: "update", opportunity_id, ...fields },
+      previous,
+      "Não foi possível salvar. A oportunidade voltou ao estado anterior.",
+    ).then(ok => { if (ok) showToast("Oportunidade atualizada", true); });
   }
 
   function handleDelete(opp: CrmOpportunity) {
+    const previous = opps;
     const next = opps.filter(o => o.opportunity_id !== opp.opportunity_id);
     updateOpps(next);
     setEditingOpp(null);
-    showToast("Oportunidade apagada", true);
+    void postAction(
+      { action: "delete", opportunity_id: opp.opportunity_id },
+      previous,
+      "Não foi possível apagar. A oportunidade voltou ao quadro.",
+    ).then(ok => { if (ok) showToast("Oportunidade apagada", true); });
+  }
 
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
-    }).catch(() => undefined);
+  function openConvert(opp: CrmOpportunity) {
+    setConvertOpp(opp);
+    setConvertName(opp.account_name || opp.opportunity_name);
+  }
+
+  async function saveConvert(event: FormEvent) {
+    event.preventDefault();
+    if (!convertOpp || !convertName.trim()) return;
+    setConvertSaving(true);
+    try {
+      const res = await fetch("/api/crm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          account_name: convertName.trim(),
+          bu: convertOpp.bu,
+          owner: convertOpp.owner,
+          account_type: "customer",
+        }),
+      });
+      let payload: { success?: boolean; error?: string } | null = null;
+      try { payload = await res.json(); } catch { payload = null; }
+      if (persistOutcome(res.ok, payload) === "rollback") {
+        showToast(payload?.error ?? "Não foi possível criar o cliente.", false);
+        return;
+      }
+      setConvertOpp(null);
+      showToast("Cliente criado", true);
+    } catch {
+      showToast("Não foi possível criar o cliente.", false);
+    } finally {
+      setConvertSaving(false);
+    }
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
@@ -921,7 +1057,7 @@ function PipelinePageInner() {
           <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
             <AlertCircle size={14} className="text-amber-500 shrink-0" />
             <span>Não foi possível carregar os dados. </span>
-            <button onClick={() => window.location.reload()} className="underline font-semibold hover:text-amber-900">
+            <button type="button" onClick={() => window.location.reload()} className={`underline font-semibold hover:text-amber-900 ${FOCUS}`}>
               Tentar novamente
             </button>
           </div>
@@ -938,7 +1074,7 @@ function PipelinePageInner() {
           />
         )}
 
-        {/* Toast */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true">{toast?.msg ?? ""}</div>
         {toast && (
           <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
             {toast.msg}
@@ -959,7 +1095,7 @@ function PipelinePageInner() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{kpi.value}</div>
-                <div className="text-xs text-gray-500">{kpi.label}</div>
+                <div className="text-xs text-gray-600">{kpi.label}</div>
               </div>
             </div>
           ))}
@@ -973,7 +1109,7 @@ function PipelinePageInner() {
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
               {["Todos","JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(bu => (
                 <button key={bu} onClick={() => setFilterBU(bu)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBU === bu ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${FOCUS} ${filterBU === bu ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
                   {bu}
                 </button>
               ))}
@@ -982,37 +1118,88 @@ function PipelinePageInner() {
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos","Miguel","Danilo"].map(o => (
               <button key={o} onClick={() => setFilterOwner(o)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterOwner === o ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${FOCUS} ${filterOwner === o ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
                 {o}
               </button>
             ))}
           </div>
           <Link href="/crm/opportunities/add"
-            className="ml-auto flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">
+            className={`ml-auto flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors ${FOCUS}`}>
             <Plus size={13} /> Nova Oportunidade
           </Link>
         </div>
 
-        {/* Kanban Board */}
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
-            {ACTIVE_STAGES.map(stage => (
-              <KanbanColumn
-                key={stage}
-                stage={stage}
-                opps={filtered(stage)}
-                activityCounts={activityCounts}
-                onDrop={handleDrop}
-                onDragOver={(e: DragEvent, s: string) => { e.preventDefault(); setDragOverStage(s); }}
-                onDragLeave={() => setDragOverStage(null)}
-                isDragOver={dragOverStage === stage}
-                onCardClick={opp => openCard(opp, "edit")}
-                onActivityClick={opp => openCard(opp, "activity")}
-                onDeleteClick={handleDelete}
-              />
-            ))}
+        {canScroll && (
+          <p className="text-xs text-gray-600">Deslize para o lado para ver todas as etapas.</p>
+        )}
+        <div className="relative">
+          <div
+            ref={scrollerRef}
+            tabIndex={0}
+            aria-label="Quadro do pipeline. Role na horizontal para ver as etapas."
+            className={`overflow-x-auto pb-4 ${FOCUS}`}
+            onDragStart={(event) => {
+              const card = (event.target as HTMLElement).closest("[data-opp-id]");
+              draggingId.current = card?.getAttribute("data-opp-id") ?? null;
+            }}
+          >
+            <div className="flex gap-4 min-w-max">
+              {ACTIVE_STAGES.map(stage => (
+                <KanbanColumn
+                  key={stage}
+                  stage={stage}
+                  opps={filtered(stage)}
+                  activityCounts={activityCounts}
+                  onDrop={handleDrop}
+                  onDragOver={(e: DragEvent, s: string) => { e.preventDefault(); setDragOverStage(s); }}
+                  onDragLeave={() => setDragOverStage(null)}
+                  isDragOver={dragOverStage === stage}
+                  onCardClick={opp => openCard(opp, "edit")}
+                  onActivityClick={opp => openCard(opp, "activity")}
+                  onDeleteClick={handleDelete}
+                  onMove={persistStageMove}
+                  onConvert={openConvert}
+                />
+              ))}
+            </div>
           </div>
+          {canScroll && (
+            <div className="pointer-events-none absolute right-0 top-0 bottom-4 w-10 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
+          )}
         </div>
+
+        {convertOpp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <form onSubmit={saveConvert} className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Converter em Cliente</h3>
+                  <p className="text-xs text-gray-600 mt-0.5">{convertOpp.opportunity_name}</p>
+                </div>
+                <button type="button" onClick={() => setConvertOpp(null)} aria-label="Fechar" className={`text-gray-600 hover:text-gray-900 ${FOCUS}`}>
+                  <X size={16} />
+                </button>
+              </div>
+              <label className="block">
+                <span className="text-xs font-semibold text-gray-600">Nome do cliente</span>
+                <input
+                  required
+                  value={convertName}
+                  onChange={e => setConvertName(e.target.value)}
+                  className={`mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 ${FOCUS}`}
+                />
+              </label>
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => setConvertOpp(null)} className={`flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-300 text-gray-600 hover:bg-gray-50 ${FOCUS}`}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={convertSaving || !convertName.trim()} className={`flex-1 py-2 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50 ${FOCUS}`}>
+                  {convertSaving ? "Criando…" : "Criar cliente"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
       </div>
     </>
