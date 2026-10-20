@@ -12,7 +12,8 @@
     "test:epm": "tsx scripts/test-epm-db.ts",
     "test:recon": "tsx scripts/test-recon-scoring.ts && tsx scripts/test-recon-engine.ts",
     "test:recon:int": "tsx scripts/test-recon-integration.ts",
-    "test:live-shop": "tsx scripts/test-live-shop.ts"
+    "test:live-shop": "tsx scripts/test-live-shop.ts",
+    "test:migrate-ledger": "node --test --test-concurrency=1 scripts/erp-migrate.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
