@@ -15,7 +15,14 @@ import {
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
-import { persistOutcome, planStageMove, rowsFromPipeline } from "@/lib/crm-pipeline-move";
+import {
+  applyAccountLink,
+  persistOutcome,
+  planStageMove,
+  resolveAccountLink,
+  rollbackItem,
+  rowsFromPipeline,
+} from "@/lib/crm-pipeline-move";
 
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
@@ -570,7 +577,7 @@ function OppCard({
   onActivityClick: (e: React.MouseEvent) => void;
   onDeleteClick: (e: React.MouseEvent) => void;
   onMove: (id: string, stage: string) => void;
-  onConvert: (opp: CrmOpportunity) => void;
+  onConvert: (opp: CrmOpportunity, trigger?: HTMLElement | null) => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const days = daysUntil(opp.expected_close_date);
@@ -672,13 +679,13 @@ function OppCard({
         {hasNoActivity && <AlertCircle size={12} className="text-red-600" />}
       </button>
 
-      <label className="block mb-2" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
-        <span className="text-xs font-semibold text-gray-600 block mb-1">Mover para etapa</span>
+      <label className="flex items-center gap-2 mb-2" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+        <span className="text-xs font-semibold text-gray-600 shrink-0">Etapa</span>
         <select
           aria-label={`Mover ${opp.opportunity_name} para etapa`}
           value={opp.stage}
           onChange={e => onMove(opp.opportunity_id, e.target.value)}
-          className={`w-full text-xs text-gray-600 border border-gray-300 rounded-lg px-2 py-1.5 bg-white ${FOCUS}`}
+          className={`min-w-0 flex-1 text-xs text-gray-600 border border-gray-300 rounded-md px-1.5 py-1 bg-white ${FOCUS}`}
         >
           {ACTIVE_STAGES.map(stage => (
             <option key={stage} value={stage}>{STAGE_CONFIG[stage]!.label}</option>
@@ -712,7 +719,7 @@ function OppCard({
         <>
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); onConvert(opp); }}
+            onClick={e => { e.stopPropagation(); onConvert(opp, e.currentTarget); }}
             className={`mt-2 flex items-center justify-center gap-1 w-full text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-1 hover:bg-emerald-100 transition-colors ${FOCUS}`}
           >
             <UserPlus size={12} /> Converter em Cliente
@@ -762,7 +769,7 @@ function KanbanColumn({
   onActivityClick: (opp: CrmOpportunity) => void;
   onDeleteClick: (opp: CrmOpportunity) => void;
   onMove: (id: string, stage: string) => void;
-  onConvert: (opp: CrmOpportunity) => void;
+  onConvert: (opp: CrmOpportunity, trigger?: HTMLElement | null) => void;
 }) {
   const cfg = STAGE_CONFIG[stage]!;
   const total = opps.reduce((s, o) => s + o.deal_value, 0);
@@ -770,7 +777,7 @@ function KanbanColumn({
 
   return (
     <div
-      className={`flex flex-col min-w-[260px] w-[260px] rounded-xl border-2 transition-colors ${
+      className={`snap-start shrink-0 flex flex-col min-w-[260px] w-[260px] rounded-xl border-2 transition-colors ${
         isDragOver ? "border-brand-400 bg-brand-50/50" : "border-gray-200 bg-gray-50/60"
       }`}
       onDrop={e => onDrop(e, stage)}
@@ -835,6 +842,102 @@ function KanbanColumn({
   );
 }
 
+// ─── Converter em Cliente ─────────────────────────────────────────────────────
+
+function ConvertClientModal({
+  opportunityName,
+  name,
+  saving,
+  onNameChange,
+  onClose,
+  onSubmit,
+}: {
+  opportunityName: string;
+  name: string;
+  saving: boolean;
+  onNameChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent) => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    const node = dialogRef.current;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !node) return;
+      const items = [...node.querySelectorAll<HTMLElement>("button, input, select, textarea, a[href]")].filter(
+        (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1,
+      );
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !node.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onMouseDown={onClose}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="convert-client-title"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+        onMouseDown={event => event.stopPropagation()}
+      >
+        <form onSubmit={onSubmit}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 id="convert-client-title" className="text-sm font-bold text-gray-900">Converter em Cliente</h3>
+              <p className="text-xs text-gray-600 mt-0.5">{opportunityName}</p>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Fechar" className={`text-gray-600 hover:text-gray-900 ${FOCUS}`}>
+              <X size={16} />
+            </button>
+          </div>
+          <label className="block" htmlFor="convert-client-name">
+            <span className="text-xs font-semibold text-gray-600">Nome do cliente</span>
+            <input
+              id="convert-client-name"
+              ref={inputRef}
+              required
+              value={name}
+              onChange={event => onNameChange(event.target.value)}
+              className={`mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 ${FOCUS}`}
+            />
+          </label>
+          <div className="flex gap-3 mt-4">
+            <button type="button" onClick={onClose} className={`flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-300 text-gray-600 hover:bg-gray-50 ${FOCUS}`}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving || !name.trim()} className={`flex-1 py-2 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50 ${FOCUS}`}>
+              {saving ? "Salvando…" : "Converter"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function PipelinePageInner() {
@@ -861,6 +964,7 @@ function PipelinePageInner() {
   const [convertSaving, setConvertSaving] = useState(false);
   const draggingId = useRef<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const convertTrigger = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
@@ -891,10 +995,6 @@ function PipelinePageInner() {
       .catch(() => undefined);
   }, []);
 
-  function updateOpps(next: CrmOpportunity[]) {
-    setOpps(next);
-  }
-
   function showToast(msg: string, ok: boolean) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
@@ -902,14 +1002,24 @@ function PipelinePageInner() {
 
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el) return;
+    if (!el || typeof ResizeObserver === "undefined") return;
     const update = () => setCanScroll(el.scrollWidth > el.clientWidth + 8);
     update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [loading, opps, filterBU, filterOwner]);
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    return () => observer.disconnect();
+  }, [loading]);
 
-  async function postAction(body: unknown, previous: CrmOpportunity[], failure: string) {
+  function restoreItem(id: string, prior: CrmOpportunity | null, index?: number) {
+    setOpps(cur => rollbackItem(cur, id, prior, index));
+  }
+
+  async function postAction(
+    body: unknown,
+    item: { id: string; prior: CrmOpportunity | null; index?: number },
+    failure: string,
+  ) {
     try {
       const res = await fetch("/api/crm/opportunities", {
         method: "POST",
@@ -919,24 +1029,25 @@ function PipelinePageInner() {
       let payload: { success?: boolean; error?: string } | null = null;
       try { payload = await res.json(); } catch { payload = null; }
       if (persistOutcome(res.ok, payload) === "rollback") {
-        setOpps(previous);
+        restoreItem(item.id, item.prior, item.index);
         showToast(payload?.error ?? failure, false);
         return false;
       }
       return true;
     } catch {
-      setOpps(previous);
+      restoreItem(item.id, item.prior, item.index);
       showToast(failure, false);
       return false;
     }
   }
 
   function persistStageMove(id: string, toStage: string) {
+    const prior = opps.find(row => row.opportunity_id === id) ?? null;
     const plan = planStageMove(opps, id, toStage);
-    if (!plan) return;
-    setOpps(plan.next);
+    if (!plan || !prior) return;
+    setOpps(cur => planStageMove(cur, id, toStage)?.next ?? cur);
     const label = STAGE_CONFIG[toStage]?.label ?? toStage;
-    void postAction(plan.body, plan.previous, "Não foi possível mover. A etapa voltou ao lugar.").then(ok => {
+    void postAction(plan.body, { id, prior }, "Não foi possível mover. A etapa voltou ao lugar.").then(ok => {
       if (ok) showToast(`Movido para ${label}`, true);
     });
   }
@@ -965,62 +1076,129 @@ function PipelinePageInner() {
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
-    const previous = opps;
-    const next = opps.map(o => o.opportunity_id === updated.opportunity_id ? updated : o);
-    updateOpps(next);
+    const prior = opps.find(row => row.opportunity_id === updated.opportunity_id) ?? null;
+    setOpps(cur => cur.map(row => row.opportunity_id === updated.opportunity_id ? updated : row));
     setEditingOpp(null);
 
     const { opportunity_id, account_name, contact_name, opportunity_code, created_at, updated_at, ...fields } = updated;
     void postAction(
       { action: "update", opportunity_id, ...fields },
-      previous,
+      { id: opportunity_id, prior },
       "Não foi possível salvar. A oportunidade voltou ao estado anterior.",
     ).then(ok => { if (ok) showToast("Oportunidade atualizada", true); });
   }
 
   function handleDelete(opp: CrmOpportunity) {
-    const previous = opps;
-    const next = opps.filter(o => o.opportunity_id !== opp.opportunity_id);
-    updateOpps(next);
+    const index = opps.findIndex(row => row.opportunity_id === opp.opportunity_id);
+    setOpps(cur => cur.filter(row => row.opportunity_id !== opp.opportunity_id));
     setEditingOpp(null);
     void postAction(
       { action: "delete", opportunity_id: opp.opportunity_id },
-      previous,
+      { id: opp.opportunity_id, prior: opp, index: index === -1 ? undefined : index },
       "Não foi possível apagar. A oportunidade voltou ao quadro.",
     ).then(ok => { if (ok) showToast("Oportunidade apagada", true); });
   }
 
-  function openConvert(opp: CrmOpportunity) {
+  function closeConvert() {
+    setConvertOpp(null);
+    const trigger = convertTrigger.current;
+    convertTrigger.current = null;
+    if (!trigger) return;
+    requestAnimationFrame(() => {
+      if (trigger.isConnected) trigger.focus();
+    });
+  }
+
+  function openConvert(opp: CrmOpportunity, trigger?: HTMLElement | null) {
+    if (opp.account_id) {
+      showToast("Esta oportunidade já está ligada a um cliente.", true);
+      return;
+    }
+    convertTrigger.current = trigger ?? null;
     setConvertOpp(opp);
     setConvertName(opp.account_name || opp.opportunity_name);
   }
 
   async function saveConvert(event: FormEvent) {
     event.preventDefault();
-    if (!convertOpp || !convertName.trim()) return;
+    if (!convertOpp || convertSaving) return;
+    const opp = convertOpp;
+    const requestedName = convertName.trim();
+    if (!requestedName) return;
+    if (opp.account_id) {
+      showToast("Esta oportunidade já está ligada a um cliente.", true);
+      closeConvert();
+      return;
+    }
+
     setConvertSaving(true);
     try {
-      const res = await fetch("/api/crm/accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          account_name: convertName.trim(),
-          bu: convertOpp.bu,
-          owner: convertOpp.owner,
-          account_type: "customer",
-        }),
-      });
-      let payload: { success?: boolean; error?: string } | null = null;
-      try { payload = await res.json(); } catch { payload = null; }
-      if (persistOutcome(res.ok, payload) === "rollback") {
-        showToast(payload?.error ?? "Não foi possível criar o cliente.", false);
+      const searchRes = await fetch(`/api/crm/accounts?search=${encodeURIComponent(requestedName)}`);
+      let searchPayload: { success?: boolean; data?: { account_id?: string; account_name?: string }[] } | null = null;
+      try { searchPayload = await searchRes.json(); } catch { searchPayload = null; }
+      if (!searchRes.ok || !searchPayload?.success || !Array.isArray(searchPayload.data)) {
+        showToast("Não foi possível verificar clientes existentes.", false);
         return;
       }
-      setConvertOpp(null);
-      showToast("Cliente criado", true);
+      const accounts = searchPayload.data.flatMap(row =>
+        row.account_id && row.account_name ? [{ account_id: row.account_id, account_name: row.account_name }] : [],
+      );
+      const decision = resolveAccountLink({
+        existingAccountId: opp.account_id,
+        requestedName,
+        accounts,
+      });
+      if (decision.kind === "invalid" || decision.kind === "already-linked") {
+        showToast(
+          decision.kind === "already-linked"
+            ? "Esta oportunidade já está ligada a um cliente."
+            : "Informe o nome do cliente.",
+          decision.kind === "already-linked",
+        );
+        if (decision.kind === "already-linked") closeConvert();
+        return;
+      }
+
+      let account = decision.kind === "reuse"
+        ? { account_id: decision.account_id, account_name: decision.account_name }
+        : null;
+      if (!account) {
+        const createRes = await fetch("/api/crm/accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create",
+            account_name: decision.account_name,
+            bu: opp.bu,
+            owner: opp.owner,
+            account_type: "customer",
+          }),
+        });
+        let created: { success?: boolean; error?: string; data?: { account_id?: string; account_name?: string } } | null = null;
+        try { created = await createRes.json(); } catch { created = null; }
+        if (persistOutcome(createRes.ok, created) === "rollback" || !created?.data?.account_id) {
+          showToast(created?.error ?? "Não foi possível criar o cliente.", false);
+          return;
+        }
+        account = {
+          account_id: created.data.account_id,
+          account_name: created.data.account_name || decision.account_name,
+        };
+      }
+
+      const prior = opps.find(row => row.opportunity_id === opp.opportunity_id) ?? opp;
+      setOpps(cur => applyAccountLink(cur, opp.opportunity_id, account));
+      closeConvert();
+      const linked = await postAction(
+        { action: "update", opportunity_id: opp.opportunity_id, account_id: account.account_id },
+        { id: opp.opportunity_id, prior },
+        "Não foi possível ligar o cliente. A oportunidade voltou ao estado anterior.",
+      );
+      if (linked) {
+        showToast(decision.kind === "reuse" ? "Cliente existente ligado à oportunidade" : "Cliente criado e ligado à oportunidade", true);
+      }
     } catch {
-      showToast("Não foi possível criar o cliente.", false);
+      showToast("Não foi possível converter em cliente.", false);
     } finally {
       setConvertSaving(false);
     }
@@ -1137,7 +1315,7 @@ function PipelinePageInner() {
             ref={scrollerRef}
             tabIndex={0}
             aria-label="Quadro do pipeline. Role na horizontal para ver as etapas."
-            className={`overflow-x-auto pb-4 ${FOCUS}`}
+            className={`overflow-x-auto pb-4 snap-x snap-mandatory ${FOCUS}`}
             onDragStart={(event) => {
               const card = (event.target as HTMLElement).closest("[data-opp-id]");
               draggingId.current = card?.getAttribute("data-opp-id") ?? null;
@@ -1169,36 +1347,14 @@ function PipelinePageInner() {
         </div>
 
         {convertOpp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <form onSubmit={saveConvert} className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">Converter em Cliente</h3>
-                  <p className="text-xs text-gray-600 mt-0.5">{convertOpp.opportunity_name}</p>
-                </div>
-                <button type="button" onClick={() => setConvertOpp(null)} aria-label="Fechar" className={`text-gray-600 hover:text-gray-900 ${FOCUS}`}>
-                  <X size={16} />
-                </button>
-              </div>
-              <label className="block">
-                <span className="text-xs font-semibold text-gray-600">Nome do cliente</span>
-                <input
-                  required
-                  value={convertName}
-                  onChange={e => setConvertName(e.target.value)}
-                  className={`mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 ${FOCUS}`}
-                />
-              </label>
-              <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setConvertOpp(null)} className={`flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-300 text-gray-600 hover:bg-gray-50 ${FOCUS}`}>
-                  Cancelar
-                </button>
-                <button type="submit" disabled={convertSaving || !convertName.trim()} className={`flex-1 py-2 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50 ${FOCUS}`}>
-                  {convertSaving ? "Criando…" : "Criar cliente"}
-                </button>
-              </div>
-            </form>
-          </div>
+          <ConvertClientModal
+            opportunityName={convertOpp.opportunity_name}
+            name={convertName}
+            saving={convertSaving}
+            onNameChange={setConvertName}
+            onClose={closeConvert}
+            onSubmit={saveConvert}
+          />
         )}
 
       </div>
