@@ -11,6 +11,7 @@ import {
 import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
 import { andarDaEmpresa, ANDARES, layoutPredios, SALA_ESTUDIO, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
 import { aparenciaDe } from "@/lib/office-aparencia";
+import { CorpoQuaternius, type PoseCorpo } from "./CorpoQuaternius";
 const EstudioViewport = lazy(() => import("./studio/StudioSet").then((m) => ({ default: m.EstudioViewport })));
 import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
@@ -111,34 +112,6 @@ function horaInicial(): number {
 
 function horaTravada(): boolean {
   return qaHoraLiberada() && !!window.localStorage.getItem("office-hora");
-}
-
-// ── Cabelo por papel: mesma ideia de silhueta reconhecível do mundo 2D (cabeloDoPapel em
-// lib/office-world.ts), só que em geometria 3D em vez de pixels. ──────────────────────────
-
-function Cabelo({ papel, cor }: { papel: Agente; cor: string }) {
-  const mat = <meshStandardMaterial color={cor} roughness={0.85} />;
-  switch (papel) {
-    case "criativo": // topete desalinhado, mais alto de um lado
-      return (
-        <group>
-          <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
-          <mesh position={[0.08, 1.34, -0.02]} rotation-z={0.3} castShadow><coneGeometry args={[0.07, 0.16, 8]} />{mat}</mesh>
-        </group>
-      );
-    case "midia": // preso atrás, volume alto
-      return (
-        <group>
-          <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
-          <mesh position={[0, 1.08, -0.18]} castShadow><sphereGeometry args={[0.09, 10, 10]} />{mat}</mesh>
-        </group>
-      );
-    case "ref": // curto e discreto, repartido de lado
-      return <mesh position={[0, 1.18, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.42]} />{mat}</mesh>;
-    case "cs":
-    default: // repartido ao meio, clássico
-      return <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.52]} />{mat}</mesh>;
-  }
 }
 
 // ── Navegação: grade de células por sala (todas as salas têm o mesmo layout de mesas, então
@@ -261,6 +234,7 @@ function Personagem({
   const bracoD = useRef<THREE.Mesh>(null);
   const pernaE = useRef<THREE.Mesh>(null);
   const pernaD = useRef<THREE.Mesh>(null);
+  const poseRef = useRef<PoseCorpo>("sentado");
   const t0 = useRef(Math.random() * 10);
 
   const posAtual = useRef(new THREE.Vector3(basePos[0], 0, basePos[1]));
@@ -285,6 +259,7 @@ function Personagem({
     if (!grupo.current || !corpoRef.current) return;
 
     if (ancorado) {
+      poseRef.current = "sentado";
       fase.current = "no-lugar";
       caminho.current = [];
       posAtual.current.set(basePos[0], 0, basePos[1]);
@@ -296,17 +271,18 @@ function Personagem({
         if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
         if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
         corpoRef.current.rotation.x = 0.06;
-        corpoRef.current.position.y = 0.55;
+        corpoRef.current.position.y = 0;
       } else {
         if (bracoE.current) bracoE.current.rotation.x = 0;
         if (bracoD.current) bracoD.current.rotation.x = 0;
         corpoRef.current.rotation.x = 0;
-        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
+        corpoRef.current.position.y = Math.sin(t0.current * 1.4) * 0.006;
       }
       return;
     }
 
     if (estado !== "idle") {
+      poseRef.current = "sentado";
       // trabalhando/entregue/com erro: sentado no lugar, de frente pro monitor
       fase.current = "no-lugar";
       caminho.current = [];
@@ -319,19 +295,20 @@ function Personagem({
         if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
         if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
         corpoRef.current.rotation.x = 0.06;
-        corpoRef.current.position.y = 0.55;
+        corpoRef.current.position.y = 0;
       } else {
         if (bracoE.current) bracoE.current.rotation.x = 0;
         if (bracoD.current) bracoD.current.rotation.x = 0;
         corpoRef.current.rotation.x = 0;
-        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
+        corpoRef.current.position.y = Math.sin(t0.current * 1.4) * 0.006;
       }
       return;
     }
 
     // ocioso: no-lugar (respirando) → indo (passeio) → fora (pausa) → voltando → no-lugar...
     if (fase.current === "no-lugar" || fase.current === "fora") {
-      corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
+      corpoRef.current.position.y = Math.sin(t0.current * 1.4) * 0.006;
+      poseRef.current = fase.current === "no-lugar" ? "sentado" : "idle";
       if (fase.current === "no-lugar") { grupo.current.rotation.y = OLHAR_CAMERA; sentarPernas(); } else pararPernas();
       temporizador.current -= dt;
       if (temporizador.current <= 0) {
@@ -367,6 +344,7 @@ function Personagem({
         } else {
           delta.normalize();
           posAtual.current.addScaledVector(delta, Math.min(velocidade * dt, dist));
+          poseRef.current = "walk";
           grupo.current.rotation.y = Math.atan2(delta.x, delta.z);
           const osc = Math.sin(t0.current * 9);
           if (pernaE.current) pernaE.current.rotation.x = osc * 0.5;
@@ -406,78 +384,14 @@ function Personagem({
           </sprite>
         </>
       )}
-      <group scale={[L.altura, L.altura, L.altura]}>
-        {/* pernas */}
-        <mesh ref={pernaE} position={[-0.1, 0.27, 0]} castShadow>
-          <capsuleGeometry args={[0.065, 0.3, 4, 8]} />
-          <meshStandardMaterial color={L.calca} roughness={0.8} />
-        </mesh>
-        <mesh ref={pernaD} position={[0.1, 0.27, 0]} castShadow>
-          <capsuleGeometry args={[0.065, 0.3, 4, 8]} />
-          <meshStandardMaterial color={L.calca} roughness={0.8} />
-        </mesh>
-        {/* sapatos */}
-        <mesh position={[-0.1, 0.045, 0.045]} castShadow>
-          <boxGeometry args={[0.09, 0.07, 0.17]} />
-          <meshStandardMaterial color="#1c1917" roughness={0.5} />
-        </mesh>
-        <mesh position={[0.1, 0.045, 0.045]} castShadow>
-          <boxGeometry args={[0.09, 0.07, 0.17]} />
-          <meshStandardMaterial color="#1c1917" roughness={0.5} />
-        </mesh>
-        {/* tronco + cabeça (o grupo que "respira"/inclina) */}
-        <group ref={corpoRef} position={[0, 0.55, 0]}>
-          {selecionado && (
-            <RoundedBox args={[0.34, 0.42, 0.23]} radius={0.06} position={[0, 0, 0]}>
-              <meshBasicMaterial color="#fbbf24" side={THREE.BackSide} />
-            </RoundedBox>
-          )}
-          <RoundedBox args={[0.3, 0.38, 0.19]} radius={0.05} position={[0, 0, 0]} castShadow>
-            <meshStandardMaterial color={L.corpo} roughness={0.75} />
-          </RoundedBox>
-          {L.jaqueta && (
-            <group>
-              {/* paletó aberto: as costas e as laterais deixam a camisa aparecer no meio */}
-              <mesh position={[0, 0.02, -0.07]} castShadow>
-                <boxGeometry args={[0.32, 0.36, 0.05]} />
-                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
-              </mesh>
-              <mesh position={[-0.125, 0.01, 0.02]} castShadow>
-                <boxGeometry args={[0.07, 0.36, 0.16]} />
-                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
-              </mesh>
-              <mesh position={[0.125, 0.01, 0.02]} castShadow>
-                <boxGeometry args={[0.07, 0.36, 0.16]} />
-                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
-              </mesh>
-            </group>
-          )}
-          {/* braços — a jaqueta, quando existe, cobre a manga */}
-          <mesh ref={bracoE} position={[-0.19, 0.05, 0]} castShadow>
-            <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
-            <meshStandardMaterial color={L.jaqueta ?? L.corpo} roughness={0.75} />
+      <group ref={corpoRef} scale={[L.altura, L.altura, L.altura]}>
+        <CorpoQuaternius semente={semente} poseRef={poseRef} />
+        {corIndicador && (
+          <mesh position={[0, 1.22, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshStandardMaterial color={corIndicador} emissive={corIndicador} emissiveIntensity={estado === "working" ? 1.4 : 0.8} />
           </mesh>
-          <mesh ref={bracoD} position={[0.19, 0.05, 0]} castShadow>
-            <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
-            <meshStandardMaterial color={L.jaqueta ?? L.corpo} roughness={0.75} />
-          </mesh>
-          {/* pescoço + cabeça */}
-          <mesh position={[0, 0.25, 0]} castShadow>
-            <cylinderGeometry args={[0.055, 0.06, 0.08, 10]} />
-            <meshStandardMaterial color={L.pele} roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 0.42, 0]} castShadow>
-            <sphereGeometry args={[0.145, 16, 16]} />
-            <meshStandardMaterial color={L.pele} roughness={0.6} />
-          </mesh>
-          <group position={[0, 0.42, 0]}><Cabelo papel={papel} cor={L.cabelo} /></group>
-          {corIndicador && (
-            <mesh position={[0, 0.72, 0]}>
-              <sphereGeometry args={[0.045, 8, 8]} />
-              <meshStandardMaterial color={corIndicador} emissive={corIndicador} emissiveIntensity={estado === "working" ? 1.4 : 0.8} />
-            </mesh>
-          )}
-        </group>
+        )}
       </group>
     </group>
   );
