@@ -627,6 +627,7 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
+      <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={0.7} distance={10} decay={2} />
       <group position={[0, 0, 0.02]}>
         <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} />
       </group>
@@ -804,6 +805,7 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
+      <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={0.7} distance={10} decay={2} />
       <group position={[0, 0, 0.02]}>
         <ParedeDetalhada comprimento={w} corAccent={accent} />
       </group>
@@ -985,27 +987,34 @@ function CameraRig({
 function Iluminacao({ hora }: { hora: number }) {
   const l = luzDoDia(hora);
   const ceuAtual = ceu(hora);
+  const sol = useRef<THREE.DirectionalLight>(null);
+  const alvoSol = useRef<THREE.Object3D>(null);
+  useEffect(() => {
+    if (sol.current && alvoSol.current) sol.current.target = alvoSol.current;
+  }, []);
   return (
     <>
       <color attach="background" args={[ceuAtual.base]} />
-      <hemisphereLight args={[ceuAtual.topo, "#4b5567", 0.55 + l * 0.35]} />
-      <ambientLight intensity={0.4 + l * 0.25} />
+      <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.22]} />
+      <ambientLight intensity={0.2} />
+      {/* Sol baixo, cor #ffcf8a, entrando pela fachada (z negativo) e cruzando as salas. */}
       <directionalLight
-        position={[12, 18, 8]}
-        intensity={0.4 + l * 0.9}
-        color={l > 0.3 ? "#fff6e0" : "#b9c6ff"}
+        ref={sol}
+        position={[20, 5.4, -16]}
+        intensity={0.55 + l * 0.75}
+        color="#ffcf8a"
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-near={1}
-        shadow-camera-far={90}
-        shadow-camera-left={-10}
-        shadow-camera-right={55}
-        shadow-camera-top={45}
-        shadow-camera-bottom={-10}
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.035}
+        shadow-camera-near={2}
+        shadow-camera-far={80}
+        shadow-camera-left={-26}
+        shadow-camera-right={26}
+        shadow-camera-top={24}
+        shadow-camera-bottom={-24}
       />
-      {/* luz de preenchimento fixa do lado oposto: nenhuma face do personagem fica 100% preta
-          à noite, mesmo vista de um ângulo contrário à luz direcional principal */}
-      <directionalLight position={[-10, 10, -6]} intensity={0.45} color="#9fc0ff" />
+      <object3D ref={alvoSol} position={[20, 1.1, 14]} />
     </>
   );
 }
@@ -1017,6 +1026,8 @@ function ConfigRenderer() {
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = 1.15;
+    gl.shadowMap.enabled = true;
+    gl.shadowMap.type = THREE.PCFSoftShadowMap;
   }, [gl]);
   return null;
 }
@@ -1357,7 +1368,7 @@ export default function OfficeGame3D(props: Props) {
         <Suspense fallback={null}>
           <EstudioViewport />
         </Suspense>
-      ) : <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
+      ) : <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
         <Suspense fallback={null}>
           <Cena
             predios={predios}
