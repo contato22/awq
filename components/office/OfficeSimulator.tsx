@@ -1203,6 +1203,7 @@ export default function OfficeSimulator() {
           ...ANDARES.map((a) => ({ id: `a:${a.id}`, tipo: "andar" as const, rotulo: `Andar ${a.numero} · ${a.nome}`, sub: a.descricao, andar: a.id })),
           { id: "s:reunioes", tipo: "sala" as const, rotulo: "Sala de reuniões", sub: "reunião dos CSs", sala: "reunioes" as const },
           { id: "s:diretoria", tipo: "sala" as const, rotulo: "Sala do Miguel", sub: "diretoria", sala: "diretoria" as const },
+          { id: "s:estudio", tipo: "sala" as const, rotulo: "Estúdio", sub: "Caza Vision · Produtora", sala: "estudio" as const, andar: "caza" as const },
         ]}
         reuniao={painelAberto && tab === "reuniao" ? squads.filter((sq) => sq.agents.cs).map((sq) => { const st = reuResp[sq.bu]?.status; return st ?? "chegando"; }) : undefined}
         onPainel={(aberto, t) => { if (t) setTab(t); setPainelAberto(aberto); }}

@@ -19,7 +19,7 @@ const GHm = 13;
 const WALL = 44;
 
 /** Andares do prédio: cada um é uma BU do grupo, com paleta própria. */
-export type AndarId = "jacqes" | "awaqe";
+export type AndarId = "jacqes" | "awaqe" | "caza";
 
 export interface Andar {
   id: AndarId;
@@ -31,12 +31,25 @@ export interface Andar {
 export const ANDARES: Andar[] = [
   { id: "jacqes", numero: 1, nome: "JACQES", descricao: "BU que cuida dos clientes de social media" },
   { id: "awaqe", numero: 2, nome: "AWAQE", descricao: "BU AWAQE" },
+  { id: "caza", numero: 3, nome: "Caza Vision", descricao: "Produtora" },
 ];
 
-/** BUs (nomes das squads) que ficam fora do 1º andar. Hoje todas as squads de clientes são da JACQES. */
-export const ANDAR_DA_BU: Record<string, AndarId> = {};
+/**
+ * BUs (nomes das squads) que ficam fora do 1º andar.
+ * A Caza Vision, produtora, mora no 3º andar — o do Estúdio.
+ */
+export const ANDAR_DA_BU: Record<string, AndarId> = {
+  "Caza Vision": "caza",
+  Caza_Vision: "caza",
+  CAZA: "caza",
+};
 
-export const andarDaEmpresa = (e: { bu: string; andar?: AndarId }): AndarId => e.andar ?? ANDAR_DA_BU[e.bu] ?? "jacqes";
+const ANDAR_DA_BU_NORM: Record<string, AndarId> = Object.fromEntries(
+  Object.entries(ANDAR_DA_BU).map(([k, v]) => [k.trim().toLowerCase(), v]),
+);
+
+export const andarDaEmpresa = (e: { bu: string; andar?: AndarId }): AndarId =>
+  e.andar ?? ANDAR_DA_BU[e.bu] ?? ANDAR_DA_BU_NORM[e.bu.trim().toLowerCase()] ?? "jacqes";
 
 export interface Empresa {
   bu: string;
@@ -84,6 +97,18 @@ export const SALAS_CASA = {
   reunioes: SLOTS[5],
 } as const;
 
+/** Sala do Estúdio no andar da Caza Vision (mesmo slot da sala de reuniões dos outros andares). */
+export const SALA_ESTUDIO = {
+  id: "estudio" as const,
+  nome: "Estúdio",
+  andar: "caza" as const,
+  slot: SLOTS[5],
+  lado: LADO,
+  alt: ALT_PAREDE,
+};
+
+export type SalaCasaId = "diretoria" | "reunioes" | "estudio";
+
 export function layoutPredios(empresas: Empresa[]): PredioW[] {
   return empresas.slice(0, SLOTS_CLIENTES.length).map((e, i) => {
     const sl = SLOTS[SLOTS_CLIENTES[i]];
@@ -130,6 +155,11 @@ export function centroDaReuniao(): { x: number; y: number } {
   return { x: c.x, y: c.y - 6 };
 }
 
+/** Centro do Estúdio da Caza (mesmo slot, outro andar). */
+export function centroDoEstudio(): { x: number; y: number } {
+  return centroDaReuniao();
+}
+
 /** Centro da sala do Miguel (para a câmera). */
 export function centroDaDiretoria(): { x: number; y: number } {
   const sl = SLOTS[0];
@@ -142,9 +172,10 @@ const ASSENTOS: [number, number][] = [[1.5, 1.5], [2.5, 1.5], [3.5, 1.5], [1.5, 
 const CABECEIRA: [number, number] = [4.5, 2.5];
 const LOOKS: Papel[] = ["ref", "criativo", "midia", "ref", "criativo", "midia"];
 
-/** Sala da casa (sala do Miguel ou de reuniões) sob o ponto, se houver. */
-export function casaNoPonto(x: number, y: number): "diretoria" | "reunioes" | null {
-  for (const [i, tipo] of [[0, "diretoria"], [5, "reunioes"]] as const) {
+/** Sala da casa sob o ponto. No andar da Caza o slot de reuniões é o Estúdio. */
+export function casaNoPonto(x: number, y: number, andar: AndarId = "jacqes"): SalaCasaId | null {
+  const salas: [number, SalaCasaId][] = [[0, "diretoria"], [5, andar === "caza" ? "estudio" : "reunioes"]];
+  for (const [i, tipo] of salas) {
     const sl = SLOTS[i];
     const t = iw(sl.x, sl.y), r = iw(sl.x + LADO, sl.y), b = iw(sl.x + LADO, sl.y + LADO), l = iw(sl.x, sl.y + LADO);
     const poly = [
@@ -161,6 +192,7 @@ interface Paleta { paredeD: string; paredeE: string; rodape: string; corredor: [
 const PALETAS: Record<AndarId, Paleta> = {
   jacqes: { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#c9a876", "#bd9a66"], passadeira: ["#35508f", "#30498a"], faixa: "#2c4382" },
   awaqe: { paredeD: "#1f5e58", paredeE: "#184a46", rodape: "#0d302d", corredor: ["#cdb37f", "#c2a873"], passadeira: ["#2f7a6f", "#2a6e64"], faixa: "#1f5e58" },
+  caza: { paredeD: "#6b2d3c", paredeE: "#542333", rodape: "#3a1520", corredor: ["#c4b49a", "#b7a78c"], passadeira: ["#8f3d4e", "#7d3344"], faixa: "#6b2d3c" },
 };
 
 function colunaParede(lado: "D" | "E", u: number) {
@@ -672,6 +704,51 @@ function rotulo(c: CanvasRenderingContext2D, p: PredioW, op: OpcoesMundo) {
   }
 }
 
+/** Estúdio da Caza: ciclorama, grade no piso, três refletores e a câmera no tripé. */
+function estudio(c: CanvasRenderingContext2D, s: { x: number; y: number }, add: (d: number, f: () => void) => void) {
+  add(s.x + s.y + 0.6, () => {
+    const topo = iw(s.x + LADO / 2, s.y);
+    const nome = "ESTÚDIO";
+    c.font = "bold 5.5px sans-serif";
+    const w = Math.ceil(c.measureText(nome).width) + 10;
+    const x = Math.round(topo.x - w / 2), y = Math.round(topo.y - ALT_PAREDE - 18);
+    ret(c, x - 0.5, y - 0.5, w + 1, 10, OUT);
+    ret(c, x, y, w, 9, "#6b2d3c");
+    ret(c, x + 2, y + 3, 3, 3, "#fbbf24");
+    c.fillStyle = "#f8fafc";
+    c.textAlign = "left";
+    c.textBaseline = "middle";
+    c.fillText(nome, x + 6.5, y + 4.8);
+  });
+  add(s.x + 2 + s.y + 0.35, () => {
+    const q = iw(s.x + 2.5, s.y + 0.6);
+    ret(c, q.x - 18, q.y - 20, 36, 12, "#f7f4ee");
+    ret(c, q.x - 18, q.y - 20, 36, 1, "#ffffff");
+    ret(c, q.x - 18, q.y - 9, 36, 2, "#e4ddd2");
+  });
+  add(s.x + 2 + s.y + 2.2, () => {
+    for (let i = 0; i < 3; i++) {
+      const q = iw(s.x + 1.5 + i, s.y + 2.2);
+      losango(c, q.x, q.y, "rgba(255,255,255,0.45)");
+    }
+  });
+  const luzes: [number, number, string][] = [[1.2, 1.2, "#fde68a"], [3.8, 1.2, "#bfdbfe"], [2.5, 0.8, "#ffffff"]];
+  for (const [dx, dy, cor] of luzes) {
+    add(s.x + dx + s.y + dy + 0.15, () => {
+      const q = iw(s.x + dx, s.y + dy);
+      ret(c, q.x, q.y - 14, 0.5, 14, "#475569");
+      disco(c, q.x + 0.25, q.y - 15, 2.2, cor);
+    });
+  }
+  add(s.x + 2.5 + s.y + 3.4, () => {
+    const q = iw(s.x + 2.5, s.y + 3.4);
+    ret(c, q.x - 3, q.y - 1, 6, 0.5, "#334155");
+    ret(c, q.x, q.y - 9, 0.5, 9, "#334155");
+    ret(c, q.x - 3, q.y - 12, 6, 3.5, "#0f172a");
+    ret(c, q.x + 2, q.y - 11, 3, 1.5, "#38bdf8");
+  });
+}
+
 /** Áreas da casa: a sala do Miguel (topo da planta) e a sala de reuniões. */
 function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, tipo: "diretoria" | "reunioes", op: OpcoesMundo, add: (d: number, f: () => void) => void) {
   const nome = tipo === "diretoria" ? "SALA DO MIGUEL" : "SALA DE REUNIÕES";
@@ -792,6 +869,7 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
     if (predios.some((p) => p.x === s.x && p.y === s.y)) return;
     if (SLOTS_CLIENTES.includes(i)) lounge(c, s, op, add, sombra);
     else if (i === 0) areaDaCasa(c, s, "diretoria", op, add);
+    else if (i === 5 && andar === "caza") estudio(c, s, add);
     else if (i === 5) areaDaCasa(c, s, "reunioes", op, add);
   });
   for (const [gx, gy] of [[0, 6.5], [17, 6.5], [6, 12], [12, 0]] as const) add(gx + gy + 0.3, () => { const q = iw(gx + 0.5, gy + 0.5); planta(c, q.x, q.y, op.quadro + gx); });
