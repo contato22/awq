@@ -37,10 +37,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
           cache: npm
@@ -58,11 +58,24 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # Bloqueante. test:recon, test:live-shop e os testes node:test de
+      # api-auth / rate-limit. Não usa banco nem secret.
+      - name: Unit tests (no database)
+        run: npm test
+
+      # Não bloqueante. `npm audit --audit-level=high` falha no lockfile
+      # atual (next, next-auth, pdfjs-dist, postcss e transitivas). Corrigir
+      # é outro PR; o upgrade de Next fica fora deste harness.
+      - name: npm audit (high, non-blocking)
+        id: audit
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
       - name: Build
         run: npm run build
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
@@ -99,7 +112,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always() && steps.smoke.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report
           path: playwright-report/
@@ -110,13 +123,15 @@ jobs:
         if: always()
         env:
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
         run: |
           {
             echo "## CI Harness"
             echo ""
             echo "- Commit: \`${{ github.sha }}\`"
             echo "- Branch: \`${{ github.ref_name }}\`"
-            echo "- Lint, typecheck, build e smoke Playwright são **bloqueantes**."
+            echo "- Lint, typecheck, \`npm test\`, build e smoke Playwright são **bloqueantes**."
             echo "- Smoke Playwright: \`$SMOKE_OUTCOME\`."
+            echo "- \`npm audit --audit-level=high\`: \`$AUDIT_OUTCOME\` (não bloqueia; vulnerabilidades já estão no lockfile)."
             echo "- Env só com placeholders. Nenhum secret de produção entra neste workflow."
           } >> "$GITHUB_STEP_SUMMARY"

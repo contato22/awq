@@ -1,7 +1,7 @@
 /**
- * Smoke tests — core public routes and the anonymous boundary of /api/erp/health.
+ * Smoke tests — public routes and the anonymous boundary of sensitive /api routes.
  * CI points PLAYWRIGHT_BASE_URL at the server built in the same job.
- * The default in playwright.config.ts is the live deployment.
+ * playwright.config.ts defaults to http://127.0.0.1:3000 and refuses production.
  */
 import { test, expect } from "@playwright/test";
 
@@ -46,4 +46,61 @@ test.describe("ERP health stays behind auth", () => {
     expect(text).not.toContain("erp_assets");
     expect(text).not.toContain("service_role");
   });
+});
+
+const SENSITIVE_BEHIND_MIDDLEWARE = [
+  "/api/setup/migrate",
+  "/api/cora/sync",
+  "/api/cora/debug",
+  "/api/conciliacao/data",
+  "/api/epm/dre",
+  "/api/office/state",
+  "/api/crm/accounts",
+  "/api/ingest/upload",
+  "/api/internal/test-supabase",
+  "/api/security/audit",
+];
+
+// Fora do matcher do middleware. O handler tem de negar sozinho
+// (sessão ou Bearer). 200 aqui seria seed, sync ou dump anônimo.
+const SENSITIVE_CLOSED = [
+  { method: "GET" as const, path: "/api/setup/seed-btg-extract-jun2026" },
+  { method: "GET" as const, path: "/api/setup/seed-itau-extract-jun2026" },
+  { method: "GET" as const, path: "/api/setup/seed-santander-extracts" },
+  { method: "GET" as const, path: "/api/setup/backfill-snapshots" },
+  { method: "GET" as const, path: "/api/cora/cron-sync" },
+  { method: "GET" as const, path: "/api/cora/audit-probe" },
+  { method: "POST" as const, path: "/api/cora/sync-probe" },
+  { method: "GET" as const, path: "/api/office/head/tick" },
+  { method: "GET" as const, path: "/api/enrd/debug-saldo" },
+  { method: "GET" as const, path: "/api/enrd/montagem/cron-sync" },
+  { method: "GET" as const, path: "/api/live-shop/cron" },
+];
+
+test.describe("Sensitive APIs deny anonymous access", () => {
+  for (const path of SENSITIVE_BEHIND_MIDDLEWARE) {
+    test(`GET ${path} redirects and does not return data`, async ({ request }) => {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect([302, 307], path).toContain(res.status());
+      const location = res.headers()["location"] ?? "";
+      expect(location, path).toMatch(/\/api\/auth\/signin|\/login/);
+      const text = await res.text();
+      expect(text, path).not.toContain("service_role");
+      expect(text, path).not.toContain("CREATE TABLE");
+    });
+  }
+
+  for (const { method, path } of SENSITIVE_CLOSED) {
+    test(`${method} ${path} does not run for an anonymous caller`, async ({ request }) => {
+      const res =
+        method === "GET"
+          ? await request.get(path, { maxRedirects: 0 })
+          : await request.post(path, { maxRedirects: 0, data: {} });
+      expect([401, 403, 503], `${method} ${path}`).toContain(res.status());
+      const text = await res.text();
+      expect(text, path).not.toContain("already_seeded");
+      expect(text, path).not.toContain('"seeded"');
+      expect(text, path).not.toContain("service_role");
+    });
+  }
 });

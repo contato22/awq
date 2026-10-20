@@ -1,13 +1,13 @@
 name: Deploy to GitHub Pages
 
+# Vitrine estática. Os JSON em public/data/ já estão no repositório.
+# O Notion não é mais fonte: não há fetch, cron diário nem secrets NOTION_*.
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-  schedule:
-    # Rebuild daily at 03:00 UTC to pick up Notion changes automatically
-    - cron: "0 3 * * *"
 
 permissions:
   contents: write
@@ -17,51 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Fetch data for static export (Notion as source of truth)
-        run: node scripts/fetch-notion-static.mjs
-        env:
-          # ── GitHub Pages static build always uses Notion ─────────────────────
-          # DATABASE_URL is intentionally NOT passed here: Neon is the
-          # operational DB for Vercel SSR only. The static vitrine must always
-          # reflect Notion (the source of truth), not a potentially-stale DB.
-          # ── Notion credentials ──────────────────────────────────────────
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
-          NOTION_DATABASE_ID_CAZA_FINANCIAL: ${{ secrets.NOTION_DATABASE_ID_CAZA_FINANCIAL }}
-          NOTION_DATABASE_ID_CAZA_CLIENTS: ${{ secrets.NOTION_DATABASE_ID_CAZA_CLIENTS }}
-          NOTION_DATABASE_ID_VENTURE_SALES: ${{ secrets.NOTION_DATABASE_ID_VENTURE_SALES }}
-
-      - name: Verify data (diagnose empty vs real)
-        run: |
-          echo "=== Data pipeline status ==="
-          node -e "
-            const fs = require('fs');
-            const props = JSON.parse(fs.readFileSync('public/data/caza-properties.json','utf8'));
-            const fin   = JSON.parse(fs.readFileSync('public/data/caza-financial.json','utf8'));
-            const cli   = JSON.parse(fs.readFileSync('public/data/caza-clients.json','utf8'));
-            const stats = JSON.parse(fs.readFileSync('public/data/caza-stats.json','utf8'));
-            console.log('properties:', props.length, 'records');
-            console.log('financial:', fin.length, 'records');
-            console.log('clients:', cli.length, 'records');
-            console.log('stats source:', stats.source);
-            if (props.length === 0 && fin.length === 0 && cli.length === 0) {
-              console.error('WARNING: all Caza data files are empty — check NOTION_TOKEN secret in repo settings');
-            } else {
-              console.log('OK: real data fetched successfully');
-            }
-          "
 
       - name: Build
         run: npm run build
@@ -94,7 +59,7 @@ jobs:
           du -sh ./out
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3.9.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./out

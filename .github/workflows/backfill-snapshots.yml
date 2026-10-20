@@ -1,12 +1,10 @@
 name: Backfill Balance Snapshots (one-shot)
 
+# Só workflow_dispatch, a partir da main, no environment `production`.
+# O push na branch claude/busy-cannon-8bblzi foi removido.
+
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - claude/busy-cannon-8bblzi
-    paths:
-      - '.github/workflows/backfill-snapshots.yml'
 
 permissions:
   contents: read
@@ -15,6 +13,8 @@ jobs:
   backfill:
     name: Disparar /api/setup/backfill-snapshots
     runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.ref == 'refs/heads/main' }}
     timeout-minutes: 15
     env:
       PROBE_SECRET: ${{ secrets.PROBE_SECRET }}

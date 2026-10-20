@@ -8,7 +8,9 @@ name: Conciliação — bootstrap & verify (manual)
 #   SUPABASE_DB_URL = connection string do Postgres do Supabase
 #   (Supabase → Project Settings → Database → Connection string → "Session"/URI)
 #
-# Dispare manualmente em Actions → "Conciliação — bootstrap & verify" → Run workflow.
+# Dispare manualmente em Actions → "Conciliação — bootstrap & verify" → Run workflow,
+# a partir da branch main. O job usa o environment `production` e não roda
+# fora de refs/heads/main.
 
 on:
   workflow_dispatch:
@@ -19,11 +21,16 @@ on:
         default: bootstrap
         options: [bootstrap, verify]
 
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Instala psql
         run: |

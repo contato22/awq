@@ -19,8 +19,6 @@ on:
   push:
     branches:
       - main
-      - claude/consolidate-awq-platform-sMoN0
-      - claude/setup-erp-auth-UuPpg
   pull_request:
     branches:
       - main
@@ -40,10 +38,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
           cache: "npm"
@@ -61,29 +59,26 @@ jobs:
 
       # ── SSR build (Vercel runtime — no STATIC_EXPORT) ─────────────────────
       #
-      # IMPORTANT: Do NOT pass NEXTAUTH_URL.
-      # When a GitHub Secret is unset, Actions evaluates "" (empty string).
-      # NextAuth reads NEXTAUTH_URL at module init: `new URL("")` throws
-      # TypeError: Invalid URL and fails prerendering on every page.
-      # NEXTAUTH_URL is RUNTIME-ONLY (OAuth callback routing) — not needed at
-      # build time. NEXTAUTH_SECRET is safe (plain string, not used as URL).
+      # This workflow does not deploy. The Vercel GitHub App builds production
+      # with the project's own env vars. CI does not need real secrets:
+      # the harness already builds with these placeholders. Passing
+      # NEXTAUTH_SECRET or the anon keys into a pull_request job would expose
+      # them to workflow code from the PR branch.
       #
-      # DATABASE_URL / BLOB_READ_WRITE_TOKEN are Vercel runtime env vars —
-      # set in the Vercel dashboard, not in CI. The adapters detect them at
-      # request time (USE_DB / USE_BLOB flags).
+      # Do NOT pass NEXTAUTH_URL. An empty string becomes `new URL("")` in
+      # NextAuth and fails prerendering. Placeholders also avoid the hardcoded
+      # ERP anon-key fallback in lib/supabase.ts.
       #
-      # ERP_SUPABASE vars: NEXT_PUBLIC_ vars are embedded at build time.
-      # The anon key is public (safe to store in GitHub Secrets).
-      # ERP_SUPABASE_SERVICE_ROLE_KEY is server-only — NOT needed at build time.
+      # DATABASE_URL / BLOB_READ_WRITE_TOKEN / ERP_SUPABASE_SERVICE_ROLE_KEY
+      # are Vercel runtime env vars. They are not needed at build time.
       - name: Build (SSR)
         run: npm run build
         env:
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          # Shared Supabase project (CRM + ERP — same instance)
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_ERP_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXTAUTH_SECRET: ci-placeholder-not-a-real-secret
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_ERP_SUPABASE_URL: https://ci-placeholder.invalid
+          NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
       - name: Summary
         if: always()
