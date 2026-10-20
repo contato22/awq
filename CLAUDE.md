@@ -1,5 +1,9 @@
 # AWQ — Plataforma Central (ERP + Finanças)
 
+## Guia para agentes
+
+O contrato de trabalho (stack, comandos, estrutura, Supabase, auth e a lista do que não mexer) está em [`AGENTS.md`](./AGENTS.md). O checklist de pull request sem secrets de produção é [`.github/workflows/ci-harness.yml`](./.github/workflows/ci-harness.yml). Este arquivo continua sendo a referência operacional de finanças, Cora e SSR.
+
 ## O que é este projeto
 
 Next.js 14 App Router — ERP interno do Grupo AWQ com módulos de finanças, DRE, DFC, Balanço Patrimonial, Conciliação Bancária (Cora), Budget, Forecast, EPM e CRM.
@@ -106,8 +110,10 @@ Transações `transferencia_interna_*`, `aplicacao_financeira`, `resgate_finance
 ## Comandos úteis
 
 ```bash
+npm ci                    # igual ao CI (npm + package-lock.json, Node 20)
+npm run lint              # next lint — erro bloqueia; warning não bloqueia
 npx tsc --noEmit          # verifica TypeScript sem compilar
-npm run build             # build completo (confirma que não quebrou SSR)
+npm run build             # build SSR; no CI usa só placeholders, nunca secrets
 ```
 
 ---
@@ -127,3 +133,12 @@ npm run build             # build completo (confirma que não quebrou SSR)
 - **Sync falhava**: `initDB()` lançava exceção antes de chegar no Supabase — corrigido com `.catch()` interno
 - **Page SSR vazia**: Next.js cacheava fetch do Supabase em Server Components — corrigido com `cache: 'no-store'` em todos os clientes server-side
 - **Board não atualizava**: `useState(initialTransactions)` não re-inicializa em prop changes — corrigido com `useEffect([initialTransactions])`
+
+---
+
+## Office (simulador de agentes em `/agents/office`)
+
+- Estado durável: tabela `office_state` (migration `supabase/migrations/013_office_state.sql`, rodar no SQL Editor do Supabase do ERP). API `/api/office/state`. Sem a tabela o simulador segue só com `localStorage` (aviso no painel do Head de CS).
+- Só `head`, `missions`, `events` e `policies` vão ao servidor. Conversas, relatórios da manhã e conteúdo de entregas de clientes ficam só no navegador (repositório público, dados de clientes).
+- Head de CS no servidor (`/api/office/head/tick`, `lib/office-server.ts`): travado por padrão. Só gasta créditos com `OFFICE_HEAD_TICK=1`, `OFFICE_TICK_SECRET`, `ANTHROPIC_API_KEY` e o "Modo autônomo" ligado no painel. O agendador é o workflow de exemplo `scripts/office-head-tick.workflow.yml.example` (copiar para `.github/workflows/`; manual até descomentar o `schedule`).
+- Motor puro e testável: `lib/office-head.ts` (fila, políticas, idempotência, checkpoint), `lib/office-missions.ts`, `lib/office-sync.ts` (mescla).

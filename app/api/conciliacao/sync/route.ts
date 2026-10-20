@@ -16,6 +16,7 @@ import { coraEntryToInput } from "@/lib/recon-ingest";
 import { reconcile } from "@/lib/recon-engine";
 import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
 import type { BU } from "@/lib/recon-types";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const maxDuration = 60;
@@ -25,7 +26,10 @@ function isValidDate(s: string) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email;
   if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
@@ -72,7 +76,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // RLS por BU: usuário BU-locked só sincroniza a própria BU.
-  const lockedBU = req.headers.get("x-bu-lock");
+  const lockedBU = auth.buLock;
   if (lockedBU && lockedBU !== bu) {
     return NextResponse.json(
       { error: `Operação bloqueada: usuário ${lockedBU} não pode sincronizar bu=${bu}` },

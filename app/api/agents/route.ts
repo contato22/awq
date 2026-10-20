@@ -16,7 +16,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
-import { AGENTS } from "@/lib/agents-config";
+import { AGENTS as BU_AGENTS_CONFIG } from "@/lib/agents-config";
+import { SOCIAL_SQUADS } from "@/lib/social-squad";
+
+// BU agents + squads de social media (uma squad por cliente)
+const AGENTS = [...BU_AGENTS_CONFIG, ...SOCIAL_SQUADS];
 import { AGENT_TOOLS, executeTool } from "@/lib/agent-tools";
 
 export type { AgentConfig } from "@/lib/agents-config";
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { agentId } = await req.json();
+    const { agentId, task } = await req.json();
 
     const clientKey = req.headers.get("x-anthropic-key");
     const serverKey = process.env.ANTHROPIC_API_KEY;
@@ -64,6 +68,12 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    // Squads de social media aceitam uma tarefa livre (simulador /agents/office).
+    // Agentes de BU continuam rodando só o prompt fixo, pois têm ferramentas de escrita.
+    const isSquad = agent.id.startsWith("social-");
+    const userPrompt =
+      isSquad && typeof task === "string" && task.trim() ? task.slice(0, 24000) : agent.prompt;
 
     // Notion env config for tool execution
     const notionEnv = {
@@ -90,7 +100,8 @@ export async function POST(req: NextRequest) {
         try {
           // ── Agentic loop ────────────────────────────────────────────────────
           type MessageParam = Anthropic.MessageParam;
-          const messages: MessageParam[] = [{ role: "user", content: agent.prompt }];
+          const messages: MessageParam[] = [{ role: "user", content: userPrompt }];
+          const usage = { input: 0, output: 0 };
 
           let iterations = 0;
           const MAX_ITERATIONS = 8;
@@ -100,11 +111,14 @@ export async function POST(req: NextRequest) {
 
             const response = await client.messages.create({
               model: "claude-opus-4-6",
-              max_tokens: 2048,
+              max_tokens: isSquad ? 4096 : 2048,
               system: agent.system,
               tools: agentTools.length > 0 ? agentTools : undefined,
               messages,
             });
+
+            usage.input += response.usage?.input_tokens ?? 0;
+            usage.output += response.usage?.output_tokens ?? 0;
 
             // Stream any text blocks
             for (const block of response.content) {
@@ -196,6 +210,7 @@ export async function POST(req: NextRequest) {
             break;
           }
 
+          send({ type: "meta", usage, iterations });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (err) {

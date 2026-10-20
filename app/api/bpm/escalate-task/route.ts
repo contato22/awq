@@ -11,6 +11,7 @@ import {
   addHistoryEntry,
   createNotification,
 } from "@/lib/bpm-db";
+import { requireSession } from "@/lib/api-auth";
 
 let _ready = false;
 async function ensureDB() {
@@ -21,6 +22,9 @@ function ok(data: unknown) { return NextResponse.json({ success: true, data }); 
 function err(msg: string, status = 400) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const body: { task_id: string; escalated_by: string; escalate_to?: string; reason?: string } = await req.json();

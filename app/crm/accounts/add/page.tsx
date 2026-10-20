@@ -9,7 +9,7 @@ import {
   Search, CheckCircle2, AlertCircle, Loader2,
   Building2, MapPin, Users, ChevronLeft,
 } from "lucide-react";
-import type { CnpjData } from "@/app/api/crm/cnpj/route";
+import type { CnpjData } from "@/lib/crm-cnpj";
 
 const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;

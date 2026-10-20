@@ -14,6 +14,7 @@ import {
   CHART_OF_ACCOUNTS,
   type BuCode,
 } from "@/lib/epm-gl";
+import { requireSession } from "@/lib/api-auth";
 
 function ok(data: unknown) {
   return NextResponse.json({ success: true, data });
@@ -24,6 +25,9 @@ function err(msg: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const sp         = req.nextUrl.searchParams;
     const view       = sp.get("view") ?? "journals";
@@ -53,6 +57,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await req.json();
     const {

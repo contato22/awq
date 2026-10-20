@@ -66,7 +66,7 @@ import {
   FlaskConical,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

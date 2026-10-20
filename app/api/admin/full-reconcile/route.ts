@@ -24,6 +24,7 @@ import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 import { todayBRT } from "@/lib/date-brt";
+import { requireSession } from "@/lib/api-auth";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
@@ -76,7 +77,10 @@ function describeErr(err: unknown): string {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const userEmail = req.headers.get("x-user-email");
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const userEmail = auth.email;
   if (!userEmail) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   if (!isCoraConfigured()) {

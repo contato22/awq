@@ -10,6 +10,9 @@ node_modules/
 /.next/
 /out/
 
+# app/api movido para fora do scanner durante STATIC_EXPORT=1 (scripts/next-build.mjs)
+/.static-export-stash/
+
 # Production
 /build
 
@@ -66,3 +69,6 @@ playwright-report/
 
 # ENERDY portal export — dados reais de clientes (PII), não versionar
 /public/data/enerdy-portal/
+
+# Relatórios e variáveis de clientes do Office: dados privados, nunca versionar (repo público)
+public/data/office/reports/

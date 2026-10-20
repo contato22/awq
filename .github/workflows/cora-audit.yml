@@ -19,6 +19,12 @@ permissions:
   contents: read
   issues: write
 
+# Sucesso vai para o resumo da execução. Issue só quando há gap ou falha do
+# audit-probe, reutilizando o título estável (label cora-audit + bot).
+# Uma execução seguinte saudável comenta e fecha essa issue.
+# O backlog antigo (uma issue por execução) não é fechado aqui — ver
+# cleanup-bot-issues.yml, disparo manual, dry-run por padrão.
+
 jobs:
   audit:
     name: Auditar transações Cora vs Supabase ERP
@@ -47,12 +53,19 @@ jobs:
       - name: "FETCH /api/cora/audit-probe"
         id: audit
         continue-on-error: true
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
+          if [ -z "$PROBE_SECRET" ]; then
+            echo "Secret PROBE_SECRET ausente. Crie em GitHub → Settings → Secrets e na Vercel."
+            echo "http=503" >> $GITHUB_OUTPUT
+            exit 1
+          fi
           START=2026-01-01
           END=$(date -u +%Y-%m-%d)
           URL="https://awq-brown.vercel.app/api/cora/audit-probe?startDate=${START}&endDate=${END}"
-          BODY=$(curl -sf --max-time 58 "$URL" || echo '{}')
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 "$URL" || echo '000')
+          BODY=$(curl -sf --max-time 58 -H "Authorization: Bearer $PROBE_SECRET" "$URL" || echo '{}')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -H "Authorization: Bearer $PROBE_SECRET" "$URL" || echo '000')
           echo "http=$STATUS" >> $GITHUB_OUTPUT
           echo "HTTP $STATUS — ${BODY:0:2000}"
           if [ "$STATUS" = "200" ]; then
@@ -69,14 +82,18 @@ jobs:
         id: sync
         if: steps.audit.outputs.missing != '0' && steps.audit.outputs.http == '200'
         continue-on-error: true
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
           START=2026-01-01
           END=$(date -u +%Y-%m-%d)
           BODY=$(curl -sf --max-time 58 -X POST \
+            -H "Authorization: Bearer $PROBE_SECRET" \
             -H 'Content-Type: application/json' \
             -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
             https://awq-brown.vercel.app/api/cora/sync-probe || echo '{}')
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -X POST \
+            -H "Authorization: Bearer $PROBE_SECRET" \
             -H 'Content-Type: application/json' \
             -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
             https://awq-brown.vercel.app/api/cora/sync-probe || echo '000')
@@ -84,64 +101,45 @@ jobs:
           echo "synced=$(echo "$BODY" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("totalSynced","?"))' 2>/dev/null || echo '?')" >> $GITHUB_OUTPUT
           echo "HTTP $STATUS — $BODY"
 
-      - name: "Publicar resultado como Issue"
+      - name: Checkout do script de issues
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Publicar resultado no resumo ou na issue
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          AUDIT_HTTP: ${{ steps.audit.outputs.http }}
+          MISSING: ${{ steps.audit.outputs.missing }}
+          CORA_TOTAL: ${{ steps.audit.outputs.cora_total }}
+          DB_TOTAL: ${{ steps.audit.outputs.db_total }}
+          SYNC_HTTP: ${{ steps.sync.outputs.http }}
+          SYNCED: ${{ steps.sync.outputs.synced }}
+          HEALTH_HTTP: ${{ steps.health.outputs.http }}
+          ERP_PING: ${{ steps.health.outputs.erp_ping }}
+          ERP_TXN: ${{ steps.health.outputs.erp_txn }}
+          CORA: ${{ steps.health.outputs.cora }}
+          JACQES: ${{ steps.health.outputs.jacqes }}
+          SYNC_READY: ${{ steps.health.outputs.sync }}
+          ADAPTER: ${{ steps.health.outputs.adapter }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          HORA=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          TODAY=$(date -u +%Y-%m-%d)
-
-          gh label create cora-audit --color 7057ff \
-            --description 'Resultado da auditoria Cora vs banco' \
-            --repo ${{ github.repository }} 2>/dev/null || true
-
-          AUDIT_HTTP="${{ steps.audit.outputs.http }}"
-          MISSING="${{ steps.audit.outputs.missing }}"
-          CORA_TOTAL="${{ steps.audit.outputs.cora_total }}"
-          DB_TOTAL="${{ steps.audit.outputs.db_total }}"
-          SYNC_HTTP="${{ steps.sync.outputs.http }}"
-          SYNCED="${{ steps.sync.outputs.synced }}"
-
-          if [ "$AUDIT_HTTP" = "200" ]; then
-            if [ "$MISSING" = "0" ]; then
-              RESULT="SINCRONIZADO — banco em dia com a Cora"
-            else
-              RESULT="GAP DETECTADO — $MISSING lancamentos na Cora faltam no banco"
-              if [ "$SYNC_HTTP" = "200" ]; then
-                RESULT="$RESULT | AUTO-SYNC: $SYNCED importados"
-              fi
-            fi
+          set -eu
+          export HORA="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export TODAY="$(date -u +%Y-%m-%d)"
+          python3 scripts/bot_issues.py write-cora-report --out /tmp/cora-report.md
+          TITLE="Auditoria Cora: divergência ou falha"
+          if [ "$AUDIT_HTTP" = "200" ] && [ "$MISSING" = "0" ]; then
+            python3 scripts/bot_issues.py resolve \
+              --title "$TITLE" \
+              --tracker-label cora-audit \
+              --body-file /tmp/cora-report.md
           else
-            RESULT="AUDIT-PROBE HTTP $AUDIT_HTTP"
+            python3 scripts/bot_issues.py upsert \
+              --title "$TITLE" \
+              --tracker-label cora-audit \
+              --body-file /tmp/cora-report.md
           fi
-
-          cat > /tmp/issue_body.md << MDEOF
-          ## Auditoria Cora vs Banco — $HORA
-
-          ### Infraestrutura (/api/health)
-          | Check | Valor |
-          |---|---|
-          | erpPing | ${{ steps.health.outputs.erp_ping }} |
-          | erpTransactionCount | ${{ steps.health.outputs.erp_txn }} |
-          | coraHolding | ${{ steps.health.outputs.cora }} |
-          | coraJacqes | ${{ steps.health.outputs.jacqes }} |
-          | syncReady | ${{ steps.health.outputs.sync }} |
-          | dbAdapter | ${{ steps.health.outputs.adapter }} |
-
-          ### Auditoria Cora (2026-01-01 a $TODAY)
-          | Conta | Cora | Banco | Gap |
-          |---|---|---|---|
-          | AWQ_Holding | $CORA_TOTAL | $DB_TOTAL | $MISSING |
-
-          **Resultado: $RESULT**
-
-          ---
-          *workflow cora-audit.yml*
-          MDEOF
-
-          gh issue create \
-            --title "Auditoria Cora $HORA" \
-            --body-file /tmp/issue_body.md \
-            --label cora-audit \
-            --repo ${{ github.repository }}

@@ -70,6 +70,12 @@ export default withAuth(
         );
       }
       const requestHeaders = new Headers(req.headers);
+      // Client-supplied identity headers are not authenticated. Drop them, then
+      // set only what the verified JWT says. Otherwise a role without bu-lock
+      // would keep an attacker-controlled x-bu-lock / x-user-role.
+      requestHeaders.delete("x-user-email");
+      requestHeaders.delete("x-user-role");
+      requestHeaders.delete("x-bu-lock");
       const lockedBU = ROLE_BU_LOCK[role];
       if (lockedBU)    requestHeaders.set("x-bu-lock",    lockedBU);
       if (token.email) requestHeaders.set("x-user-email", token.email as string);
@@ -112,6 +118,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|patricia-canto|api/patricia-canto|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!login|patricia-canto|api/patricia-canto|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/office/head/tick|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

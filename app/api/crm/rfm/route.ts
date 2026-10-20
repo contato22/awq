@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getForcedBu } from "@/lib/api-guard";
 import { erpAdmin, erpAnon } from "@/lib/supabase";
 import type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
+import { requireSession } from "@/lib/api-auth";
 export type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 
 const db = erpAdmin ?? erpAnon;
@@ -157,6 +158,9 @@ async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | nul
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const forcedBu = await getForcedBu(req);
 

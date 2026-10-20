@@ -521,69 +521,58 @@ jobs:
           echo "| transactionCount | ${{ steps.health_fetch.outputs.health_txn_count }} | transactions in Neon |" >> $GITHUB_STEP_SUMMARY
           echo "| hasRealData | ${{ steps.health_fetch.outputs.health_has_real }} | pipeline ran end-to-end |" >> $GITHUB_STEP_SUMMARY
 
-      # ── Deploy notification — abre um GitHub Issue com o resultado ────────────
-      # Legível via mcp__github__list_issues com label "deploy-status"
-      - name: Notificar resultado do deploy via Issue
+      # ── Deploy saudável fica no resumo acima. Issue só se allGreen não for true,
+      #    reutilizando o título "Deploy com problemas" (labels deploy-status + bot).
+      #    Uma execução seguinte saudável comenta e fecha essa issue.
+      #    O backlog "Deploy OK" não é fechado aqui — ver cleanup-bot-issues.yml.
+      - name: Checkout do script de issues
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Publicar falha de deploy ou fechar issue aberta
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ALL_GREEN: ${{ steps.health_fetch.outputs.health_all_green }}
+          CORA: ${{ steps.health_fetch.outputs.health_cora_ready }}
+          SYNC: ${{ steps.health_fetch.outputs.health_sync_ready }}
+          ERP: ${{ steps.health_fetch.outputs.health_erp_ping }}
+          APP: ${{ steps.assert_login.outputs.login_status }}
+          AUTH: ${{ steps.assert_nextauth.outputs.csrf_status }}
+          SERVED_SHA: ${{ steps.assert_served_sha.outputs.served_sha }}
+          DEPLOY_ID: ${{ steps.assert_served_sha.outputs.deployment_id }}
+          SHA_MATCH: ${{ steps.assert_served_sha.conclusion }}
+          COMMIT_SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          SHORT="${{ github.sha }}"
-          SHORT="${SHORT:0:7}"
-          ALL_GREEN="${{ steps.health_fetch.outputs.health_all_green }}"
-          CORA="${{ steps.health_fetch.outputs.health_cora_ready }}"
-          SYNC="${{ steps.health_fetch.outputs.health_sync_ready }}"
-          ERP="${{ steps.health_fetch.outputs.health_erp_ping }}"
-          APP="${{ steps.assert_login.outputs.login_status }}"
-          AUTH="${{ steps.assert_nextauth.outputs.csrf_status }}"
-          SERVED_SHA="${{ steps.assert_served_sha.outputs.served_sha }}"
-          DEPLOY_ID="${{ steps.assert_served_sha.outputs.deployment_id }}"
-          SHA_MATCH="${{ steps.assert_served_sha.conclusion }}"
-
-          # Cria o label se ainda não existir
-          gh label create "deploy-status" \
-            --color "0075ca" \
-            --description "Resultado automático de cada deploy Vercel" \
-            --repo "${{ github.repository }}" 2>/dev/null || true
-
+          set -eu
+          export HORA="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python3 scripts/bot_issues.py write-deploy-report --out /tmp/deploy-report.md
+          TITLE="Deploy com problemas"
           if [ "$ALL_GREEN" = "true" ]; then
-            TITLE="✅ Deploy OK: ${SHORT}"
-            BODY="**Commit**: \`${{ github.sha }}\`
-          **Branch**: \`${{ github.ref_name }}\`
-          **Hora**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
-
-          | Check | Resultado |
-          |---|---|
-          | servedSha == pushedSha | $SHA_MATCH ($SERVED_SHA) |
-          | deploymentId | $DEPLOY_ID |
-          | allGreen | ✅ true |
-          | coraReady | $CORA |
-          | syncReady | $SYNC |
-          | erpPing | $ERP |
-          | /login HTTP | $APP |
-          | /api/auth/csrf HTTP | $AUTH |
-
-          Deploy concluído com sucesso — pode testar o sync agora."
+            echo "Deploy saudável — resultado no resumo, sem issue nova."
+            {
+              echo ""
+              echo "### Issue de bot"
+              echo "Deploy saudável. O resultado fica neste resumo; nenhuma issue nova é aberta."
+            } >> "$GITHUB_STEP_SUMMARY"
+            python3 scripts/bot_issues.py resolve \
+              --title "$TITLE" \
+              --tracker-label deploy-status \
+              --body-file /tmp/deploy-report.md
           else
-            TITLE="❌ Deploy com problemas: ${SHORT}"
-            BODY="**Commit**: \`${{ github.sha }}\`
-          **Branch**: \`${{ github.ref_name }}\`
-          **Hora**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
-
-          | Check | Resultado |
-          |---|---|
-          | allGreen | ❌ $ALL_GREEN |
-          | coraReady | $CORA |
-          | syncReady | $SYNC |
-          | erpPing | $ERP |
-          | /login HTTP | $APP |
-          | /api/auth/csrf HTTP | $AUTH |
-
-          Verifique o [log da action](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) para detalhes."
+            echo "Deploy com problemas — abrindo ou atualizando uma única issue."
+            {
+              echo ""
+              echo "### Issue de bot"
+              echo "Há falha de deploy. Uma única issue (título estável, labels \`deploy-status\` e \`bot\`) é aberta ou atualizada."
+            } >> "$GITHUB_STEP_SUMMARY"
+            python3 scripts/bot_issues.py upsert \
+              --title "$TITLE" \
+              --tracker-label deploy-status \
+              --body-file /tmp/deploy-report.md
           fi
-
-          gh issue create \
-            --title "$TITLE" \
-            --body "$BODY" \
-            --label "deploy-status" \
-            --repo "${{ github.repository }}"

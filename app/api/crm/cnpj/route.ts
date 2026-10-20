@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, createAccount } from "@/lib/crm-db";
+import { requireSession } from "@/lib/api-auth";
+import type { CnpjData } from "@/lib/crm-cnpj";
+
+export type { CnpjData };
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -81,40 +85,6 @@ interface BrApiResp {
   message?: string;
 }
 
-export type CnpjData = {
-  // Identidade
-  account_name: string;          // razao_social (UPPERCASE — formato legal RF)
-  trade_name: string | null;     // nome_fantasia
-  document_number: string;       // CNPJ formatado
-  // Classificação
-  industry: string | null;
-  cnae_descricao: string | null;
-  cnaes_secundarios: Array<{ codigo: number; descricao: string }>;
-  company_size: string | null;
-  descricao_porte: string | null;
-  natureza_juridica: string | null;
-  // Financeiro
-  annual_revenue_estimate: number | null;
-  capital_social: number | null;
-  opcao_pelo_simples: boolean;
-  opcao_pelo_mei: boolean;
-  // Endereço
-  address_street: string | null;
-  address_city: string | null;
-  address_state: string | null;
-  address_zip: string | null;
-  // Contato
-  phone: string | null;
-  phone2: string | null;
-  email: string | null;
-  // Cadastral
-  situacao: string | null;
-  data_situacao: string | null;
-  data_abertura: string | null;
-  // Sócios
-  socios: Array<{ nome: string; cargo: string; qual: string }>;
-};
-
 function mapToAccountData(j: BrApiResp): CnpjData {
   const d = digits(j.cnpj);
   const streetParts = [
@@ -166,6 +136,9 @@ function mapToAccountData(j: BrApiResp): CnpjData {
 // GET /api/crm/cnpj?cnpj=12345678000190
 // GET /api/crm/cnpj?cnpj=12345678000190&save=true&bu=JACQES  → also creates account in DB
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const raw = req.nextUrl.searchParams.get("cnpj") ?? "";
     const d = digits(raw);

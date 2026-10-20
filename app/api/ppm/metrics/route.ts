@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPortfolioMetrics, getResourceUtilization, listProjects } from "@/lib/ppm-db";
 import type { BuCode } from "@/lib/ppm-types";
+import { requireSession } from "@/lib/api-auth";
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     // x-bu-lock is injected by middleware from the verified JWT
-    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    const lockedBU = (auth.buLock ?? undefined) as BuCode | undefined;
 
     const [metrics, utilization, projects] = await Promise.all([
       getPortfolioMetrics({ bu_code: lockedBU }),

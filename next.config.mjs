@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
-// STATIC_EXPORT=1 → GitHub Pages (sem API routes)
-// default → Vercel/Node (SSR + /api/chat proxy)
+// STATIC_EXPORT=1 → GitHub Pages (sem API routes).
+// `npm run build` esconde app/api nesse modo (scripts/next-build.mjs):
+// output:"export" rejeita `dynamic = "force-dynamic"`, e prerenderizar
+// handlers publicaria respostas de API no site estático. O deploy Vercel
+// usa `next build` (vercel.json) e não passa por esse script.
+// default → Vercel/Node (SSR + /api)
 const isStaticExport = process.env.STATIC_EXPORT === "1";
 
 // Pin NEXT_PUBLIC_STATIC_DATA to the actual build target.
@@ -13,6 +17,32 @@ process.env.NEXT_PUBLIC_STATIC_DATA = isStaticExport ? "1" : "0";
 // Vercel injeta em build time (VERCEL_GIT_COMMIT_SHA). O BuildSHAGuard usa
 // esse valor pra detectar bundles stale comparando com /api/health.
 process.env.NEXT_PUBLIC_BUILD_SHA = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
+
+// 'unsafe-inline' / 'unsafe-eval' stay because Next.js 14 injects inline
+// bootstrap scripts and some client charts still evaluate strings. This CSP
+// blocks framing, plugins, and unexpected connect targets; it is not a nonce CSP.
+const CONTENT_SECURITY_POLICY = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://*.vercel-insights.com",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    "worker-src 'self' blob:",
+].join("; ");
+
+const SECURITY_HEADERS = [
+    { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
+    { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+    { key: "X-Content-Type-Options", value: "nosniff" },
+    { key: "X-Frame-Options", value: "SAMEORIGIN" },
+    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
 
 const nextConfig = {
     reactStrictMode: true,
@@ -40,6 +70,10 @@ const nextConfig = {
                       // referencie chunks antigos.
                       async headers() {
                             return [
+                                  {
+                                        source: "/(.*)",
+                                        headers: SECURITY_HEADERS,
+                                  },
                                   {
                                         source: "/((?!_next/static|_next/image|favicon\\.ico|api).*)",
                                         headers: [

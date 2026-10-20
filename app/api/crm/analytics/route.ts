@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, getDashboardMetrics, listOpportunities } from "@/lib/crm-db";
 import { BU_OPTIONS } from "@/lib/crm-types";
 import { getForcedBu } from "@/lib/api-guard";
+import { requireSession } from "@/lib/api-auth";
 
 type Bucket = { count: number; value: number; weighted: number };
 const emptyBucket = (): Bucket => ({ count: 0, value: 0, weighted: 0 });
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await initCrmDB();
     const forcedBu = await getForcedBu(req);

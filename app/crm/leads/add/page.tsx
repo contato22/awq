@@ -11,7 +11,7 @@ import {
   Search, X, Plus, ChevronRight, Link2, Loader2,
 } from "lucide-react";
 import type { CrmAccount, CrmContact } from "@/lib/crm-types";
-import type { CnpjData } from "@/app/api/crm/cnpj/route";
+import type { CnpjData } from "@/lib/crm-cnpj";
 
 type FormData = {
   contact_name: string;

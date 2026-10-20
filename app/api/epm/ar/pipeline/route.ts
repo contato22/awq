@@ -1,9 +1,10 @@
 // GET /api/epm/ar/pipeline
 // Returns aggregated pipeline status: Cadastro → Conciliação → DFC → DRE → Balanço
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import { getPddRate } from "@/lib/ar-coa";
+import { requireSession } from "@/lib/api-auth";
 
 let _ready = false;
 async function ensureDB() {
@@ -12,7 +13,10 @@ async function ensureDB() {
 
 function r2(n: number) { return Math.round(n * 100) / 100; }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
   try {
     await ensureDB();
     const items = await getAllAR();

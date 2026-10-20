@@ -9,7 +9,7 @@ import { getMontagemClientes, getInstallations } from "@/lib/enrd-montagem-db";
 import { getLiveMontagem } from "@/lib/enrd-montagem-live";
 import { Users, Phone, MapPin, Wrench, ArrowUpRight, AlertCircle } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 const n = (v: number) => v.toLocaleString("pt-BR");
 

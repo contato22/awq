@@ -5,6 +5,7 @@
 // são bloqueados de todo /api/* pelo middleware.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSession } from "@/lib/api-auth";
 import { createGuest, listGuests, revokeGuest, GUESTS_DB_AVAILABLE } from "@/lib/live-shop/guests";
 
 export const runtime = "nodejs";
@@ -12,9 +13,10 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED = new Set(["owner", "admin", "live-shop"]);
 
-function guard(req: NextRequest): NextResponse | null {
-  const role = req.headers.get("x-user-role") ?? "";
-  if (!ALLOWED.has(role)) {
+async function guard(req: NextRequest): Promise<NextResponse | null> {
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+  if (!ALLOWED.has(auth.role)) {
     return NextResponse.json({ error: "Sem permissão para gerir acessos." }, { status: 403 });
   }
   if (!GUESTS_DB_AVAILABLE) {
@@ -24,14 +26,14 @@ function guard(req: NextRequest): NextResponse | null {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const blocked = guard(req);
+  const blocked = await guard(req);
   if (blocked) return blocked;
   const guests = await listGuests();
   return NextResponse.json({ guests });
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const blocked = guard(req);
+  const blocked = await guard(req);
   if (blocked) return blocked;
 
   let body: any;
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
-  const blocked = guard(req);
+  const blocked = await guard(req);
   if (blocked) return blocked;
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id ausente." }, { status: 400 });
