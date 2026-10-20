@@ -15,6 +15,7 @@ test("o 3º andar é a Caza Vision, produtora", () => {
   assert.equal(caza.numero, 3);
   assert.equal(caza.nome, "Caza Vision");
   assert.equal(caza.descricao, "Produtora");
+  assert.deepEqual(ANDARES.map((a) => a.id), ["jacqes", "awaqe", "caza"]);
 });
 
 test("ANDAR_DA_BU manda a Caza Vision para o andar caza", () => {
