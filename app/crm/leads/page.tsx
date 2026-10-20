@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLockedBU } from "@/lib/use-locked-bu";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
+import LeadImportModal from "@/components/crm/LeadImportModal";
 import {
   Users, Plus, Search, Target, TrendingUp,
-  BarChart3, ExternalLink, ChevronRight, Trash2, Pencil,
+  BarChart3, ExternalLink, ChevronRight, Trash2, Pencil, Upload,
 } from "lucide-react";
 import type { CrmLead } from "@/lib/crm-types";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
@@ -65,6 +66,38 @@ export default function LeadsPage() {
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [listError, setListError] = useState("");
+  const importButtonRef = useRef<HTMLButtonElement>(null);
+
+  const reloadLeads = useCallback((isCurrent: () => boolean = () => true) => {
+    return fetch("/api/crm/leads")
+      .then(async (response) => {
+        let json: { success?: boolean; error?: string; data?: CrmLead[] } | null = null;
+        try {
+          json = await response.json();
+        } catch {
+          json = null;
+        }
+        if (!isCurrent()) return;
+        if (!response.ok || !json || json.success === false) {
+          throw new Error(json?.error || "Não foi possível atualizar a lista de leads.");
+        }
+        setLeads(json.data ?? []);
+        setListError("");
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent()) return;
+        const message = error instanceof Error ? error.message : "Não foi possível atualizar a lista de leads.";
+        setListError(message);
+      });
+  }, []);
+
+  const closeImport = useCallback(() => setShowImport(false), []);
+  const handlePersisted = useCallback(() => {
+    setShowImport(false);
+    reloadLeads();
+  }, [reloadLeads]);
 
   useEffect(() => {
     if (lockedBU) { setBuFilter(lockedBU); return; }
@@ -76,11 +109,10 @@ export default function LeadsPage() {
   }, [lockedBU]);
 
   useEffect(() => {
-    fetch("/api/crm/leads")
-      .then(r => r.json())
-      .then(json => { setLeads((json.data ?? []) as CrmLead[]); setLoading(false); })
-      .catch(() => { setLoading(false); });
-  }, []);
+    let cancelled = false;
+    reloadLeads(() => !cancelled).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [reloadLeads]);
 
   async function handleConvert(lead: CrmLead) {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
@@ -184,7 +216,17 @@ export default function LeadsPage() {
       <Header title="Leads — CRM AWQ" subtitle="Pipeline de prospecção" />
       <div className="page-container">
 
+        {listError && (
+          <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+            {listError}
+          </p>
+        )}
+
         <div className="flex items-center justify-end gap-3 flex-wrap">
+          <button ref={importButtonRef} type="button" onClick={() => setShowImport(true)} className="btn-secondary flex items-center gap-2 text-sm">
+            <Upload size={14} />
+            Importar CSV
+          </button>
           <Link href="/crm/leads/add" className="btn-primary flex items-center gap-2 text-sm">
             <Plus size={14} />
             Adicionar Lead
@@ -388,6 +430,14 @@ export default function LeadsPage() {
         </div>
 
       </div>
+      {showImport && (
+        <LeadImportModal
+          existingEmails={leads.map((lead) => lead.email).filter((email): email is string => Boolean(email))}
+          returnFocusRef={importButtonRef}
+          onClose={closeImport}
+          onPersisted={handlePersisted}
+        />
+      )}
     </>
   );
 }
