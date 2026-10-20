@@ -1,0 +1,52 @@
+name: Migration ledger
+
+# Prova o runner contra um Postgres descartável. Não usa secret e não fala
+# com o Supabase de produção.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ledger:
+    name: Idempotência e bloqueio destrutivo
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: migrate
+          POSTGRES_PASSWORD: migrate
+          POSTGRES_DB: migrate_ledger
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U migrate -d migrate_ledger"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cliente psql
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Testes do ledger
+        env:
+          MIGRATE_DATABASE_URL: postgres://migrate:migrate@127.0.0.1:5432/migrate_ledger
+        run: npm run test:migrate-ledger

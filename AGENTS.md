@@ -93,13 +93,35 @@ Dois projetos aparecem no código:
 
 Cadeia de leitura em `lib/financial-db.ts`: service role financeiro → service role ERP → anon → JSON em `public/data/financial/` (só dev).
 
-Migrações ficam em `supabase/migrations/` e são coladas no **SQL Editor** do Supabase, em ordem, uma vez. São idempotentes. Não há `supabase db push` no CI.
+Migrações ficam em `supabase/migrations/`. O controle de versão é o ledger próprio em `public.erp_schema_migrations` (nome relativo + SHA-256) e o marcador `public.erp_schema_migration_state`. Não é o `schema_migrations` do Supabase CLI e não há `supabase db push`. O runner é [`scripts/erp-migrate.mjs`](./scripts/erp-migrate.mjs).
 
-A numeração não é única: existem `006_enrd_montagem.sql` e `006_live_shop.sql`, e `007_enrd_posvenda.sql` e `007_live_shop_brands.sql`. O próximo arquivo continua a sequência pelo maior número já usado e por um nome explícito. Não renumerar arquivo já aplicado. Não editar migração já rodada em produção; criar outra.
+Conjunto padrão, nesta ordem: `awq_erp_full_schema.sql` e depois `supabase/migrations/*.sql` em ordem lexical. Arquivos `_*.sql` ficam de fora. A chave é o nome do arquivo, então `006_enrd_montagem.sql` e `006_live_shop.sql` (e o par `007`) são entradas distintas. Não renumerar arquivo já registrado. Não editar migração já registrada: o checksum muda e o job falha. Crie outro arquivo.
 
-`_bootstrap_conciliacao_full.sql` é um atalho (003+004+005). Não executar contra produção a partir de um agente.
+Cada arquivo pendente roda no máximo uma vez, na mesma transação que o `INSERT` do ledger. Falha desfaz esse arquivo e não grava a linha. Arquivos anteriores da mesma corrida permanecem. Fora da transação só entra arquivo com a linha `-- erp-migrate: no-transaction`, ou com `CREATE/DROP/REINDEX INDEX CONCURRENTLY` ou `VACUUM`. `BEGIN`/`COMMIT`/`ROLLBACK` no topo do arquivo (fora de função) bloqueia o migrate até essa marcação.
 
-RLS das tabelas `financial_documents` e `bank_transactions` está desligada (a anon key lê e escreve). As tabelas `recon_*` são fail-closed (`supabase/migrations/004_recon_rls_hardening.sql`). Não desligar RLS, não conceder `anon` de novo e não aplicar SQL de endurecimento ou de seed no projeto remoto sem pedido explícito do dono.
+Destrutivo, e por isso bloqueado: `DROP TABLE`, `DROP SCHEMA`, `DROP DATABASE`, `TRUNCATE`, `DELETE FROM`, `DROP COLUMN`. Para rodar, as duas coisas ao mesmo tempo: a linha `-- erp-migrate: allow-destructive` no arquivo e `--allow-destructive` / input `allow_destructive`. `001_initial_schema.sql` faz `DROP TABLE` em `bank_transactions` e `financial_documents` e também `DELETE FROM`. Não tem marcação. Não volta a rodar.
+
+`dry-run` só lista. Não cria tabela e não executa migração.
+
+**Baseline, obrigatório antes de qualquer migrate.** Produção já recebeu o histórico pelo SQL Editor. O baseline grava nome e checksum de cada arquivo atual e não executa nenhum deles. Sem a linha em `erp_schema_migration_state`, `migrate` sai com código 3 e não aplica nada. Um segundo baseline é recusado, para um arquivo novo não ser marcado como aplicado sem rodar. O workflow não aceita baseline parcial (`--files`).
+
+`SUPABASE_DB_URL` precisa ser a conexão direta ou o pooler de sessão (porta 5432). O pooler de transação (porta 6543) não serve: o lock fica preso à transação de cada arquivo.
+
+Passo a passo para o dono, na branch `main`, em Actions → **Apply ERP Schema (Supabase)**. Não disparar a partir de um agente. Não apontar `MIGRATE_DATABASE_URL` para produção fora desse workflow: host que não seja localhost exige `MIGRATE_ALLOW_REMOTE=1`, e só o workflow define isso.
+
+1. Rode com `mode=dry-run`. O log tem de mostrar `baseline=ausente`. `001_initial_schema.sql` aparece bloqueado. `_bootstrap_conciliacao_full.sql` não aparece.
+2. Confira, fora do workflow, que `public.bank_transactions` existe e tem os dados reais. O baseline só testa a existência dessa tabela. Não conta linhas e não prova que cada arquivo histórico já foi aplicado. Se algum arquivo do diretório nunca rodou em produção, o baseline vai impedir que ele rode depois.
+3. Rode de novo com `mode=baseline` e `confirm` exatamente `REGISTRAR_BASELINE_SEM_EXECUTAR`. `allow_destructive` fica desligado. O job só faz `INSERT` no ledger. Se `bank_transactions` não existir, o job falha e não escreve.
+4. Rode `dry-run` outra vez. Os arquivos atuais ficam `aplicado` com `source=baseline` e `pending=0`.
+5. Só então um arquivo **novo** entra com `mode=migrate` e `confirm` exatamente `APLICAR_PENDENTES`. Push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**` faz apenas dry-run.
+
+`live-shop-bootstrap.yml` usa o mesmo runner para a lista 006 (live shop) até 012. Sem baseline, o bootstrap recusa. O push de `.github/live-shop-bootstrap.trigger` agora só faz dry-run. Bootstrap manual pede `APLICAR_PENDENTES`.
+
+`_bootstrap_conciliacao_full.sql` continua sendo atalho de 003+004+005 e fica fora do ledger. `conciliacao-bootstrap.yml` ainda aplica esse arquivo direto, sem checksum. Não disparar. Não executar contra produção a partir de um agente.
+
+O teste que prova idempotência, rollback e o bloqueio de destrutivo é `npm run test:migrate-ledger`, no workflow [`.github/workflows/migrate-ledger-ci.yml`](./.github/workflows/migrate-ledger-ci.yml), contra um Postgres de serviço. Não usa secret e não fala com o Supabase remoto.
+
+RLS das tabelas `financial_documents` e `bank_transactions` está desligada (a anon key lê e escreve). As tabelas `recon_*` são fail-closed (`supabase/migrations/004_recon_rls_hardening.sql`). Não desligar RLS, não conceder `anon` de novo e não aplicar SQL de endurecimento ou de seed no projeto remoto sem pedido explícito do dono. O ledger nasce com RLS ligada, sem policy, e com `REVOKE` de `PUBLIC` / `anon` / `authenticated`. O papel que roda o workflow continua dono da tabela.
 
 ## Auth e segurança
 
@@ -150,7 +172,8 @@ O smoke cobre o contrato atual:
   - `.github/workflows/probe-vercel.yml`
   - `.github/workflows/santander-seed.yml`
   - `.github/workflows/vercel-deploy.yml`
-- **`.github/workflows/migrate-erp-schema.yml`.** Não disparar (`workflow_dispatch`) e não aplicar o SQL em produção a partir de um agente. O arquivo só roda em push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**`. `secrets` não pode aparecer em `steps.if` — isso invalida o workflow em todo push. O gate dos passos `psql` é o output booleano `steps.dburl.outputs.present`.
+- **`.github/workflows/migrate-erp-schema.yml`.** Não disparar (`workflow_dispatch`) e não aplicar o SQL em produção a partir de um agente. O job usa `environment: production` e `github.ref == refs/heads/main`. Push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**` só faz dry-run. `migrate` e `baseline` são manuais e exigem a frase de confirmação. Sem baseline, o migrate recusa. `secrets` não pode aparecer em `steps.if` — isso invalida o workflow em todo push. O gate do banco é o output booleano `steps.dburl.outputs.present`. Não remover o `environment`. Não voltar ao loop que reaplica `supabase/migrations/*.sql`.
+- **`.github/workflows/live-shop-bootstrap.yml`.** O bootstrap chama o mesmo ledger. Não substituir por `psql -f` em loop. Não disparar a partir de um agente.
 - **Upgrade de Next.js** e reescrita ampla de `middleware.ts`, `lib/api-guard.ts` ou das rotas de API só para “passar segurança”. Isso é outro conjunto de PRs.
 - **`noStoreFetch`**, `dynamic = "force-dynamic"` nas páginas financeiras, e o `try/catch` de `getAllTransactions()` / `getAllDocuments()`.
 - **Extratos, PDFs e relatórios de cliente** em `public/data/` que o `.gitignore` já exclui.
