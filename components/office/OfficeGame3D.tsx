@@ -12,6 +12,7 @@ import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "
 import { andarDaEmpresa, ANDARES, layoutPredios, SALA_ESTUDIO, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
 import { aparenciaDe } from "@/lib/office-aparencia";
 import type { PoseCorpo } from "./CorpoQuaternius";
+import { RetratoAgente } from "./RetratoAgente";
 
 const CorpoQuaternius = lazy(() => import("./CorpoQuaternius").then((m) => ({ default: m.CorpoQuaternius })));
 const EstudioViewport = lazy(() => import("./studio/StudioSet").then((m) => ({ default: m.EstudioViewport })));
@@ -1815,11 +1816,18 @@ export default function OfficeGame3D(props: Props) {
       </p>
 
       {/* Gaveta de painéis — idêntica à versão 2D */}
-      <aside className={`absolute top-0 bottom-0 right-0 w-[480px] max-w-[94%] bg-white border-l border-gray-200 shadow-2xl transition-transform duration-300 ${painelAberto ? "translate-x-0" : "translate-x-full"}`} aria-hidden={!painelAberto}>
+      <aside className={`absolute top-0 bottom-0 right-0 w-[480px] max-w-[94%] bg-white border-l border-gray-200 shadow-2xl transition-transform duration-300 flex flex-col ${painelAberto ? "translate-x-0" : "translate-x-full"}`} aria-hidden={!painelAberto}>
         <button onClick={() => onPainel(false)} aria-label="Fechar painel" className="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600">
           <X size={14} />
         </button>
-        <div className="h-full">{painelAberto ? children : null}</div>
+        {painelAberto && (
+          <RetratoAgente
+            semente={`${buAtual}:${selecionado}`}
+            nome={selecionado === "cs" ? nomeCS : ROTULO_CURTO[selecionado]}
+            papel={ROTULO_CURTO[selecionado]}
+          />
+        )}
+        <div className="min-h-0 flex-1">{painelAberto ? children : null}</div>
       </aside>
     </div>
   );
