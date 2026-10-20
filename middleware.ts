@@ -116,8 +116,14 @@ export default withAuth(
   }
 );
 
+// Captação pública. Únicos prefixos novos fora do auth:
+//   /leads/capture
+//   /api/public/*
+// O `(?:/|$)` impede que /leads/captured ou /api/publicity escapem.
+// Não há handler de escrita: o formulário usa o stub em lib/lead-capture.ts.
+// Qualquer rota futura em /api/public/* nasce sem sessão — não colocar dado sensível lá.
 export const config = {
   matcher: [
-    "/((?!login|patricia-canto|api/patricia-canto|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/office/head/tick|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!login|leads/capture(?:/|$)|api/public(?:/|$)|patricia-canto|api/patricia-canto|api/auth|api/health|api/debug/version|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|api/enrd/montagem/cron-sync|api/live-shop/webhook|api/live-shop/cron|api/office/head/tick|api/setup/seed-santander-extracts|api/setup/seed-btg-extract-jun2026|api/setup/seed-itau-extract-jun2026|api/setup/backfill-snapshots|api/enrd/debug-saldo|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

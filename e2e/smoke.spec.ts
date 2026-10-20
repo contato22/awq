@@ -33,6 +33,87 @@ test.describe("Public routes", () => {
   });
 });
 
+test.describe("Public lead capture", () => {
+  test("/leads/capture opens without login and reads bu plus UTM", async ({ page }) => {
+    const posts: string[] = [];
+    page.on("request", (req) => {
+      if (req.method() === "POST") posts.push(req.url());
+    });
+
+    const response = await page.goto(
+      "/leads/capture?bu=caza&utm_source=google&utm_medium=cpc&utm_campaign=lancamento&utm_term=agencia&utm_content=hero",
+    );
+    expect(response?.status()).toBe(200);
+    expect(page.url()).not.toMatch(/\/login/);
+    await expect(page.getByRole("heading", { name: "Caza Vision" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Fale com a gente" })).toBeVisible();
+    await expect(page.locator('input[name="utm_source"]')).toHaveValue("google");
+    await expect(page.locator('input[name="utm_medium"]')).toHaveValue("cpc");
+    await expect(page.locator('input[name="utm_campaign"]')).toHaveValue("lancamento");
+    await expect(page.locator('input[name="utm_term"]')).toHaveValue("agencia");
+    await expect(page.locator('input[name="utm_content"]')).toHaveValue("hero");
+    await expect(page.getByRole("link", { name: "Conciliação Bancária" })).toHaveCount(0);
+
+    await page.getByLabel("Nome completo").fill("Ana Souza");
+    await page.getByLabel("Empresa").fill("Oficina Norte");
+    await page.getByLabel("E-mail").fill("ana@oficina.example");
+    await page.getByRole("button", { name: "Enviar mensagem" }).click();
+
+    await expect(page.locator("form").getByRole("alert")).toContainText(
+      "Não conseguimos registrar seu contato agora",
+    );
+    await expect(page.getByRole("heading", { name: "Mensagem recebida!" })).toHaveCount(0);
+    expect(posts.filter((url) => /\/api\/(public|crm)\b/.test(url))).toEqual([]);
+  });
+
+  test("unknown bu falls back and empty submit stays on the form", async ({ page }) => {
+    const response = await page.goto("/leads/capture?bu=ENRD");
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "JACQES", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Enviar mensagem" }).click();
+    await expect(page.getByText("Nome obrigatório")).toBeVisible();
+    await expect(page.getByText("Empresa obrigatória")).toBeVisible();
+    await expect(page.getByText("E-mail obrigatório")).toBeVisible();
+    await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
+  });
+
+  test("mobile capture page has no platform chrome", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/leads/capture?bu=ADVISOR");
+    await expect(page.getByRole("heading", { name: "AWQ Advisor" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Overview" })).toHaveCount(0);
+    await expect(page.getByLabel("E-mail")).toBeVisible();
+  });
+});
+
+test.describe("Lead capture does not open the rest of the app", () => {
+  test("near-miss and authenticated routes still redirect", async ({ request }) => {
+    const protectedPaths = [
+      "/awq",
+      "/crm/leads",
+      "/leads",
+      "/leads/captured",
+      "/api/crm/leads",
+      "/api/publicity",
+      "/api/public-leads",
+    ];
+    for (const path of protectedPaths) {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect([302, 307], path).toContain(res.status());
+      expect(res.headers()["location"] ?? "", path).toMatch(/\/api\/auth\/signin|\/login/);
+    }
+  });
+
+  test("the public API prefix is exempt but has no write handler", async ({ request }) => {
+    const res = await request.post("/api/public/leads/capture", {
+      maxRedirects: 0,
+      data: { contact_name: "Ana", company_name: "Oficina", email: "ana@oficina.example" },
+    });
+    expect(res.status()).toBe(404);
+    expect(res.headers()["location"] ?? "").not.toMatch(/\/login/);
+  });
+});
+
 test.describe("ERP health stays behind auth", () => {
   test("anonymous /api/erp/health redirects and does not return data", async ({ request }) => {
     // The handler uses the service role and can include driver errors.
