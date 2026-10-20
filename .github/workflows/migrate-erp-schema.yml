@@ -4,15 +4,31 @@ name: Apply ERP Schema (Supabase)
 # Run manually via workflow_dispatch, or on a push to main that changes
 # awq_erp_full_schema.sql or supabase/migrations/**.
 #
-# Do not dispatch this workflow from an agent. A feature-branch push must
-# not apply SQL. The steps that call psql stay gated on a boolean output.
+# The job targets the GitHub Environment `production` (this repo already has
+# an environment named Production, today with no required reviewers and no
+# branch policy). After the owner adds a required reviewer, the job waits.
+# Until then the environment does not block the run. Do not dispatch this
+# workflow from an agent.
+#
+# Only refs/heads/main can run the job. A feature-branch dispatch must not
+# apply SQL.
 #
 # REQUIRED GitHub Secret:
 #   SUPABASE_DB_URL — Postgres connection string from Supabase dashboard:
 #     Settings → Database → Connection string → URI (direct / pooler)
 #     Example: postgresql://postgres.kkhxxsrgsewjfvnnssyf:[PASSWORD]@aws-0-xx.pooler.supabase.com:6543/postgres
 #
-# All SQL files use CREATE TABLE IF NOT EXISTS / ON CONFLICT DO NOTHING — idempotent.
+# There is no schema_migrations ledger. The loop reapplies awq_erp_full_schema.sql
+# and every file in supabase/migrations/ in lexical order, including
+# 001_initial_schema.sql (DROP TABLE bank_transactions / financial_documents
+# CASCADE) and _bootstrap_conciliacao_full.sql. That can destroy data.
+# A ledger is not implemented here: production's apply history is unknown,
+# and the first run would either repeat that DROP or skip files without
+# evidence. See AGENTS.md.
+#
+# secrets is not a valid context in steps.if (GitHub rejects the file at
+# parse time, which fails every push before path filters apply). The psql
+# steps stay gated on the boolean output steps.dburl.outputs.present.
 
 on:
   workflow_dispatch:
@@ -30,15 +46,13 @@ jobs:
   migrate:
     name: Apply ERP Schema to Supabase
     runs-on: ubuntu-latest
-    if: ${{ vars.SKIP_ERP_MIGRATE != 'true' }}
+    environment: production
+    if: ${{ github.ref == 'refs/heads/main' && vars.SKIP_ERP_MIGRATE != 'true' }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # secrets is not a valid context in steps.if (GitHub rejects the file
-      # at parse time, which fails every push before the branch/path filters
-      # apply). Record only a boolean; never print the connection string.
       - name: Check secret present
         id: dburl
         env:

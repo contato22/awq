@@ -12,7 +12,7 @@ Produção: Vercel, `https://awq-brown.vercel.app`. Há também um export estát
 
 ## Stack
 
-- Next.js **14.2.5** (App Router + algumas rotas em `pages/api`)
+- Next.js **14.2.35** (App Router + algumas rotas em `pages/api`). `eslint-config-next` está na mesma versão.
 - React 18, TypeScript estrito (`tsconfig.json`, `noEmit`)
 - Tailwind CSS, Recharts, Lucide
 - NextAuth 4 (Credentials + JWT + papéis)
@@ -34,23 +34,27 @@ npm run build   # next build (SSR). Não precisa de secret real.
 npm run start   # depois do build
 ```
 
-Testes que rodam **sem** banco e sem secret:
+Testes que rodam **sem** banco e sem secret (`npm test` no harness):
 
 ```bash
+npm test                 # test:recon + test:live-shop + lib/api-auth.test.ts + lib/rate-limit.test.ts
 npm run test:recon       # scoring e motor de conciliação, puros
 npm run test:live-shop   # critérios offline da Live Shop
 ```
 
-`npm run test:epm` e `npm run test:recon:int` leem ou gravam banco se `DATABASE_URL` estiver definida. Sem essa variável o EPM cai no fallback estático. Nunca apontar essas variáveis para produção a partir de um agente.
+`npm run test:epm` e `npm run test:recon:int` leem ou gravam banco se `DATABASE_URL` estiver definida. Sem essa variável o EPM cai no fallback estático. O workflow `epm-seed-and-test.yml` não usa esse fallback: sem `SUPABASE_DB_URL`, ou se o teste ao vivo falha, o job falha. Nunca apontar essas variáveis para produção a partir de um agente.
 
 Smoke Playwright (`e2e/smoke.spec.ts`):
 
 ```bash
-# Por omissão o config aponta para a produção. Para o PR, use o app local:
-PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test
+# O config aponta para http://127.0.0.1:3000 e recusa awq-brown.vercel.app.
+# Suba o app antes (npm run build && npm run start).
+npx playwright test
 ```
 
 O `website/` é outro app Next, com o próprio `package-lock.json`. O harness da raiz não o builda. O deploy dele é `.github/workflows/deploy-website.yml` — não editar.
+
+`.github/workflows/pages.yml` publica a vitrine com os JSON já commitados em `public/data/`. Não chama o Notion e não lê `NOTION_API_KEY` / `NOTION_TOKEN`. O cron diário que existia para refrescar o Notion foi removido. Nenhum workflow atual usa `GH_PERSONAL_TOKEN`. O único uso era `advisor-bi.yml`, que publicava noutro repositório (`contato22/advisor-bi`) e foi removido: `GITHUB_TOKEN` não tem permissão de push para um repositório externo, e o site deixou de ser publicado.
 
 ## Estrutura
 
@@ -93,11 +97,17 @@ Dois projetos aparecem no código:
 
 Cadeia de leitura em `lib/financial-db.ts`: service role financeiro → service role ERP → anon → JSON em `public/data/financial/` (só dev).
 
-Migrações ficam em `supabase/migrations/` e são coladas no **SQL Editor** do Supabase, em ordem, uma vez. São idempotentes. Não há `supabase db push` no CI.
+Migrações ficam em `supabase/migrations/`. Não há `supabase db push` no CI. O que existe é o workflow [`.github/workflows/migrate-erp-schema.yml`](./.github/workflows/migrate-erp-schema.yml): `workflow_dispatch` ou push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**`. O job usa o environment `production` e só roda em `refs/heads/main`. Se `SUPABASE_DB_URL` estiver definido e `SKIP_ERP_MIGRATE` não for `true`, ele reaplica o schema completo e **todos** os `supabase/migrations/*.sql` em ordem lexical — inclusive `_bootstrap_conciliacao_full.sql`. `secrets` não pode aparecer em `steps.if` (o GitHub rejeita o arquivo na leitura e falha todo push). O gate do `psql` é `steps.dburl.outputs.present`.
+
+Isso **não** é idempotente de ponta a ponta. `001_initial_schema.sql` faz `DROP TABLE IF EXISTS bank_transactions CASCADE` e o mesmo para `financial_documents`. Reaplicar o diretório pode apagar extrato e lançamentos. Vários arquivos usam `IF NOT EXISTS`, mas isso não torna o conjunto seguro.
+
+Não há tabela de controle do que já rodou. Um ledger (`schema_migrations`) **não** foi implementado neste endurecimento: o histórico de produção mistura SQL Editor e este workflow, e a primeira execução ou repetiria o `DROP` ou marcaria arquivos como aplicados sem evidência. Os prefixos `006` e `007` estão duplicados, então um controle por número de versão também erraria. Próximo passo, só depois de o dono inventariar o que já está aplicado: gravar o ledger, tirar `_bootstrap_conciliacao_full.sql` do loop automático (atalho de 003+004+005, também usado pelo `conciliacao-bootstrap.yml`) e nunca reexecutar `001`.
+
+`live-shop-bootstrap.yml` aplica uma lista fixa (006 live shop até 012) e `conciliacao-bootstrap.yml` aplica o atalho. Os dois também ficam no environment `production` e só na `main`. Não disparar nenhum deles a partir de um agente. Não aplicar SQL no Supabase remoto.
 
 A numeração não é única: existem `006_enrd_montagem.sql` e `006_live_shop.sql`, e `007_enrd_posvenda.sql` e `007_live_shop_brands.sql`. O próximo arquivo continua a sequência pelo maior número já usado e por um nome explícito. Não renumerar arquivo já aplicado. Não editar migração já rodada em produção; criar outra.
 
-`_bootstrap_conciliacao_full.sql` é um atalho (003+004+005). Não executar contra produção a partir de um agente.
+`_bootstrap_conciliacao_full.sql` é um atalho (003+004+005). O glob do migrate o inclui. Não executar contra produção a partir de um agente.
 
 RLS das tabelas `financial_documents` e `bank_transactions` está desligada (a anon key lê e escreve). As tabelas `recon_*` são fail-closed (`supabase/migrations/004_recon_rls_hardening.sql`). Não desligar RLS, não conceder `anon` de novo e não aplicar SQL de endurecimento ou de seed no projeto remoto sem pedido explícito do dono.
 
@@ -122,15 +132,18 @@ O checklist seguro para PRs paralelos é [`.github/workflows/ci-harness.yml`](./
 | `npm ci` com cache do `package-lock.json` | sim | Node 20 |
 | `npm run lint` | sim | No `main` (commit `1adcda49`, 2026-10-15) passa com warnings de `react-hooks/exhaustive-deps` em `app/crm/analytics/page.tsx`, `components/office/OfficeGame3D.tsx` e `components/patricia-canto/PatriciaCantoBoard.tsx`. Não transformar warning em erro sem limpar esse baseline. |
 | `npx tsc --noEmit` | sim | Limpo nesse mesmo commit. |
+| `npm test` | sim | `test:recon`, `test:live-shop`, `lib/api-auth.test.ts`, `lib/rate-limit.test.ts`. Sem banco. |
+| `npm audit --audit-level=high` | não | O lockfile já tem high/critical (`next`, `next-auth`, `pdfjs-dist`, `postcss` e transitivas). O passo fica visível e não bloqueia. Não usar este PR para atualizar o Next. |
 | `npm run build` | sim | Env só com placeholders (`ci-placeholder.invalid`, `NEXTAUTH_SECRET` fictício). Não definir `NEXTAUTH_URL`. |
-| Playwright (`e2e/smoke.spec.ts`) | sim | Sobe o build local. Não usa secret e não chama a produção. |
+| Playwright (`e2e/smoke.spec.ts`) | sim | Sobe o build local. O default do config é `http://127.0.0.1:3000` e recusa `awq-brown.vercel.app`. |
 
-`.github/workflows/vercel-deploy.yml` também roda lint, tsc e build, mas injeta GitHub Secrets. Não é o gate deste harness e não deve ser editado para “unificar” os dois.
+`.github/workflows/vercel-deploy.yml` também roda lint, tsc e build, com os mesmos placeholders. Não injeta secret de produção: o build de CI não precisa, e um `pull_request` receberia o workflow do branch. Continua sendo um workflow separado; o gate deste harness é o `ci-harness.yml`. Não voltar a passar `NEXTAUTH_SECRET` nem anon key real.
 
 O smoke cobre o contrato atual:
 
 - `/login` responde 200 e mostra o formulário. O identificador fica `type=text` porque o campo aceita e-mail **ou** usuário; `type=email` bloquearia usuário sem formato de e-mail na validação do browser.
-- `/api/erp/health` anônimo responde 302/307 para o login e não devolve JSON. O handler usa service role; não tornar essa rota pública.
+- `/api/erp/health` e outras rotas sensíveis atrás do middleware (`/api/setup/migrate`, `/api/cora/sync`, `/api/cora/debug`, `/api/conciliacao/data`, `/api/epm/dre`, `/api/office/state`, `/api/crm/accounts`, `/api/ingest/upload`, `/api/internal/test-supabase`, `/api/security/audit`) respondem 302/307 para o login e não devolvem JSON.
+- Rotas fora do matcher que gravam ou sincronizam (`/api/setup/seed-*`, `/api/setup/backfill-snapshots`, `/api/cora/cron-sync`, `/api/cora/audit-probe`, `/api/cora/sync-probe`, `/api/office/head/tick`, `/api/enrd/debug-saldo`, `/api/enrd/montagem/cron-sync`, `/api/live-shop/cron`) negam anônimo com 401/403/503.
 - `/api/auth/csrf` e `/api/health` seguem públicos.
 
 ## Não mexer
@@ -150,7 +163,7 @@ O smoke cobre o contrato atual:
   - `.github/workflows/probe-vercel.yml`
   - `.github/workflows/santander-seed.yml`
   - `.github/workflows/vercel-deploy.yml`
-- **`.github/workflows/migrate-erp-schema.yml`.** Não disparar (`workflow_dispatch`) e não aplicar o SQL em produção a partir de um agente. O arquivo só roda em push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**`. `secrets` não pode aparecer em `steps.if` — isso invalida o workflow em todo push. O gate dos passos `psql` é o output booleano `steps.dburl.outputs.present`.
+- **`.github/workflows/migrate-erp-schema.yml`.** Não disparar (`workflow_dispatch`) e não aplicar o SQL em produção a partir de um agente. O job usa `environment: production` e `github.ref == refs/heads/main`. Também dispara em push na `main` que altere `awq_erp_full_schema.sql` ou `supabase/migrations/**`. `secrets` não pode aparecer em `steps.if` — isso invalida o workflow em todo push. O gate dos passos `psql` é o output booleano `steps.dburl.outputs.present`. Não remover o `environment`.
 - **Upgrade de Next.js** e reescrita ampla de `middleware.ts`, `lib/api-guard.ts` ou das rotas de API só para “passar segurança”. Isso é outro conjunto de PRs.
 - **`noStoreFetch`**, `dynamic = "force-dynamic"` nas páginas financeiras, e o `try/catch` de `getAllTransactions()` / `getAllDocuments()`.
 - **Extratos, PDFs e relatórios de cliente** em `public/data/` que o `.gitignore` já exclui.
