@@ -624,6 +624,7 @@ function Sala({
   atividade: Record<Agente, Atividade>;
   selecionado: Agente;
   ativo: boolean;
+  hora: number;
   /** LOD simples: salas fora da sala ativa (visão do andar com 4 salas na tela) poupam as
    * peças decorativas mais caras (estante, plantas, tapete) — continuam reconhecíveis (piso,
    * paredes, mesas, personagens), só sem o acabamento fino que só compensa de perto. */
@@ -1164,13 +1165,13 @@ function ConfigRenderer() {
 /** Fachada do prédio: faixa de tijolo + vidraça alta com travessas, ao longo de uma borda do
  * andar — dá a luz quente entrando pela janela pedida, visível na visão geral do mundo. */
 function Fachada({ largura, hora }: { largura: number; hora: number }) {
-  const tijolo = useMemo(() => texturaTijolo(), []);
+  const tijolo = useMemo(() => mapaTijolo(largura, 1), [largura]);
   const furos = useMemo(() => texturaPerfurada(), []);
   const l = luzDoDia(hora);
   const volumes = [
-    { x: largura * 0.18, y: 1.35, w: largura * 0.14, h: 0.72, d: 0.85 },
-    { x: largura * 0.46, y: 1.72, w: largura * 0.2, h: 0.95, d: 1.2 },
-    { x: largura * 0.74, y: 1.22, w: largura * 0.13, h: 0.64, d: 0.7 },
+    { id: "esquerda", x: largura * 0.17, y: 1.35, w: largura * 0.32, h: 1.8, d: 2.8 },
+    { id: "centro", x: largura * 0.5, y: 1.55, w: largura * 0.3, h: 2.2, d: 3.4 },
+    { id: "direita", x: largura * 0.83, y: 1.25, w: largura * 0.32, h: 1.65, d: 2.6 },
   ];
   return (
     <group>
@@ -1180,21 +1181,21 @@ function Fachada({ largura, hora }: { largura: number; hora: number }) {
       </mesh>
       <mesh position={[largura / 2, 2.15, 0]}>
         <boxGeometry args={[largura, 2.3, 0.04]} />
-        <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.35 + l * 0.25} transparent opacity={0.22} roughness={0.2} />
+        <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.9 * (1 - l)} transparent opacity={0.22} roughness={0.2} />
       </mesh>
       <mesh position={[largura / 2, 1.85, 0.1]}>
         <planeGeometry args={[largura * 0.96, 2.15]} />
         <meshStandardMaterial
-          color="#2a2622"
+          color="#eeeeea"
           alphaMap={furos}
           transparent
-          metalness={0.45}
-          roughness={0.48}
+          metalness={0.15}
+          roughness={0.55}
           side={THREE.DoubleSide}
         />
       </mesh>
       {volumes.map((v) => (
-        <mesh key={v.x} position={[v.x, v.y, 0.08 + v.d / 2]} castShadow receiveShadow>
+        <mesh key={v.id} position={[v.x, v.y, 0.08 + v.d / 2]} castShadow receiveShadow>
           <boxGeometry args={[v.w, v.h, v.d]} />
           <meshStandardMaterial color="#d9cbb8" roughness={0.72} />
         </mesh>
