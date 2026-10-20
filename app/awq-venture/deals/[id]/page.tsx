@@ -4,6 +4,8 @@
 import { dealWorkspaces } from "@/lib/deal-data";
 import DealWorkspacePage from "./DealWorkspacePage";
 
+export const dynamicParams = process.env.STATIC_EXPORT !== "1";
+
 export function generateStaticParams() {
   return dealWorkspaces.map((d) => ({ id: d.id }));
 }

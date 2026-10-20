@@ -31,7 +31,7 @@ const BankReconciliationBoard = nextDynamic(
   { ssr: false }
 );
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 function fmt(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
