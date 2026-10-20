@@ -138,7 +138,6 @@ O smoke cobre o contrato atual:
 - **Dados de produção.** Não rodar seed, backfill, sync Cora, bootstrap ou SQL no Supabase remoto. Em especial: `scripts/bootstrap-prod.ts`, `scripts/setup-secrets.sh`, `scripts/seed-epm-planning.ts`, `scripts/seed-enrd-*.mjs`, `scripts/seed-jacqes-clients-as-danilo.sh`, `scripts/fetch-enerdy-portal.mjs`.
 - **Segredos.** Não imprimir, não copiar para o workflow, não commitar `.env`, `.env.local`, `*.pem` ou token. O exemplo versionado é só `.env.example`, com valores falsos.
 - **Workflows de deploy, seed, audit e probe.** Não editar para “unificar” com o harness:
-  - `.github/workflows/advisor-bi.yml`
   - `.github/workflows/backfill-snapshots.yml`
   - `.github/workflows/conciliacao-bootstrap.yml`
   - `.github/workflows/cora-audit.yml`
