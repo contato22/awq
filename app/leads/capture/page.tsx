@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 function LeadCaptureFallback() {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-10 text-center text-white">
+      <div className="bg-gray-800 px-6 py-10 text-center text-white">
         <p className="text-xs font-semibold uppercase tracking-widest">AWQ Group</p>
-        <h1 className="mb-1 mt-3 text-2xl font-bold">JACQES</h1>
+        <h1 className="mb-1 mt-3 text-2xl font-bold">Fale com a gente</h1>
       </div>
       <div className="mx-auto mt-8 w-full max-w-md rounded-2xl border border-gray-100 bg-white px-6 py-6 shadow-lg">
         <h2 className="text-base font-bold text-gray-900">Fale com a gente</h2>

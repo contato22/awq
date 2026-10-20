@@ -87,6 +87,10 @@ check("telefone com letra", validateLeadCaptureDraft(base({ phone: "abc12345" })
 check("telefone com 9 dígitos", !!validateLeadCaptureDraft(base({ phone: "119999888" })).phone);
 check("telefone com 10 dígitos", !validateLeadCaptureDraft(base({ phone: "11 3333-4444" })).phone);
 check("telefone com 11 dígitos", !validateLeadCaptureDraft(base({ phone: "11 99999-0000" })).phone);
+check("telefone +55 com 13 dígitos", !validateLeadCaptureDraft(base({ phone: "+55 11 99999-0000" })).phone);
+check("telefone 55 sem sinal também passa", !validateLeadCaptureDraft(base({ phone: "5511999990000" })).phone);
+check("DDD 55 com 11 dígitos não perde o DDD", !validateLeadCaptureDraft(base({ phone: "55 99999-0000" })).phone);
+check("13 dígitos sem 55 falha", !!validateLeadCaptureDraft(base({ phone: "1199999000011" })).phone);
 check("telefone vazio passa", !validateLeadCaptureDraft(base({ phone: "" })).phone);
 {
   const result = await leadCaptureSubmitter.submit(base({

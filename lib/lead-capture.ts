@@ -75,6 +75,13 @@ function stripControls(value: string): string {
   return value.replace(/[\u0000-\u001F\u007F]/g, "").trim();
 }
 
+/** DDD + número. +55 com celular (13 dígitos) perde o código do país. */
+function nationalPhoneDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) return digits.slice(2);
+  return digits;
+}
+
 export function sanitizeUtm(value: string | null | undefined): string {
   if (!value) return "";
   return stripControls(value).slice(0, UTM_MAX);
@@ -113,8 +120,8 @@ export function validateLeadCaptureDraft(
   else if (!EMAIL_RE.test(email) || email.length > (LIMITS.email ?? 200)) errors.email = "E-mail inválido";
 
   if (phone) {
-    const digits = phone.replace(/\D/g, "").length;
-    if (digits !== 10 && digits !== 11) errors.phone = BR_PHONE_ERROR;
+    const digits = nationalPhoneDigits(phone);
+    if (digits.length !== 10 && digits.length !== 11) errors.phone = BR_PHONE_ERROR;
   }
 
   if (draft.job_title.trim().length > (LIMITS.job_title ?? 120)) errors.job_title = "Cargo longo demais";

@@ -93,6 +93,15 @@ const EMPTY_FORM: FormState = {
   message: "",
 };
 
+function FieldError({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <p id={id} className="mt-1 flex items-start gap-1 text-xs text-red-700">
+      <AlertCircle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
 function Field({
   id,
   icon,
@@ -122,11 +131,7 @@ function Field({
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>
         {children}
       </div>
-      {error && (
-        <p id={`${id}-error`} className="mt-1 text-xs text-gray-600">
-          {error}
-        </p>
-      )}
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </div>
   );
 }
@@ -348,9 +353,7 @@ export function LeadCaptureForm() {
                     aria-describedby={errors.message ? `${formId}-message-error` : undefined}
                   />
                   {errors.message && (
-                    <p id={`${formId}-message-error`} className="mt-1 text-xs text-gray-600">
-                      {errors.message}
-                    </p>
+                    <FieldError id={`${formId}-message-error`}>{errors.message}</FieldError>
                   )}
                 </div>
 
@@ -366,17 +369,10 @@ export function LeadCaptureForm() {
                 </label>
 
                 {formError && (
-                  <div role="alert" className="space-y-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">
+                  <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">
                     <p className="flex items-center gap-2">
                       <AlertCircle size={13} aria-hidden="true" />
                       {formError}
-                    </p>
-                    <p>
-                      Enquanto isso, escreva para{" "}
-                      <a href={mailto} className="font-semibold underline">
-                        {LEAD_CAPTURE_CONTACT_EMAIL}
-                      </a>
-                      .
                     </p>
                   </div>
                 )}
