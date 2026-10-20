@@ -1,7 +1,7 @@
 /**
  * Wrapper de `next build`.
  *
- * STATIC_EXPORT=1 (GitHub Pages, advisor-bi): `output: "export"` não serve
+ * STATIC_EXPORT=1 (GitHub Pages): `output: "export"` não serve
  * route handlers. `export const dynamic = "force-dynamic"` — exigido no SSR
  * para sessão, CRON_SECRET e PROBE_SECRET — derruba o collect de page data
  * (ex.: /api/balance-snapshots/backfill). Escondemos `app/api` só durante
