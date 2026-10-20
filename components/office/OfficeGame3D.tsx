@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
 import { andarDaEmpresa, ANDARES, layoutPredios, SALA_ESTUDIO, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
+import { EstudioViewport } from "./studio/StudioSet";
 import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
 
@@ -1199,7 +1200,7 @@ function Cena({
  * do mundo 2D, mas como uma cena 3D própria em vez de um redesenho em canvas 2D. */
 function Minimapa({
   predios, buAtual, andarAtual, vista, focoCasa,
-}: { predios: PredioW[]; buAtual: string; andarAtual: AndarId; vista: "mundo" | "sala" | "casa"; focoCasa: CasaId }) {
+}: { predios: PredioW[]; buAtual: string; andarAtual: AndarId; vista: "mundo" | "sala" | "casa" | "estudio"; focoCasa: CasaId }) {
   const chaoW = 20 * UNIT, chaoD = 14 * UNIT;
   const centro: [number, number, number] = [chaoW / 2 - UNIT, 0, chaoD / 2 - UNIT];
   const placa = ANDARES.find((a) => a.id === andarAtual);
@@ -1253,7 +1254,7 @@ export default function OfficeGame3D(props: Props) {
   } = props;
 
   const [andar, setAndar] = useState<AndarId>("jacqes");
-  const [vista, setVista] = useState<"mundo" | "sala" | "casa">("mundo");
+  const [vista, setVista] = useState<"mundo" | "sala" | "casa" | "estudio">("mundo");
   const [focoCasa, setFocoCasa] = useState<CasaId>("diretoria");
   const [vel, setVel] = useState(1);
   const [hora, setHora] = useState(horaBrasilia());
@@ -1320,8 +1321,7 @@ export default function OfficeGame3D(props: Props) {
     }
     if (i.tipo === "sala" && i.sala === "estudio") {
       setAndar("caza");
-      setFocoCasa("estudio");
-      setVista("casa");
+      setVista("estudio");
       onPainel(false);
       return;
     }
@@ -1347,7 +1347,7 @@ export default function OfficeGame3D(props: Props) {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0a101f]">
-      <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
+      {vista === "estudio" ? <EstudioViewport /> : <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
         <Suspense fallback={null}>
           <Cena
             predios={predios}
@@ -1368,7 +1368,7 @@ export default function OfficeGame3D(props: Props) {
             onFps={setFps}
           />
         </Suspense>
-      </Canvas>
+      </Canvas>}
 
       <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} vista={vista} focoCasa={focoCasa} />
 
@@ -1400,9 +1400,21 @@ export default function OfficeGame3D(props: Props) {
               {a.numero}º · {a.nome}
             </button>
           ))}
+          {andar === "caza" && (
+            <button onClick={() => setVista("estudio")} aria-pressed={vista === "estudio"}
+              className={`rounded-md px-2 py-1 ${vista === "estudio" ? "bg-amber-300 text-amber-950 font-semibold" : "hover:bg-white/10"}`}>
+              Estúdio
+            </button>
+          )}
         </div>
         <nav className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5 mt-6">
           <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista !== "mundo" && sair()}>Escritório AWQ</button>
+          {vista === "estudio" && (
+            <>
+              <ChevronRight size={12} className="text-white/50" />
+              <span className="font-semibold">Estúdio</span>
+            </>
+          )}
           {vista === "casa" && (
             <>
               <ChevronRight size={12} className="text-white/50" />
@@ -1460,7 +1472,7 @@ export default function OfficeGame3D(props: Props) {
       </div>
 
       <div className="absolute left-3 top-16 flex flex-col gap-1.5">
-        <button onClick={() => (vista === "sala" ? sair() : null)} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${vista === "mundo" ? "bg-brand-600 text-white border-brand-500" : "bg-black/60 text-white border-white/10 hover:bg-black/80"}`}>
+        <button onClick={() => (vista === "sala" || vista === "estudio" ? sair() : null)} aria-label={vista === "estudio" ? "Sair do estúdio" : "Visão do andar"} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${vista === "mundo" ? "bg-brand-600 text-white border-brand-500" : "bg-black/60 text-white border-white/10 hover:bg-black/80"}`}>
           <Globe size={18} />
         </button>
         {RAIL.filter((r) => r.tab !== "relatorio" || temRelatorio).map(({ tab: t, rotulo, Icone }) => (
