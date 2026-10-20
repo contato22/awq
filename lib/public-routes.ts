@@ -1,20 +1,25 @@
 /**
- * Rotas que não exigem sessão.
+ * Única decisão de rota pública (sem sessão), sempre no path cru.
  *
- * A única página pública nova é exatamente /leads/capture ou /leads/capture/
- * (`leads/capture/?$`). Subcaminhos, maiúsculas e /api/public não entram:
- * não há handler de escrita, então o prefixo não fica aberto.
+ * Next casa a rota com o path que chegou (%2F fica dentro de [id]).
+ * Decodificar antes da decisão tratava /api/caza/clients/x%2F..%2F..%2Flogin
+ * como /login e entregava o handler sem sessão. Se o path tem %, \, //,
+ * ".." ou um segmento ".", não é público.
  *
- * Os demais prefixos repetem o que o matcher já isentava antes desta página.
+ * Árvore: rest === prefix || rest.startsWith(prefix + "/").
+ * Rota única: path exato, barra final opcional.
+ * api/auth não entra na lista: só isLegitNextAuthPath.
+ * leads/capture/?$ fica em isLeadCapturePath, também no path cru.
  */
+import { isLegitNextAuthPath, isRawPathUnsafe } from "./middleware-request";
 
-const LEGACY_PUBLIC_PREFIXES = [
+/** Subcaminhos legítimos (login próprio da área). */
+const TREE_PREFIXES = ["patricia-canto", "api/patricia-canto"] as const;
+
+/** Uma rota só. Sem /loginX, /api/healthcheck, /api/cora/cron-syncX. */
+const EXACT_ROUTES = [
   "login",
-  "patricia-canto",
-  "api/patricia-canto",
-  "api/auth",
   "api/health",
-  "api/debug/version",
   "api/cora/audit-probe",
   "api/cora/sync-probe",
   "api/cora/cron-sync",
@@ -29,7 +34,7 @@ const LEGACY_PUBLIC_PREFIXES = [
   "api/enrd/debug-saldo",
 ] as const;
 
-/** leads/capture/?$ — barra final opcional, fim do caminho. */
+/** leads/capture/?$ — barra final opcional, fim do caminho, path cru. */
 export const LEAD_CAPTURE_PUBLIC_PATH = /^\/leads\/capture\/?$/;
 
 export function isLeadCapturePath(pathname: string): boolean {
@@ -37,10 +42,19 @@ export function isLeadCapturePath(pathname: string): boolean {
 }
 
 export function isLegacyPublicPath(pathname: string): boolean {
+  if (isRawPathUnsafe(pathname)) return false;
+  if (isLegitNextAuthPath(pathname)) return true;
   const rest = pathname.startsWith("/") ? pathname.slice(1) : pathname;
-  return LEGACY_PUBLIC_PREFIXES.some((prefix) => rest.startsWith(prefix));
+  for (const prefix of TREE_PREFIXES) {
+    if (rest === prefix || rest.startsWith(`${prefix}/`)) return true;
+  }
+  for (const prefix of EXACT_ROUTES) {
+    if (rest === prefix || rest === `${prefix}/`) return true;
+  }
+  return false;
 }
 
 export function isPublicRoute(pathname: string): boolean {
+  if (isRawPathUnsafe(pathname)) return false;
   return isLeadCapturePath(pathname) || isLegacyPublicPath(pathname);
 }
