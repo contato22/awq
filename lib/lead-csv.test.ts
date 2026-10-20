@@ -3,7 +3,11 @@ import { test } from "node:test";
 import {
   LEAD_CSV_TEMPLATE,
   bantScore,
+  decodeCsvBytes,
+  leadCsvTemplateFile,
+  leadErrorCsv,
   parseLeadCsv,
+  previewWindow,
 } from "./lead-csv";
 
 const NOW = new Date("2026-10-20T12:00:00Z");
@@ -157,6 +161,54 @@ test("outbound is not a stored source and an unknown need fails the row", () => 
   const message = result.rows[0]?.errors.join(" ") ?? "";
   assert.match(message, /fonte inválida/);
   assert.match(message, /necessidade inválida/);
+});
+
+test("template download uses a BOM and a semicolon separator", () => {
+  assert.match(LEAD_CSV_TEMPLATE, /nome;empresa;email/);
+  assert.equal(leadCsvTemplateFile().charCodeAt(0), 0xfeff);
+  const parsed = parseLeadCsv(leadCsvTemplateFile(), { now: NOW });
+  assert.equal(parsed.rows[0]?.ok, true);
+  assert.equal(parsed.columns.find((column) => column.header === "nome")?.label, "Nome");
+  assert.equal(parsed.columns.find((column) => column.header === "notas")?.label, "Notas");
+});
+
+test("an email that already exists is rejected and unknown columns stay visible", () => {
+  const text = [
+    "nome,empresa,email,obs",
+    "Ana,Acme,ana@acme.com,nota",
+    "Lia,Beta,lia@beta.com,outra",
+  ].join("\n");
+  const result = parseLeadCsv(text, { now: NOW, existingEmails: ["ANA@acme.com"] });
+  assert.match(result.rows[0]?.errors.join(" ") ?? "", /já cadastrado/);
+  assert.equal(result.rows[1]?.ok, true);
+  assert.equal(result.columns.find((column) => column.header === "obs")?.label, "Não usada");
+  assert.equal(result.columns.find((column) => column.header === "email")?.field, "email");
+});
+
+test("windows-1252 accents decode when the bytes are not utf-8", () => {
+  const bytes = Uint8Array.from([
+    ..."nome;empresa;email\n".split("").map((char) => char.charCodeAt(0)),
+    0x4a, 0x6f, 0x73, 0xe9,
+    0x3b,
+    0x41, 0xe7, 0x61, 0xed,
+    0x3b,
+    ..."jose@acai.com\n".split("").map((char) => char.charCodeAt(0)),
+  ]);
+  const text = decodeCsvBytes(bytes);
+  assert.match(text, /José/);
+  assert.match(text, /Açaí/);
+  const parsed = parseLeadCsv(text, { now: NOW });
+  assert.equal(parsed.rows[0]?.lead?.contact_name, "José");
+  assert.equal(parsed.rows[0]?.lead?.company_name, "Açaí");
+  assert.equal(decodeCsvBytes(new TextEncoder().encode("José")), "José");
+});
+
+test("error csv keeps accents and the preview window reports hidden rows", () => {
+  const csvText = leadErrorCsv([{ row: 2, name: "Açaí", error: "e-mail já cadastrado" }]);
+  assert.equal(csvText.charCodeAt(0), 0xfeff);
+  assert.match(csvText, /linha;nome;erro/);
+  assert.match(csvText, /Açaí/);
+  assert.deepEqual(previewWindow([1, 2, 3], 2), { visible: [1, 2], hidden: 1 });
 });
 
 test("bant score bands follow budget, authority, need and timeline", () => {

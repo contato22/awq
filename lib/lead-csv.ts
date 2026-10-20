@@ -34,9 +34,22 @@ export type LeadCsvRow = {
   name?: string;
 };
 
+export type LeadCsvColumn = {
+  header: string;
+  field: string | null;
+  label: string;
+};
+
 export type LeadCsvParseResult = {
   fileErrors: string[];
   rows: LeadCsvRow[];
+  columns: LeadCsvColumn[];
+};
+
+export type LeadErrorCsvRow = {
+  row: number;
+  name?: string;
+  error: string;
 };
 
 export type ParseLeadCsvOptions = {
@@ -44,6 +57,8 @@ export type ParseLeadCsvOptions = {
   defaultAssignedTo?: string;
   /** When set, an explicit BU that differs is a row error. Empty cells use this BU. */
   forcedBu?: string | null;
+  /** Emails already stored. A matching row is rejected instead of imported again. */
+  existingEmails?: readonly string[];
   now?: Date;
   maxRows?: number;
 };
@@ -52,9 +67,40 @@ export const LEAD_CSV_MAX_ROWS = 500;
 export const LEAD_CSV_MAX_CHARS = 500_000;
 
 export const LEAD_CSV_TEMPLATE = [
-  "nome,empresa,email,telefone,cargo,bu,fonte,budget,necessidade,timeline,decisor,responsavel,notas",
-  "Ana Souza,Acme Ltda,ana@acme.com.br,11999990000,CMO,JACQES,inbound,50000,alta,2026-11-01,sim,Miguel,Campanha do site",
-].join("\n");
+  "nome;empresa;email;telefone;cargo;bu;fonte;budget;necessidade;timeline;decisor;responsavel;notas",
+  "Ana Souza;Acme Ltda;ana@acme.com.br;11999990000;CMO;JACQES;inbound;50000;alta;2026-11-01;sim;Miguel;Campanha do site",
+].join("\r\n");
+
+/** Excel on Windows opens this as UTF-8 with a semicolon separator. */
+export function leadCsvTemplateFile(): string {
+  return `\uFEFF${LEAD_CSV_TEMPLATE}`;
+}
+
+export function decodeCsvBytes(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
+export function previewWindow<T>(items: readonly T[], limit = 8): { visible: T[]; hidden: number } {
+  const visible = items.slice(0, Math.max(0, limit));
+  return { visible, hidden: items.length - visible.length };
+}
+
+export function leadErrorCsv(rows: readonly LeadErrorCsvRow[]): string {
+  const lines = [
+    "linha;nome;erro",
+    ...rows.map((row) => [String(row.row), row.name ?? "", row.error].map(csvCell).join(";")),
+  ];
+  return `\uFEFF${lines.join("\r\n")}`;
+}
+
+function csvCell(value: string): string {
+  if (/[";\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
 
 const HEADER_MAP: Record<string, keyof RawLead> = {
   nome: "contact_name",
@@ -117,6 +163,22 @@ type RawLead = {
   bant_authority: string;
   assigned_to: string;
   qualification_notes: string;
+};
+
+const FIELD_LABEL: Record<keyof RawLead, string> = {
+  contact_name: "Nome",
+  company_name: "Empresa",
+  email: "E-mail",
+  phone: "Telefone",
+  job_title: "Cargo",
+  bu: "BU",
+  lead_source: "Fonte",
+  bant_budget: "Budget",
+  bant_need: "Necessidade",
+  bant_timeline: "Timeline",
+  bant_authority: "Decisor",
+  assigned_to: "Responsável",
+  qualification_notes: "Notas",
 };
 
 const REQUIRED_FIELDS = ["contact_name", "company_name", "email"] as const;
@@ -194,33 +256,38 @@ export function parseLeadCsv(csv: string, options: ParseLeadCsvOptions = {}): Le
   const maxRows = options.maxRows ?? LEAD_CSV_MAX_ROWS;
   const now = options.now ?? new Date();
   const text = csv.replace(/^\uFEFF/, "");
-  if (!text.trim()) return { fileErrors: ["CSV vazio."], rows: [] };
-  if (text.length > LEAD_CSV_MAX_CHARS) {
-    return { fileErrors: ["CSV excede 500 KB."], rows: [] };
-  }
+  if (!text.trim()) return emptyResult(["CSV vazio."]);
+  if (text.length > LEAD_CSV_MAX_CHARS) return emptyResult(["CSV excede 500 KB."]);
 
   const defaults = resolveDefaults(options);
-  if (defaults.fileErrors.length) return { fileErrors: defaults.fileErrors, rows: [] };
+  if (defaults.fileErrors.length) return emptyResult(defaults.fileErrors);
 
   const delimiter = detectDelimiter(text);
   const parsed = parseRecords(text, delimiter);
-  if (parsed.unclosedQuote) return { fileErrors: ["Aspas não fechadas no CSV."], rows: [] };
-  if (!parsed.records.length) return { fileErrors: ["CSV vazio."], rows: [] };
+  if (parsed.unclosedQuote) return emptyResult(["Aspas não fechadas no CSV."]);
+  if (!parsed.records.length) return emptyResult(["CSV vazio."]);
 
   const header = mapHeader(parsed.records[0].cells);
-  if (header.fileErrors.length) return { fileErrors: header.fileErrors, rows: [] };
+  if (header.fileErrors.length) return emptyResult(header.fileErrors, header.columns);
 
   const data = parsed.records.slice(1);
-  if (!data.length) return { fileErrors: ["Nenhuma linha de dados além do cabeçalho."], rows: [] };
+  if (!data.length) return emptyResult(["Nenhuma linha de dados além do cabeçalho."], header.columns);
   if (data.length > maxRows) {
-    return { fileErrors: [`O CSV tem ${data.length} linhas; o máximo é ${maxRows}.`], rows: [] };
+    return emptyResult([`O CSV tem ${data.length} linhas; o máximo é ${maxRows}.`], header.columns);
   }
 
+  const existing = new Set(
+    (options.existingEmails ?? []).map((email) => email.trim().toLowerCase()).filter(Boolean),
+  );
   const seenEmails = new Set<string>();
   const rows = data.map((record) =>
-    validateRow(record, header.index, defaults, now, seenEmails),
+    validateRow(record, header.index, defaults, now, seenEmails, existing),
   );
-  return { fileErrors: [], rows };
+  return { fileErrors: [], rows, columns: header.columns };
+}
+
+function emptyResult(fileErrors: string[], columns: LeadCsvColumn[] = []): LeadCsvParseResult {
+  return { fileErrors, rows: [], columns };
 }
 
 function resolveDefaults(options: ParseLeadCsvOptions): {
@@ -325,25 +392,36 @@ function parseRecords(text: string, delimiter: "," | ";"): {
 function mapHeader(cells: string[]): {
   fileErrors: string[];
   index: Partial<Record<keyof RawLead, number>>;
+  columns: LeadCsvColumn[];
 } {
   const index: Partial<Record<keyof RawLead, number>> = {};
   const fileErrors: string[] = [];
+  const columns: LeadCsvColumn[] = [];
   cells.forEach((cell, i) => {
+    const header = cell.trim();
     const key = normalizeToken(cell).replace(/_+/g, "_").replace(/^_|_$/g, "");
-    if (!key) return;
+    if (!key) {
+      if (header) columns.push({ header, field: null, label: "Não usada" });
+      return;
+    }
     const field = HEADER_MAP[key];
-    if (!field) return;
+    if (!field) {
+      columns.push({ header: header || key, field: null, label: "Não usada" });
+      return;
+    }
     if (index[field] !== undefined) {
       fileErrors.push(`Coluna duplicada: ${field}.`);
+      columns.push({ header, field, label: `${FIELD_LABEL[field]} (duplicada)` });
       return;
     }
     index[field] = i;
+    columns.push({ header, field, label: FIELD_LABEL[field] });
   });
   const missing = REQUIRED_FIELDS.filter((field) => index[field] === undefined);
   if (missing.length && !fileErrors.length) {
     fileErrors.push("Faltam colunas obrigatórias: nome, empresa e e-mail.");
   }
-  return { fileErrors, index };
+  return { fileErrors, index, columns };
 }
 
 function validateRow(
@@ -352,6 +430,7 @@ function validateRow(
   defaults: { defaultBu: LeadImportBu; forcedBu: LeadImportBu | null; defaultAssignedTo: string },
   now: Date,
   seenEmails: Set<string>,
+  existingEmails: Set<string>,
 ): LeadCsvRow {
   const raw = readRaw(record.cells, index);
   const errors: string[] = [];
@@ -359,7 +438,7 @@ function validateRow(
 
   const contact = textField(raw.contact_name, "nome", LIMITS.contact_name, errors, true);
   const company = textField(raw.company_name, "empresa", LIMITS.company_name, errors, true);
-  const email = parseEmail(raw.email, errors, seenEmails);
+  const email = parseEmail(raw.email, errors, seenEmails, existingEmails);
   const phone = optionalText(raw.phone, "telefone", LIMITS.phone, errors, true);
   const job = optionalText(raw.job_title, "cargo", LIMITS.job_title, errors, false);
   const notes = optionalText(raw.qualification_notes, "notas", LIMITS.qualification_notes, errors, false);
@@ -454,7 +533,12 @@ function optionalText(value: string, label: string, max: number, errors: string[
   return trimmed;
 }
 
-function parseEmail(value: string, errors: string[], seen: Set<string>): string | null {
+function parseEmail(
+  value: string,
+  errors: string[],
+  seen: Set<string>,
+  existing: Set<string>,
+): string | null {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) {
     errors.push("e-mail obrigatório");
@@ -462,6 +546,10 @@ function parseEmail(value: string, errors: string[], seen: Set<string>): string 
   }
   if (looksLikeFormula(trimmed) || trimmed.length > LIMITS.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     errors.push("e-mail inválido");
+    return null;
+  }
+  if (existing.has(trimmed)) {
+    errors.push("e-mail já cadastrado");
     return null;
   }
   if (seen.has(trimmed)) {

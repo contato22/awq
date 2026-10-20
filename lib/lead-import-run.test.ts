@@ -68,6 +68,26 @@ test("a store failure stays on that row and does not stop the next one", async (
   assert.equal(report.results[1]?.persisted, true);
 });
 
+test("an email that already exists is not saved", async () => {
+  let calls = 0;
+  const store: LeadImportStore = {
+    async save() {
+      calls += 1;
+      return { lead_id: "kept" };
+    },
+  };
+  const csv = [
+    "nome,empresa,email",
+    "Ana,Acme,ana@acme.com",
+    "Lia,Beta,lia@beta.com",
+  ].join("\n");
+  const report = await runLeadImport(csv, { now: NOW, existingEmails: ["ana@acme.com"] }, store);
+  assert.equal(calls, 1);
+  assert.equal(report.saved, 1);
+  assert.match(report.results[0]?.error ?? "", /já cadastrado/);
+  assert.equal(report.results[1]?.persisted, true);
+});
+
 test("file errors never call the store", async () => {
   let calls = 0;
   const store: LeadImportStore = {

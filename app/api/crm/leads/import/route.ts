@@ -40,13 +40,45 @@ export async function POST(req: NextRequest) {
     ? record.default_assigned_to
     : undefined;
 
-  const store = await storeForRequest();
+  const persist = isLeadImportPersistEnabled();
+  const known = await existingEmailsForImport(record.existing_emails, persist);
+  if (!known.ok) return err(known.error, known.status);
+
+  const store = persist ? await storeForRequest() : null;
   const report = await runLeadImport(csv, {
     defaultBu: buChoice.bu,
     forcedBu: buChoice.forced,
     defaultAssignedTo: assignee,
+    existingEmails: known.emails,
   }, store);
   return ok(report);
+}
+
+function clientEmails(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 5000);
+}
+
+async function existingEmailsForImport(
+  value: unknown,
+  persist: boolean,
+): Promise<{ ok: true; emails: string[] } | { ok: false; error: string; status: number }> {
+  if (!persist) return { ok: true, emails: clientEmails(value) };
+  try {
+    const { listLeads } = await import("@/lib/crm-db");
+    const leads = await listLeads();
+    return { ok: true, emails: leads.map((lead) => lead.email ?? "").filter(Boolean) };
+  } catch {
+    return {
+      ok: false,
+      status: 503,
+      error: "Não foi possível conferir os leads já cadastrados.",
+    };
+  }
 }
 
 function resolveBu(
