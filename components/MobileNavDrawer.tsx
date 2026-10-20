@@ -52,6 +52,7 @@ import {
   BookOpen,
   LayoutGrid,
   Database,
+  Clapperboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -306,6 +307,7 @@ const cazaEpmNav = [
 ];
 const cazaPpmNav = [
   { label: "Projetos", href: "/caza-vision/imoveis", icon: Film },
+  { label: "Estúdio", href: "/caza-vision/studio", icon: Clapperboard },
 ];
 const cazaCrmNav = [
   { label: "Clientes",      href: "/caza-vision/clientes", icon: Users  },

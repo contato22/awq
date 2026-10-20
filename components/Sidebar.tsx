@@ -65,6 +65,7 @@ import {
     Star,
     ThumbsUp,
     Plus,
+    Clapperboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -509,6 +510,7 @@ const CAZA_MODULES: BUModule[] = [
     ]},
     { id: "ppm", label: "PPM", description: "Projetos & Portfólio",      icon: Film,       items: [
         { label: "Projetos",       href: "/caza-vision/imoveis",   icon: Film          },
+        { label: "Estúdio",        href: "/caza-vision/studio",    icon: Clapperboard  },
         { label: "Portfolio AWQ",  href: "/awq/ppm",               icon: Briefcase     },
         { label: "Gantt",          href: "/awq/ppm/gantt",         icon: GanttChart    },
         { label: "Tarefas",        href: "/awq/ppm/tasks",         icon: ClipboardList },
