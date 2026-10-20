@@ -15,7 +15,7 @@ import type { PoseCorpo } from "./CorpoQuaternius";
 
 const CorpoQuaternius = lazy(() => import("./CorpoQuaternius").then((m) => ({ default: m.CorpoQuaternius })));
 const EstudioViewport = lazy(() => import("./studio/StudioSet").then((m) => ({ default: m.EstudioViewport })));
-import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
+import { texturaMadeira, texturaPerfurada, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
 
 /**
@@ -1112,7 +1112,7 @@ function CameraRig({
 
 function Iluminacao({ hora }: { hora: number }) {
   const l = luzDoDia(hora);
-  const ceuAtual = ceu(hora);
+  const ceuAtual = hora >= 18 && hora < 20 ? { topo: "#1f4f8a", base: "#1f4f8a" } : ceu(hora);
   const sol = useRef<THREE.DirectionalLight>(null);
   const alvoSol = useRef<THREE.Object3D>(null);
   useEffect(() => {
@@ -1126,7 +1126,7 @@ function Iluminacao({ hora }: { hora: number }) {
       <ambientLight intensity={0.08 + l * 0.30} />
       {/* Preenchimento frio do céu: de noite fica no piso, de dia sobe com a luz. */}
       <directionalLight position={[-16, 9, 14]} color="#9fc0ff" intensity={0.15 + l * 0.2} />
-      {/* Sol baixo, cor #ffcf8a, entrando pela fachada. Intensidade segue luzDoDia (0 à noite). */}
+      {/* Sol baixo, cor #ffcf8a. O azul #1f4f8a só vale entre 18h e 20h. */}
       <directionalLight
         ref={sol}
         position={[20, 5.4, -16]}
@@ -1165,30 +1165,40 @@ function ConfigRenderer() {
  * andar — dá a luz quente entrando pela janela pedida, visível na visão geral do mundo. */
 function Fachada({ largura, hora }: { largura: number; hora: number }) {
   const tijolo = useMemo(() => texturaTijolo(), []);
+  const furos = useMemo(() => texturaPerfurada(), []);
   const l = luzDoDia(hora);
-  const colunas = Math.max(1, Math.floor(largura / 2.6));
+  const volumes = [
+    { x: largura * 0.18, y: 1.35, w: largura * 0.14, h: 0.72, d: 0.85 },
+    { x: largura * 0.46, y: 1.72, w: largura * 0.2, h: 0.95, d: 1.2 },
+    { x: largura * 0.74, y: 1.22, w: largura * 0.13, h: 0.64, d: 0.7 },
+  ];
   return (
     <group>
       <mesh position={[largura / 2, 0.5, 0]} castShadow receiveShadow>
         <boxGeometry args={[largura, 1, 0.12]} />
         <meshStandardMaterial map={tijolo} roughness={0.9} />
       </mesh>
-      <mesh position={[largura / 2, 2.3, 0]}>
-        <boxGeometry args={[largura, 2.6, 0.04]} />
-        <meshPhysicalMaterial color="#fff3d6" transparent opacity={0.12 + l * 0.12} roughness={0.05} transmission={0.55} />
+      <mesh position={[largura / 2, 2.15, 0]}>
+        <boxGeometry args={[largura, 2.3, 0.04]} />
+        <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.35 + l * 0.25} transparent opacity={0.22} roughness={0.2} />
       </mesh>
-      {Array.from({ length: colunas + 1 }, (_, i) => (i * largura) / colunas).map((x, i) => (
-        <mesh key={i} position={[x, 2.3, 0.02]} castShadow>
-          <boxGeometry args={[0.05, 2.6, 0.06]} />
-          <meshStandardMaterial color="#2d2015" roughness={0.6} />
+      <mesh position={[largura / 2, 1.85, 0.1]}>
+        <planeGeometry args={[largura * 0.96, 2.15]} />
+        <meshStandardMaterial
+          color="#2a2622"
+          alphaMap={furos}
+          transparent
+          metalness={0.45}
+          roughness={0.48}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {volumes.map((v) => (
+        <mesh key={v.x} position={[v.x, v.y, 0.08 + v.d / 2]} castShadow receiveShadow>
+          <boxGeometry args={[v.w, v.h, v.d]} />
+          <meshStandardMaterial color="#d9cbb8" roughness={0.72} />
         </mesh>
       ))}
-      {l > 0.1 && (
-        <mesh position={[largura / 2, 1.9, 0.06]}>
-          <planeGeometry args={[largura * 0.92, 1.6]} />
-          <meshBasicMaterial color="#ffd9a0" transparent opacity={0.1 * l} depthWrite={false} />
-        </mesh>
-      )}
     </group>
   );
 }
