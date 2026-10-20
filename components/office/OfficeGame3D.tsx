@@ -415,35 +415,43 @@ function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimen
 
 const MOLDURA_JANELA = "#f4efe6";
 
-/** Parede externa da sala: tijolo aparente e janelões com caixilho claro. */
+/** Cada malha clona o tijolo e repete pela própria medida — a textura compartilhada esticava. */
+function mapaTijolo(largura: number, altura: number) {
+  const t = texturaTijolo().clone();
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(Math.max(largura / 0.68, 0.35), Math.max(altura / 0.32, 0.35));
+  t.needsUpdate = true;
+  return t;
+}
+
+function MalhaTijolo({ args, position }: { args: [number, number, number]; position: [number, number, number] }) {
+  const map = useMemo(() => mapaTijolo(args[0], args[1]), [args[0], args[1]]);
+  return (
+    <mesh position={position} castShadow receiveShadow>
+      <boxGeometry args={args} />
+      <meshStandardMaterial map={map} roughness={0.92} />
+    </mesh>
+  );
+}
+
+/** Parede externa da sala: tijolo aparente e janelões do piso ao teto, com caixilho claro. */
 function ParedeExterna({ comprimento }: { comprimento: number }) {
-  const tijolo = useMemo(() => texturaTijolo(), []);
   const n = Math.max(1, Math.round(comprimento / 3.2));
   const mod = comprimento / n;
   const janelaL = mod * 0.7;
-  const base = 0.46;
-  const janelaBase = 0.58;
-  const janelaTopo = 1.92;
-  const topo = 2.28;
+  const janelaBase = 0.1;
+  const janelaTopo = 2.2;
+  const topo = 2.35;
   const janelaH = janelaTopo - janelaBase;
   return (
     <group>
-      <mesh position={[comprimento / 2, base / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[comprimento, base, 0.12]} />
-        <meshStandardMaterial map={tijolo} roughness={0.92} />
-      </mesh>
-      <mesh position={[comprimento / 2, (janelaTopo + topo) / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[comprimento, topo - janelaTopo, 0.12]} />
-        <meshStandardMaterial map={tijolo} roughness={0.92} />
-      </mesh>
+      <MalhaTijolo args={[comprimento, janelaBase, 0.12]} position={[comprimento / 2, janelaBase / 2, 0]} />
+      <MalhaTijolo args={[comprimento, topo - janelaTopo, 0.12]} position={[comprimento / 2, (janelaTopo + topo) / 2, 0]} />
       {Array.from({ length: n + 1 }, (_, i) => {
-        const largura = i === 0 || i === n ? (mod - janelaL) / 2 : mod - janelaL;
+        const largura = Math.max(i === 0 || i === n ? (mod - janelaL) / 2 : mod - janelaL, 0.08);
         const centro = i === 0 ? largura / 2 : i === n ? comprimento - largura / 2 : i * mod;
         return (
-          <mesh key={i} position={[centro, (base + janelaTopo) / 2, 0]} castShadow receiveShadow>
-            <boxGeometry args={[Math.max(largura, 0.08), janelaTopo - base, 0.12]} />
-            <meshStandardMaterial map={tijolo} roughness={0.92} />
-          </mesh>
+          <MalhaTijolo key={i} args={[largura, janelaTopo - janelaBase, 0.12]} position={[centro, (janelaBase + janelaTopo) / 2, 0]} />
         );
       })}
       {Array.from({ length: n }, (_, i) => {
@@ -475,7 +483,7 @@ function ParedeExterna({ comprimento }: { comprimento: number }) {
 }
 
 function Pilar({ posicao, altura = 2.3 }: { posicao: [number, number]; altura?: number }) {
-  const tijolo = useMemo(() => texturaTijolo(), []);
+  const tijolo = useMemo(() => mapaTijolo(Math.PI * 0.32, altura), [altura]);
   return (
     <group position={[posicao[0], 0, posicao[1]]}>
       <mesh position={[0, altura / 2, 0]} castShadow receiveShadow>
