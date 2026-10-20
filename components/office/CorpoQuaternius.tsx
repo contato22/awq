@@ -16,6 +16,8 @@ import { aparenciaDe, escolhe, hashSemente, type AparenciaPersonagem } from "@/l
  *
  * O pacote não tem clipe de sentar. Mixamo exigiria conta Adobe, então a
  * pose sentada é aplicada nos ossos do esqueleto compartilhado.
+ *
+ * Só o GLB do gênero da semente é baixado (nada de pré-carregar os dois).
  */
 
 const URL_HOMEM = "/models/office/quaternius/men.glb";
@@ -23,13 +25,12 @@ const URL_MULHER = "/models/office/quaternius/women.glb";
 /** O rig mede ~1,81. 0,62 deixa a pessoa na escala do mobiliário da sala. */
 const ESCALA = 0.62;
 
-useGLTF.preload(URL_HOMEM, false, true);
-useGLTF.preload(URL_MULHER, false, true);
-
 export type PoseCorpo = "idle" | "walk" | "sentado";
 
 const JAQUETA = /^(Suit|Casual_Hoodie|Worker|Formal)_Body$/;
-const PELE = /skin|eye|eyebrow|hair|moustache|beard|mouth|teeth/i;
+const CABELO_MAT = /hair|moustache|mustache/i;
+const PELE_MAT = /skin/i;
+const INTACTO = /eye|brow|earring|gold|teeth|mouth/i;
 
 const SENTAR: Record<string, number> = {
   "UpperLeg.L": -1.25,
@@ -41,6 +42,10 @@ const SENTAR: Record<string, number> = {
   Abdomen: 0.16,
 };
 
+export function urlDoRig(semente: string): string {
+  return hashSemente(semente) % 2 === 0 ? URL_MULHER : URL_HOMEM;
+}
+
 function pecas(scene: THREE.Object3D, sufixo: string): string[] {
   const nomes: string[] = [];
   scene.traverse((o) => {
@@ -49,10 +54,8 @@ function pecas(scene: THREE.Object3D, sufixo: string): string[] {
   return nomes;
 }
 
-function escolher(semente: string, homens: THREE.Object3D, mulheres: THREE.Object3D) {
+function escolher(semente: string, cena: THREE.Object3D) {
   const h = hashSemente(semente);
-  const genero = h % 2 === 0 ? "women" : "men";
-  const cena = genero === "women" ? mulheres : homens;
   const a = aparenciaDe(semente);
   const corpos = pecas(cena, "_Body");
   const jaquetas = corpos.filter((n) => JAQUETA.test(n));
@@ -60,7 +63,6 @@ function escolher(semente: string, homens: THREE.Object3D, mulheres: THREE.Objec
   const torso = escolhe(a.jaqueta && jaquetas.length ? jaquetas : camisas.length ? camisas : corpos, h, 13);
   const perna = escolhe(pecas(cena, "_Legs"), h, 19);
   return {
-    genero,
     aparencia: a,
     manter: new Set([escolhe(pecas(cena, "_Head"), h, 7), torso, perna, perna.replace(/_Legs$/, "_Feet")]),
   };
@@ -68,7 +70,15 @@ function escolher(semente: string, homens: THREE.Object3D, mulheres: THREE.Objec
 
 function tingir(material: THREE.Material, slot: string, a: AparenciaPersonagem): THREE.Material {
   const m = material.clone() as THREE.MeshStandardMaterial;
-  if (!m.color || PELE.test(m.name) || slot.endsWith("_Head")) return m;
+  if (!m.color || INTACTO.test(m.name)) return m;
+  if (CABELO_MAT.test(m.name)) {
+    m.color.lerp(new THREE.Color(a.cabelo), 0.85);
+    return m;
+  }
+  if (PELE_MAT.test(m.name)) {
+    m.color.lerp(new THREE.Color(a.pele), 0.8);
+    return m;
+  }
   if (slot.endsWith("_Feet")) {
     m.color.lerp(new THREE.Color("#3a2e26"), 0.4);
     return m;
@@ -76,6 +86,19 @@ function tingir(material: THREE.Material, slot: string, a: AparenciaPersonagem):
   const alvo = slot.endsWith("_Legs") ? a.calca : (a.jaqueta ?? a.corpo);
   m.color.lerp(new THREE.Color(alvo), 0.78);
   return m;
+}
+
+function aplicarTinta(root: THREE.Object3D, a: AparenciaPersonagem) {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.frustumCulled = true;
+    const slot = mesh.parent?.name ?? "";
+    const lista = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    const tintas = lista.map((mat) => tingir(mat, slot, a));
+    mesh.material = tintas.length === 1 ? tintas[0] : tintas;
+  });
 }
 
 function montarInstancia(cena: THREE.Object3D, manter: Set<string>, a: AparenciaPersonagem) {
@@ -87,21 +110,28 @@ function montarInstancia(cena: THREE.Object3D, manter: Set<string>, a: Aparencia
     }
   });
   for (const o of remover) o.removeFromParent();
-
   const descanso = new Map<string, THREE.Quaternion>();
   clone.traverse((o) => {
     const bone = o as THREE.Bone;
     if (bone.isBone) descanso.set(bone.name, bone.quaternion.clone());
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.castShadow = true;
-    mesh.frustumCulled = true;
-    const slot = mesh.parent?.name ?? "";
-    const lista = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    const tintas = lista.map((mat) => tingir(mat, slot, a));
-    mesh.material = tintas.length === 1 ? tintas[0] : tintas;
   });
+  aplicarTinta(clone, a);
   return { clone, descanso };
+}
+
+/** Cabeça da semente, já tingida, para o retrato fora da cena. */
+export function montarCabeca(cena: THREE.Object3D, semente: string): THREE.Object3D {
+  const h = hashSemente(semente);
+  const a = aparenciaDe(semente);
+  const nome = escolhe(pecas(cena, "_Head"), h, 7);
+  const clone = SkeletonUtils.clone(cena) as THREE.Object3D;
+  const remover: THREE.Object3D[] = [];
+  clone.traverse((o) => {
+    if (o.parent?.name === "CharacterArmature" && o.name !== nome) remover.push(o);
+  });
+  for (const o of remover) o.removeFromParent();
+  aplicarTinta(clone, a);
+  return clone;
 }
 
 function aplicarSentado(root: THREE.Object3D, descanso: Map<string, THREE.Quaternion>) {
@@ -114,12 +144,11 @@ function aplicarSentado(root: THREE.Object3D, descanso: Map<string, THREE.Quater
     bone.quaternion.copy(q);
     bone.rotateX(giro);
   });
-  root.position.y = -0.28;
+  root.position.y = -0.12;
 }
 
 export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef: MutableRefObject<PoseCorpo> }) {
-  const homens = useGLTF(URL_HOMEM, false, true);
-  const mulheres = useGLTF(URL_MULHER, false, true);
+  const gltf = useGLTF(urlDoRig(semente), false, true);
   const grupo = useRef<THREE.Group>(null);
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const acoes = useRef<Record<string, THREE.AnimationAction>>({});
@@ -128,10 +157,9 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
   const jaSentado = useRef(false);
 
   const montado = useMemo(() => {
-    const escolha = escolher(semente, homens.scene, mulheres.scene);
-    const fonte = escolha.genero === "women" ? mulheres : homens;
-    return { ...montarInstancia(fonte.scene, escolha.manter, escolha.aparencia), clips: fonte.animations };
-  }, [semente, homens, mulheres]);
+    const escolha = escolher(semente, gltf.scene);
+    return { ...montarInstancia(gltf.scene, escolha.manter, escolha.aparencia), clips: gltf.animations };
+  }, [semente, gltf]);
 
   useEffect(() => {
     const root = grupo.current;
