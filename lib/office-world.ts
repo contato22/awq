@@ -77,6 +77,13 @@ const ALT_VIDRO = 9;
 // Sala 0 (fundo da planta, "o topo") é a do Miguel e a 5 é a de reuniões; clientes ocupam as 1 a 4.
 const SLOTS_CLIENTES = [1, 2, 3, 4];
 
+/** Mesma planta do mundo 2D, para o Modo 3D posicionar a diretoria e a sala de reuniões. */
+export const SALAS_CASA = {
+  lado: LADO,
+  diretoria: SLOTS[0],
+  reunioes: SLOTS[5],
+} as const;
+
 export function layoutPredios(empresas: Empresa[]): PredioW[] {
   return empresas.slice(0, SLOTS_CLIENTES.length).map((e, i) => {
     const sl = SLOTS[SLOTS_CLIENTES[i]];

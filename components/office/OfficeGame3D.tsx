@@ -8,8 +8,8 @@ import {
   ArrowLeft, BarChart3, ChevronRight, ClipboardList, Crosshair, Crown, FastForward, FileText, Globe, ListChecks,
   MessageSquare, Moon, Pause, Play, ScrollText, Search, ShieldCheck, Sun, Sunrise, Sunset, Target, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
-import { ceu, LOOK, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
-import { andarDaEmpresa, ANDARES, layoutPredios, type AndarId, type Empresa, type PredioW } from "@/lib/office-world";
+import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
+import { andarDaEmpresa, ANDARES, layoutPredios, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
 import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
 
@@ -20,14 +20,10 @@ import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
  * operacional (empresas, estados, métricas, atividade); nenhuma lógica de negócio mora aqui.
  *
  * Estado desta entrega: cena 3D integrada, câmera (zoom/pan/rotação/recentralizar), seleção
- * de empresa/agente, troca de andar, ciclo dia/noite, minimapa (segunda câmera ortográfica
- * sobre a mesma cena) e indicadores de estado real (idle/working/done/error). Personagens são
- * figuras humanas estilizadas de várias partes (pernas, tronco, braços, cabeça, cabelo por
- * papel) com animação de respiração/digitação (trabalho) e caminhada curta até um ponto de
- * descanso dentro da própria sala quando ociosos (idle) — desvio de obstáculos é por
- * pontos-destino pré-validados (não há replanejamento de rota em tempo real ainda). Mobiliário
- * (mesa, cadeira, monitor) tem volume e acabamento simples. Modelos humanos esculpidos/rigged
- * (GLTF) e desvio de obstáculos em tempo real ficam para iterações futuras.
+ * de empresa/agente, troca de andar, ciclo dia/noite, minimapa e indicadores de estado.
+ * Personagens estilizados (diversidade por semente, pose sentada, caminhada com BFS na grade
+ * da sala de squad). A planta inclui a sala do Miguel e a sala de reuniões, nos mesmos slots
+ * do mundo 2D. Modelos humanos esculpidos/rigged (GLTF) ficam para quando houver asset.
  */
 
 interface Props {
@@ -47,6 +43,8 @@ interface Props {
   painelAberto: boolean;
   onSair?: () => void;
   busca?: ItemBusca[];
+  /** CSs sentados na sala de reuniões (vazio fora da reunião), o mesmo dado do mundo 2D. */
+  reuniao?: EstadoReuniao[];
   onPainel: (aberto: boolean, tab?: PainelTab) => void;
   temRelatorio: boolean;
   pendencias: number;
@@ -58,6 +56,8 @@ const PAPEIS: Agente[] = ["cs", "ref", "criativo", "midia"];
 const MESAS: Record<Agente, [number, number]> = { cs: [0.8, 1], ref: [3.6, 1], criativo: [0.8, 3.6], midia: [3.6, 3.6] };
 const ROTULO_CURTO: Record<Agente, string> = { cs: "CS", ref: "Referências", criativo: "Criativo", midia: "Mídia" };
 const ESTADO_TXT: Record<Estado, string> = { idle: "Ocioso", working: "Trabalhando", done: "Entregou", error: "Com problema" };
+
+const normBusca = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 // ── Diversidade de personagens: tons de pele, cabelo e roupa variam por semente (empresa +
 // papel), não só pelas 4 cores fixas do papel — paleta própria (não copiada de nenhum jogo). ──
@@ -245,9 +245,13 @@ function destinoAleatorio(): [number, number] {
 type FaseAndar = "no-lugar" | "indo" | "fora" | "voltando";
 
 function Personagem({
-  papel, estado, selecionado, onClick, basePos, semente,
+  papel, estado, selecionado, onClick, basePos, semente, ancorado = false, olhar = Math.PI,
 }: {
   papel: Agente; estado: Estado; selecionado: boolean; onClick: () => void; basePos: [number, number]; semente: string;
+  /** Sentado no lugar, sem passeio — sala do Miguel e reunião. A caminhada da squad não usa isto. */
+  ancorado?: boolean;
+  /** rotation.y enquanto ancorado. Na mesa da squad o personagem continua virado para o monitor. */
+  olhar?: number;
 }) {
   const L = useMemo(() => aparenciaDe(semente), [semente]);
   const sombraTex = useMemo(() => texturaSombraContato(), []);
@@ -283,6 +287,28 @@ function Personagem({
     const dt = Math.min(dtBruto, 0.05);
     t0.current += dt;
     if (!grupo.current || !corpoRef.current) return;
+
+    if (ancorado) {
+      fase.current = "no-lugar";
+      caminho.current = [];
+      posAtual.current.set(basePos[0], 0, basePos[1]);
+      grupo.current.position.copy(posAtual.current);
+      grupo.current.rotation.y = olhar;
+      sentarPernas();
+      if (estado === "working") {
+        const osc = Math.sin(t0.current * 7);
+        if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
+        if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
+        corpoRef.current.rotation.x = 0.06;
+        corpoRef.current.position.y = 0.55;
+      } else {
+        if (bracoE.current) bracoE.current.rotation.x = 0;
+        if (bracoD.current) bracoD.current.rotation.x = 0;
+        corpoRef.current.rotation.x = 0;
+        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
+      }
+      return;
+    }
 
     if (estado !== "idle") {
       // trabalhando/entregue/com erro: sentado no lugar, de frente pro monitor
@@ -700,6 +726,211 @@ function Sala({
   );
 }
 
+function Cadeira({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
+  return (
+    <group position={[posicao[0], 0, posicao[1]]} rotation-y={rotacao}>
+      <RoundedBox args={[0.34, 0.05, 0.32]} radius={0.02} position={[0, 0.26, 0]} castShadow>
+        <meshStandardMaterial color="#374151" roughness={0.7} />
+      </RoundedBox>
+      <RoundedBox args={[0.32, 0.4, 0.05]} radius={0.03} position={[0, 0.48, 0.15]} rotation-x={-0.08} castShadow>
+        <meshStandardMaterial color="#374151" roughness={0.7} />
+      </RoundedBox>
+      {([[-0.14, -0.14], [0.14, -0.14], [-0.14, 0.14], [0.14, 0.14]] as const).map(([lx, lz]) => (
+        <mesh key={`${lx}-${lz}`} position={[lx, 0.13, lz]} castShadow>
+          <cylinderGeometry args={[0.012, 0.012, 0.26, 6]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Encosto da cadeira fica atrás de quem está sentado (a squad usa a mesma orientação). */
+function cadeiraAtras(pos: [number, number], olhar: number, dist = 0.12): [number, number] {
+  return [pos[0] - Math.sin(olhar) * dist, pos[1] - Math.cos(olhar) * dist];
+}
+
+function estadoDaReuniao(st: EstadoReuniao): Estado {
+  if (st === "pensando") return "working";
+  if (st === "erro") return "error";
+  if (st === "pronto") return "done";
+  return "idle";
+}
+
+/** Assentos da mesa de reuniões, na mesma ordem do mundo 2D: fundo, depois a fileira da frente. */
+const ASSENTOS_REUNIAO: { pos: [number, number]; olhar: number; papel: Agente }[] = [
+  { pos: [4.2, 4.35], olhar: 0, papel: "ref" },
+  { pos: [5.5, 4.35], olhar: 0, papel: "criativo" },
+  { pos: [6.8, 4.35], olhar: 0, papel: "midia" },
+  { pos: [4.2, 6.65], olhar: Math.PI, papel: "ref" },
+  { pos: [5.5, 6.65], olhar: Math.PI, papel: "criativo" },
+  { pos: [6.8, 6.65], olhar: Math.PI, papel: "midia" },
+];
+const CABECEIRA_REUNIAO: { pos: [number, number]; olhar: number } = { pos: [8.05, 5.5], olhar: -Math.PI / 2 };
+
+type CasaId = "diretoria" | "reunioes";
+
+/** Sala do Miguel ou sala de reuniões — o mesmo slot da planta 2D, com o acabamento do Modo 3D.
+ * O passeio com pathfinding continua só nas salas de squad; aqui todo mundo fica sentado. */
+function SalaDaCasa({
+  tipo, detalhado, reuniao, onEntrar,
+}: {
+  tipo: CasaId;
+  detalhado: boolean;
+  reuniao?: EstadoReuniao[];
+  onEntrar: () => void;
+}) {
+  const origem = tipo === "diretoria" ? SALAS_CASA.diretoria : SALAS_CASA.reunioes;
+  const ox = origem.x * UNIT, oz = origem.y * UNIT;
+  const w = SALAS_CASA.lado * UNIT, d = SALAS_CASA.lado * UNIT;
+  const accent = tipo === "diretoria" ? "#7c5a1a" : "#334155";
+  const madeira = useMemo(() => texturaMadeira(), []);
+  const pisoMap = useMemo(() => {
+    const t = madeira.clone();
+    t.needsUpdate = true;
+    t.repeat.set(w / 2.4, d / 2.4);
+    return t;
+  }, [madeira, w, d]);
+  const tapeteMap = useMemo(() => texturaTapete(), []);
+  const emReuniao = tipo === "reunioes" && !!reuniao && reuniao.length > 0;
+  return (
+    <group position={[ox, 0, oz]}>
+      <mesh
+        rotation-x={-Math.PI / 2}
+        position={[w / 2, 0.004, d / 2]}
+        receiveShadow
+        onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onEntrar(); }}
+      >
+        <planeGeometry args={[w, d]} />
+        <meshStandardMaterial map={pisoMap} roughness={0.85} />
+      </mesh>
+      {detalhado && (
+        <mesh rotation-x={-Math.PI / 2} position={[w / 2, 0.01, d / 2]} receiveShadow>
+          <planeGeometry args={[tipo === "diretoria" ? 4.2 : 5.2, tipo === "diretoria" ? 3.4 : 4.4]} />
+          <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
+        </mesh>
+      )}
+      <group position={[0, 0, 0.02]}>
+        <ParedeDetalhada comprimento={w} corAccent={accent} />
+      </group>
+      <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
+        <ParedeDetalhada comprimento={d} corAccent={accent} />
+      </group>
+      <Pilar posicao={PILAR_POS} />
+      {tipo === "diretoria" ? (
+        <>
+          <RoundedBox args={[1.5, 0.42, 0.72]} radius={0.03} position={[5.5, 0.21, 3.15]} castShadow receiveShadow>
+            <meshStandardMaterial color="#6b4423" roughness={0.55} />
+          </RoundedBox>
+          <mesh position={[5.5, 0.55, 2.9]} castShadow>
+            <boxGeometry args={[0.42, 0.26, 0.03]} />
+            <meshStandardMaterial color="#1f2937" />
+          </mesh>
+          <mesh position={[5.5, 0.55, 2.915]}>
+            <planeGeometry args={[0.36, 0.2]} />
+            <meshStandardMaterial color="#1d4ed8" emissive="#3b82f6" emissiveIntensity={0.7} />
+          </mesh>
+          <Cadeira posicao={cadeiraAtras([5.5, 3.85], Math.PI)} rotacao={0} />
+          <Personagem
+            papel="cs"
+            estado="working"
+            selecionado={false}
+            onClick={onEntrar}
+            basePos={[5.5, 3.85]}
+            semente="miguel"
+            ancorado
+            olhar={Math.PI}
+          />
+          {detalhado && (
+            <>
+              <Estante posicao={[1.3, 0.35]} />
+              <Planta posicao={[9.4, 1.4]} />
+              <RoundedBox args={[0.46, 0.28, 0.32]} radius={0.02} position={[2.1, 0.14, 8.3]} castShadow>
+                <meshStandardMaterial color="#e0cba6" roughness={0.75} />
+              </RoundedBox>
+              <group position={[8.7, 0, 8.1]}>
+                <mesh position={[0, 0.7, 0]} castShadow>
+                  <cylinderGeometry args={[0.015, 0.015, 1.4, 8]} />
+                  <meshStandardMaterial color="#94a3b8" metalness={0.4} roughness={0.4} />
+                </mesh>
+                <mesh position={[0.22, 1.22, 0]} castShadow>
+                  <boxGeometry args={[0.42, 0.24, 0.015]} />
+                  <meshStandardMaterial color="#fbbf24" roughness={0.6} />
+                </mesh>
+              </group>
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          <RoundedBox args={[3.6, 0.08, 1.45]} radius={0.02} position={[5.5, 0.42, 5.5]} castShadow receiveShadow>
+            <meshStandardMaterial color="#e5e7eb" roughness={0.45} />
+          </RoundedBox>
+          {[[4.1, 5.0], [6.9, 5.0], [4.1, 6.0], [6.9, 6.0]].map(([lx, lz]) => (
+            <mesh key={`${lx}-${lz}`} position={[lx, 0.21, lz]} castShadow>
+              <cylinderGeometry args={[0.04, 0.04, 0.42, 8]} />
+              <meshStandardMaterial color="#9ca3af" metalness={0.35} roughness={0.4} />
+            </mesh>
+          ))}
+          {ASSENTOS_REUNIAO.map((a) => (
+            <Cadeira key={`${a.pos[0]}-${a.pos[1]}`} posicao={cadeiraAtras(a.pos, a.olhar)} rotacao={a.olhar + Math.PI} />
+          ))}
+          {emReuniao && reuniao && (
+            <>
+              <Cadeira posicao={cadeiraAtras(CABECEIRA_REUNIAO.pos, CABECEIRA_REUNIAO.olhar)} rotacao={CABECEIRA_REUNIAO.olhar + Math.PI} />
+              <Personagem
+                papel="cs"
+                estado="idle"
+                selecionado={false}
+                onClick={onEntrar}
+                basePos={CABECEIRA_REUNIAO.pos}
+                semente="gestor-reuniao"
+                ancorado
+                olhar={CABECEIRA_REUNIAO.olhar}
+              />
+              {reuniao.slice(0, ASSENTOS_REUNIAO.length).map((st, i) => {
+                const a = ASSENTOS_REUNIAO[i];
+                return (
+                  <Personagem
+                    key={i}
+                    papel={a.papel}
+                    estado={estadoDaReuniao(st)}
+                    selecionado={false}
+                    onClick={onEntrar}
+                    basePos={a.pos}
+                    semente={`reuniao:${i}:${a.papel}`}
+                    ancorado
+                    olhar={a.olhar}
+                  />
+                );
+              })}
+            </>
+          )}
+          {detalhado && (
+            <>
+              <Planta posicao={[9.4, 1.3]} />
+              <group position={[5.5, 1.35, 0.14]}>
+                <mesh castShadow>
+                  <boxGeometry args={[1.7, 0.95, 0.05]} />
+                  <meshStandardMaterial color="#0f172a" />
+                </mesh>
+                <mesh position={[0, 0, 0.03]}>
+                  <planeGeometry args={[1.5, 0.78]} />
+                  <meshStandardMaterial
+                    color={emReuniao ? "#38bdf8" : "#1e293b"}
+                    emissive={emReuniao ? "#0ea5e9" : "#0f172a"}
+                    emissiveIntensity={emReuniao ? 0.55 : 0.05}
+                  />
+                </mesh>
+              </group>
+            </>
+          )}
+        </>
+      )}
+    </group>
+  );
+}
+
 // ── Câmera: aproxima a sala selecionada, recua para a visão do andar ──────────────────
 
 export interface CameraApi { zoomBy: (fator: number) => void }
@@ -711,7 +942,7 @@ const DIRECAO_CAM = new THREE.Vector3(0.62, 0.72, 0.58).normalize();
 
 function CameraRig({
   vista, alvo, apiRef,
-}: { vista: "mundo" | "sala"; alvo: [number, number, number]; apiRef: React.MutableRefObject<CameraApi | null> }) {
+}: { vista: "mundo" | "sala" | "casa"; alvo: [number, number, number]; apiRef: React.MutableRefObject<CameraApi | null> }) {
   const controlsRef = useRef<any>(null);
 
   const aplicar = (dist: number) => {
@@ -724,7 +955,7 @@ function CameraRig({
   };
 
   const alvoKey = alvo.join(",");
-  useEffect(() => { aplicar(vista === "sala" ? 9.5 : 50); }, [vista, alvoKey]);
+  useEffect(() => { aplicar(vista === "mundo" ? 50 : 9.5); }, [vista, alvoKey]);
 
   useEffect(() => {
     apiRef.current = {
@@ -839,16 +1070,19 @@ function FpsProbe({ onUpdate }: { onUpdate: (fps: number) => void }) {
 }
 
 function Cena({
-  predios, estados, atividade, selecionado, buAtual, vista, onEntrar, onSelecionar, hora, alvo, apiRef, onFps,
+  predios, estados, atividade, selecionado, buAtual, vista, focoCasa, reuniao, onEntrar, onSelecionar, onFocarCasa, hora, alvo, apiRef, onFps,
 }: {
   predios: PredioW[];
   estados: Record<Agente, Estado>;
   atividade: Record<Agente, Atividade>;
   selecionado: Agente;
   buAtual: string;
-  vista: "mundo" | "sala";
+  vista: "mundo" | "sala" | "casa";
+  focoCasa: CasaId;
+  reuniao?: EstadoReuniao[];
   onEntrar: (bu: string) => void;
   onSelecionar: (a: Agente) => void;
+  onFocarCasa: (sala: CasaId) => void;
   hora: number;
   alvo: [number, number, number];
   apiRef: React.MutableRefObject<CameraApi | null>;
@@ -885,6 +1119,13 @@ function Cena({
           onSelecionar={onSelecionar}
         />
       ))}
+      <SalaDaCasa tipo="diretoria" detalhado={vista === "casa" && focoCasa === "diretoria"} onEntrar={() => onFocarCasa("diretoria")} />
+      <SalaDaCasa
+        tipo="reunioes"
+        detalhado={vista === "casa" && focoCasa === "reunioes"}
+        reuniao={reuniao}
+        onEntrar={() => onFocarCasa("reunioes")}
+      />
       <CameraRig vista={vista} alvo={alvo} apiRef={apiRef} />
       <FpsProbe onUpdate={onFps} />
     </>
@@ -894,7 +1135,9 @@ function Cena({
 /** Minimapa: segunda cena leve, bem mais simples (só as plantas das salas, sem personagens
  * nem sombra), vista de cima por uma câmera ortográfica fixa — igual em espírito ao minimapa
  * do mundo 2D, mas como uma cena 3D própria em vez de um redesenho em canvas 2D. */
-function Minimapa({ predios, buAtual, andarAtual }: { predios: PredioW[]; buAtual: string; andarAtual: AndarId }) {
+function Minimapa({
+  predios, buAtual, andarAtual, vista, focoCasa,
+}: { predios: PredioW[]; buAtual: string; andarAtual: AndarId; vista: "mundo" | "sala" | "casa"; focoCasa: CasaId }) {
   const chaoW = 20 * UNIT, chaoD = 14 * UNIT;
   const centro: [number, number, number] = [chaoW / 2 - UNIT, 0, chaoD / 2 - UNIT];
   return (
@@ -915,6 +1158,17 @@ function Minimapa({ predios, buAtual, andarAtual }: { predios: PredioW[]; buAtua
             </mesh>
           );
         })}
+        {(["diretoria", "reunioes"] as const).map((id) => {
+          const sl = SALAS_CASA[id];
+          const lado = SALAS_CASA.lado * UNIT;
+          const foco = vista === "casa" && focoCasa === id;
+          return (
+            <mesh key={id} rotation-x={-Math.PI / 2} position={[(sl.x + SALAS_CASA.lado / 2) * UNIT, 0.02, (sl.y + SALAS_CASA.lado / 2) * UNIT]}>
+              <planeGeometry args={[lado, lado]} />
+              <meshBasicMaterial color={foco ? "#fbbf24" : id === "diretoria" ? "#7c5a1a" : "#475569"} />
+            </mesh>
+          );
+        })}
       </Canvas>
       <span className="absolute top-1 left-1.5 text-[9px] text-white/60 font-medium">{andarAtual === "jacqes" ? "1º · JACQES" : "2º · AWAQE"}</span>
     </div>
@@ -924,11 +1178,12 @@ function Minimapa({ predios, buAtual, andarAtual }: { predios: PredioW[]; buAtua
 export default function OfficeGame3D(props: Props) {
   const {
     empresas, buAtual, onEscolherEmpresa, estados, selecionado, onSelecionar, atividade,
-    nomeCS, tab, painelAberto, onSair, busca, onPainel, pendencias, temRelatorio, children,
+    nomeCS, tab, painelAberto, onSair, busca, reuniao, onPainel, pendencias, temRelatorio, children,
   } = props;
 
   const [andar, setAndar] = useState<AndarId>("jacqes");
-  const [vista, setVista] = useState<"mundo" | "sala">("mundo");
+  const [vista, setVista] = useState<"mundo" | "sala" | "casa">("mundo");
+  const [focoCasa, setFocoCasa] = useState<CasaId>("diretoria");
   const [vel, setVel] = useState(1);
   const [hora, setHora] = useState(horaBrasilia());
   const camApiRef = useRef<CameraApi | null>(null);
@@ -952,20 +1207,48 @@ export default function OfficeGame3D(props: Props) {
     setVista("sala");
   };
   const sair = () => setVista("mundo");
+  const focarCasa = (sala: CasaId) => {
+    setFocoCasa(sala);
+    setVista("casa");
+    if (sala === "reunioes") onPainel(true, "reuniao");
+  };
+
+  const naReuniao = painelAberto && tab === "reuniao";
+  useEffect(() => {
+    if (!naReuniao) return;
+    setFocoCasa("reunioes");
+    setVista("casa");
+  }, [naReuniao]);
 
   const predioAtual = predios.find((p) => p.empresa.bu === buAtual);
-  const alvo: [number, number, number] = predioAtual
+  const slotCasa = SALAS_CASA[focoCasa];
+  const alvoPredio: [number, number, number] | null = predioAtual
     ? [(predioAtual.x + predioAtual.w / 2) * UNIT, 0.6, (predioAtual.y + predioAtual.h / 2) * UNIT]
-    : [10 * UNIT, 0, 7 * UNIT];
+    : null;
+  const alvo: [number, number, number] = vista === "casa"
+    ? [(slotCasa.x + SALAS_CASA.lado / 2) * UNIT, 0.6, (slotCasa.y + SALAS_CASA.lado / 2) * UNIT]
+    : (alvoPredio ?? [10 * UNIT, 0, 7 * UNIT]);
 
   const resultados = useMemo(() => {
     if (!busca || !termo.trim()) return [];
-    const q = termo.toLowerCase();
-    return busca.filter((i) => i.rotulo.toLowerCase().includes(q) || i.sub.toLowerCase().includes(q)).slice(0, 8);
+    const q = normBusca(termo.trim());
+    return busca.filter((i) => normBusca(`${i.rotulo} ${i.sub}`).includes(q)).slice(0, 8);
   }, [busca, termo]);
 
   const irParaItem = (i: ItemBusca) => {
     setTermo(""); setBuscaAberta(false);
+    if (i.tipo === "sala" && i.sala === "reunioes") {
+      setAndar("jacqes");
+      setFocoCasa("reunioes");
+      setVista("casa");
+      onPainel(true, "reuniao");
+      return;
+    }
+    if (i.tipo === "sala" && i.sala === "diretoria") {
+      setFocoCasa("diretoria");
+      setVista("casa");
+      return;
+    }
     if (i.tipo === "empresa" && i.bu) entrar(i.bu);
     else if (i.tipo === "agente" && i.bu && i.role) { entrar(i.bu); onSelecionar(i.role); }
     else if (i.tipo === "andar" && i.andar) { setAndar(i.andar); setVista("mundo"); }
@@ -988,8 +1271,11 @@ export default function OfficeGame3D(props: Props) {
             selecionado={selecionado}
             buAtual={buAtual}
             vista={vista}
+            focoCasa={focoCasa}
+            reuniao={andar === "jacqes" ? reuniao : undefined}
             onEntrar={entrar}
             onSelecionar={onSelecionar}
+            onFocarCasa={focarCasa}
             hora={hora}
             alvo={alvo}
             apiRef={camApiRef}
@@ -998,7 +1284,7 @@ export default function OfficeGame3D(props: Props) {
         </Suspense>
       </Canvas>
 
-      <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} />
+      <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} vista={vista} focoCasa={focoCasa} />
 
       <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
         <span className="rounded-md bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5">
@@ -1027,7 +1313,13 @@ export default function OfficeGame3D(props: Props) {
           ))}
         </div>
         <nav className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5 mt-6">
-          <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista === "sala" && sair()}>Escritório AWQ</button>
+          <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista !== "mundo" && sair()}>Escritório AWQ</button>
+          {vista === "casa" && (
+            <>
+              <ChevronRight size={12} className="text-white/50" />
+              <span className="font-semibold">{focoCasa === "diretoria" ? "Sala do Miguel" : "Sala de reuniões"}</span>
+            </>
+          )}
           {vista === "sala" && empresaAtual && (
             <>
               <ChevronRight size={12} className="text-white/50" />
