@@ -7,12 +7,13 @@
     "build": "node scripts/next-build.mjs",
     "start": "next start",
     "lint": "next lint",
-    "test": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:recon && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:live-shop && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" node --import tsx --test lib/api-auth.test.ts lib/rate-limit.test.ts lib/office-world.test.ts",
+    "test": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:recon && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:live-shop && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" node --import tsx --test lib/api-auth.test.ts lib/rate-limit.test.ts lib/office-world.test.ts && tsx scripts/test-lead-capture.ts && tsx scripts/test-middleware-auth.ts",
     "seed:epm": "tsx scripts/seed-epm-planning.ts",
     "test:epm": "tsx scripts/test-epm-db.ts",
     "test:recon": "tsx scripts/test-recon-scoring.ts && tsx scripts/test-recon-engine.ts",
     "test:recon:int": "tsx scripts/test-recon-integration.ts",
-    "test:live-shop": "tsx scripts/test-live-shop.ts"
+    "test:live-shop": "tsx scripts/test-live-shop.ts",
+    "test:migrate-ledger": "node --test --test-concurrency=1 scripts/erp-migrate.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -42,7 +43,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
-    "autoprefixer": "^10.4.20",
+    "autoprefixer": "^10.6.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.35",
     "playwright": "^1.60.0",

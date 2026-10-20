@@ -6,7 +6,7 @@
 import http from "http";
 import { test, expect } from "@playwright/test";
 
-function rawGet(path: string): Promise<{ status: number; location: string }> {
+function rawGet(path: string): Promise<{ status: number; location: string; body: string }> {
   const base = new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000");
   return new Promise((resolve, reject) => {
     const req = http.request(
@@ -16,15 +16,28 @@ function rawGet(path: string): Promise<{ status: number; location: string }> {
         port: base.port || (base.protocol === "https:" ? 443 : 80),
         path,
         method: "GET",
+        headers: { host: base.host, accept: "application/json,text/html" },
       },
       (res) => {
-        res.resume();
-        resolve({ status: res.statusCode ?? 0, location: String(res.headers.location ?? "") });
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => {
+          const location = res.headers.location;
+          resolve({
+            status: res.statusCode ?? 0,
+            location: Array.isArray(location) ? location[0] ?? "" : location ?? "",
+            body: Buffer.concat(chunks).toString("utf8"),
+          });
+        });
       },
     );
     req.on("error", reject);
     req.end();
   });
+}
+
+function isAuthRedirect(status: number, location: string): boolean {
+  return (status === 302 || status === 307 || status === 303) && /\/login(?:\?|$)|\/api\/auth\/signin/.test(location);
 }
 
 test.describe("Public routes", () => {
@@ -194,7 +207,7 @@ const SENSITIVE_BEHIND_MIDDLEWARE = [
   "/api/security/audit",
 ];
 
-// Fora do matcher do middleware. O handler tem de negar sozinho
+// O middleware deixa passar sem sessão. O handler tem de negar sozinho
 // (sessão ou Bearer). 200 aqui seria seed, sync ou dump anônimo.
 const SENSITIVE_CLOSED = [
   { method: "GET" as const, path: "/api/setup/seed-btg-extract-jun2026" },
@@ -236,4 +249,32 @@ test.describe("Sensitive APIs deny anonymous access", () => {
       expect(text, path).not.toContain("service_role");
     });
   }
+});
+
+test.describe("Public matcher boundaries", () => {
+  test("encoded dot-segments that still hit a dynamic route redirect to login", async () => {
+    const paths = [
+      "/api/crm/..%2F..%2Flogin",
+      "/api/caza/clients/x%2F..%2F..%2F..%2F..%2Flogin",
+      "/api/ppm/projects/x%2F..%2F..%2F..%2F..%2Fapi%2Fhealth",
+      "/loginX",
+      "/api/healthcheck",
+      "/patricia-cantoX",
+      "/api/cora/cron-syncX",
+      "/api/live-shop/webhookX",
+      "/api/setup/backfill-snapshotsX",
+      "/_next/webpack-hmr",
+    ];
+    for (const path of paths) {
+      const res = await rawGet(path);
+      expect(
+        isAuthRedirect(res.status, res.location),
+        `${path} -> ${res.status} ${res.location} ${res.body.slice(0, 160)}`,
+      ).toBe(true);
+      expect(res.body, path).not.toContain("dbAdapter");
+      expect(res.body, path).not.toContain("csrfToken");
+      expect(res.body, path).not.toContain("erp_assets");
+      expect(res.body, path).not.toContain("service_role");
+    }
+  });
 });
