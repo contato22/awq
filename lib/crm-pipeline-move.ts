@@ -45,6 +45,66 @@ export function persistOutcome(
   return "keep";
 }
 
+/** Repõe um único card. `prior` null remove o id; ausente na lista, reinsere. */
+export function rollbackItem<T extends { opportunity_id: string }>(
+  current: T[],
+  id: string,
+  prior: T | null,
+  index?: number,
+): T[] {
+  const found = current.findIndex((row) => row.opportunity_id === id);
+  if (prior == null) {
+    return found === -1 ? current : current.filter((row) => row.opportunity_id !== id);
+  }
+  if (found !== -1) {
+    return current.map((row) => (row.opportunity_id === id ? prior : row));
+  }
+  const at = index == null ? current.length : Math.max(0, Math.min(index, current.length));
+  const next = current.slice();
+  next.splice(at, 0, prior);
+  return next;
+}
+
+export type NamedAccount = { account_id: string; account_name: string };
+
+export type AccountLinkDecision =
+  | { kind: "already-linked"; account_id: string }
+  | { kind: "reuse"; account_id: string; account_name: string }
+  | { kind: "create"; account_name: string }
+  | { kind: "invalid" };
+
+function normalizeAccountName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/** Conta já ligada ou nome idêntico (ignorando caixa) reaproveita. Parecido não basta. */
+export function resolveAccountLink(input: {
+  existingAccountId: string | null;
+  requestedName: string;
+  accounts: NamedAccount[];
+}): AccountLinkDecision {
+  if (input.existingAccountId) {
+    return { kind: "already-linked", account_id: input.existingAccountId };
+  }
+  const needle = normalizeAccountName(input.requestedName);
+  if (!needle) return { kind: "invalid" };
+  const match = input.accounts.find((account) => normalizeAccountName(account.account_name) === needle);
+  if (match) {
+    return { kind: "reuse", account_id: match.account_id, account_name: match.account_name };
+  }
+  return { kind: "create", account_name: input.requestedName.trim() };
+}
+
+export function applyAccountLink<
+  T extends { opportunity_id: string; account_id: string | null; account_name?: string },
+>(opps: T[], id: string, account: NamedAccount): T[] {
+  return opps.map((row) =>
+    row.opportunity_id === id
+      ? { ...row, account_id: account.account_id, account_name: account.account_name }
+      : row,
+  );
+}
+
 export function rowsFromPipeline<T>(json: {
   success: boolean;
   data?: { byStage?: Record<string, T[]>; closedWon?: T[]; closedLost?: T[] };

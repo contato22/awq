@@ -1,7 +1,14 @@
 # Supabase Migrations
 
-Run each migration in the **Supabase SQL Editor** (Dashboard → SQL Editor →
-paste the file contents → **Run**), in order. All are idempotent / safe to re-run.
+O histórico novo passa por `scripts/erp-migrate.mjs` e pelo workflow
+`.github/workflows/migrate-erp-schema.yml`. Cada arquivo roda no máximo uma
+vez. **Não** reaplicar o diretório no SQL Editor: `001_initial_schema.sql`
+faz `DROP TABLE` em `bank_transactions` e `financial_documents`.
+
+O passo a passo do baseline (registrar o que já rodou, sem executar) está em
+[`AGENTS.md`](../AGENTS.md). Até esse baseline existir, o migrate recusa.
+
+A tabela abaixo é o mapa do que já foi colado manualmente no SQL Editor.
 
 | # | Arquivo | O que faz |
 |---|---------|-----------|
