@@ -18,6 +18,12 @@ process.env.NEXT_PUBLIC_STATIC_DATA = isStaticExport ? "1" : "0";
 // esse valor pra detectar bundles stale comparando com /api/health.
 process.env.NEXT_PUBLIC_BUILD_SHA = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
 
+// Persistência local do Estúdio. Desligada por padrão. O nome que se liga na
+// Vercel é CAZA_STUDIO_PERSIST=1; o prefixo NEXT_PUBLIC é só para o bundle do browser.
+const persistirEstudio = process.env.CAZA_STUDIO_PERSIST;
+process.env.NEXT_PUBLIC_CAZA_STUDIO_PERSIST =
+  persistirEstudio === "1" || persistirEstudio === "true" ? "1" : "";
+
 // 'unsafe-inline' / 'unsafe-eval' stay because Next.js 14 injects inline
 // bootstrap scripts and some client charts still evaluate strings. This CSP
 // blocks framing, plugins, and unexpected connect targets; it is not a nonce CSP.
