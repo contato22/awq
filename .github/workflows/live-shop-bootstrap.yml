@@ -1,28 +1,32 @@
 name: Live Shop — bootstrap & verify (manual)
 
-# Aplica as migrations da BU Live Shop (ls_*, 006–011) no Postgres do ERP e/ou
-# verifica o estado. Roda no runner do GitHub (egress aberto) — diferente do
-# sandbox do agente, que tem o host do Supabase bloqueado.
+# As migrations da Live Shop passam pelo mesmo ledger de scripts/erp-migrate.mjs.
+# Cada arquivo roda no máximo uma vez. Sem o baseline gravado pelo workflow
+# "Apply ERP Schema", o bootstrap recusa e não executa SQL.
 #
-# Pré-requisito: secret do repositório
-#   SUPABASE_DB_URL = connection string do Postgres do Supabase ERP
-#   (Settings → Database → Connection string → "Session"/URI)
+# O job usa o environment Production (no YAML: production), que exige reviewer,
+# e só roda em refs/heads/main. Bootstrap manual: mode=bootstrap e
+# confirm=APLICAR_PENDENTES, a partir da main, depois da aprovação.
+# Push de .github/live-shop-bootstrap.trigger só faz dry-run, também no environment.
 #
-# Dispare em Actions → "Live Shop — bootstrap & verify" → Run workflow,
-# a partir da branch main. O job usa o environment `production` e não roda
-# fora de refs/heads/main. Sem required reviewer no environment, a aprovação
-# ainda não bloqueia — o dono configura isso no GitHub.
+# Não disparar a partir de um agente. Não remover environment: production.
+# secrets não entra em steps.if. O gate do banco é steps.dburl.outputs.present.
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "bootstrap (aplica 006–011 e verifica) | verify (só conta)"
+        description: "dry-run (não escreve) | bootstrap (aplica pendentes do ledger) | verify (só conta)"
         type: choice
-        default: bootstrap
-        options: [bootstrap, verify]
-  # Gatilho automático: alterar .github/live-shop-bootstrap.trigger num push para
-  # a main roda o bootstrap (contorna a falta de permissão de dispatch via API).
+        default: dry-run
+        options:
+          - dry-run
+          - bootstrap
+          - verify
+      confirm:
+        description: "bootstrap exige APLICAR_PENDENTES"
+        type: string
+        required: false
   push:
     branches: [main]
     paths:
@@ -37,44 +41,64 @@ jobs:
     environment: production
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check secret present
+        id: dburl
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "SUPABASE_DB_URL ausente. Os passos de banco serão ignorados."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "SUPABASE_DB_URL presente. A URL não é impressa."
+          fi
+
+      - name: Exige secret no disparo manual
+        if: steps.dburl.outputs.present != 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          echo "::error::Defina o secret SUPABASE_DB_URL (Settings → Secrets and variables → Actions)."
+          exit 1
+
+      - name: Setup Node.js
+        if: steps.dburl.outputs.present == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "20"
 
       - name: Instala psql
+        if: steps.dburl.outputs.present == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
 
-      - name: Checa secret
+      - name: Dry-run ou bootstrap via ledger
+        if: steps.dburl.outputs.present == 'true' && (github.event_name == 'push' || inputs.mode == 'dry-run' || inputs.mode == 'bootstrap')
         env:
-          PGURL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$PGURL" ]; then
-            echo "::error::Defina o secret SUPABASE_DB_URL (Settings → Secrets and variables → Actions)."
-            exit 1
-          fi
-          echo "secret presente."
-
-      - name: Bootstrap (migrations 006–011, idempotentes, em ordem)
-        if: ${{ github.event_name == 'push' || inputs.mode == 'bootstrap' }}
-        env:
-          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+          MIGRATE_DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          MIGRATE_ALLOW_REMOTE: "1"
+          MIGRATE_MODE: ${{ github.event_name == 'push' && 'dry-run' || inputs.mode }}
+          MIGRATE_CONFIRM: ${{ inputs.confirm }}
         run: |
           set -euo pipefail
-          for f in \
-            supabase/migrations/006_live_shop.sql \
-            supabase/migrations/007_live_shop_brands.sql \
-            supabase/migrations/008_live_shop_content.sql \
-            supabase/migrations/009_live_shop_agenda.sql \
-            supabase/migrations/010_live_shop_guests.sql \
-            supabase/migrations/011_live_shop_hosts.sql \
-            supabase/migrations/012_jacqes_guests.sql; do
-            echo "── aplicando $f ──"
-            psql "$PGURL" -v ON_ERROR_STOP=1 -f "$f"
-          done
-          echo "Recarregando schema cache do PostgREST…"
-          psql "$PGURL" -c "notify pgrst, 'reload schema';"
+          mode="$MIGRATE_MODE"
+          files="supabase/migrations/006_live_shop.sql,supabase/migrations/007_live_shop_brands.sql,supabase/migrations/008_live_shop_content.sql,supabase/migrations/009_live_shop_agenda.sql,supabase/migrations/010_live_shop_guests.sql,supabase/migrations/011_live_shop_hosts.sql,supabase/migrations/012_jacqes_guests.sql"
+          if [ "$mode" = "bootstrap" ]; then
+            if [ "$MIGRATE_CONFIRM" != "APLICAR_PENDENTES" ]; then
+              echo "::error::Bootstrap recusado. Digite exatamente APLICAR_PENDENTES. Rode o baseline do schema antes."
+              exit 2
+            fi
+            node scripts/erp-migrate.mjs migrate --confirm "$MIGRATE_CONFIRM" --files "$files"
+            echo "Recarregando schema cache do PostgREST…"
+            psql "$MIGRATE_DATABASE_URL" -c "notify pgrst, 'reload schema';"
+          else
+            node scripts/erp-migrate.mjs dry-run --files "$files"
+          fi
 
       - name: Verify (somente contagens — sem dados financeiros)
+        if: steps.dburl.outputs.present == 'true' && github.event_name == 'workflow_dispatch' && (inputs.mode == 'verify' || inputs.mode == 'bootstrap')
         env:
           PGURL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
