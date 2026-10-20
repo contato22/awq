@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowLeft, Search, BarChart3, Crown, Target, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
+  ArrowLeft, Search, BarChart3, Clapperboard, Crown, Target, ChevronRight, ListChecks, ClipboardList, Crosshair, Eye, FastForward, FileText, Globe, MessageSquare,
   Moon, Pause, Play, ScrollText, ShieldCheck, Sun, Sunrise, Sunset, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
@@ -28,7 +28,7 @@ export interface ItemBusca {
   andar?: AndarId;
 }
 
-export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "head" | "missoes" | "relatorio" | "analise" | "cenarios" | "registros";
+export type PainelTab = "ciclo" | "conversa" | "reuniao" | "eventos" | "head" | "missoes" | "relatorio" | "analise" | "cenarios" | "registros" | "storyboard";
 
 export interface MetricaAgente {
   execs: number;
@@ -89,6 +89,7 @@ const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "analise", rotulo: "Análise", Icone: BarChart3 },
   { tab: "cenarios", rotulo: "Cenários de estresse", Icone: ShieldCheck },
   { tab: "registros", rotulo: "Registros", Icone: ScrollText },
+  { tab: "storyboard", rotulo: "Storyboard", Icone: Clapperboard },
 ];
 
 function temaDe(i: number) { return TEMAS[((i % TEMAS.length) + TEMAS.length) % TEMAS.length]; }

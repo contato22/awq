@@ -5,7 +5,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { OrbitControls, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import {
-  ArrowLeft, BarChart3, ChevronRight, ClipboardList, Crosshair, Crown, FastForward, FileText, Globe, ListChecks,
+  ArrowLeft, BarChart3, ChevronRight, Clapperboard, ClipboardList, Crosshair, Crown, FastForward, FileText, Globe, ListChecks,
   MessageSquare, Moon, Pause, Play, ScrollText, Search, ShieldCheck, Sun, Sunrise, Sunset, Target, Users, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
@@ -75,6 +75,7 @@ const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "analise", rotulo: "Análise", Icone: BarChart3 },
   { tab: "cenarios", rotulo: "Cenários de estresse", Icone: ShieldCheck },
   { tab: "registros", rotulo: "Registros", Icone: ScrollText },
+  { tab: "storyboard", rotulo: "Storyboard", Icone: Clapperboard },
 ];
 
 function periodo(h: number): { rotulo: string; Icone: React.ElementType } {
