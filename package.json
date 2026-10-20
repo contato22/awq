@@ -7,7 +7,7 @@
     "build": "node scripts/next-build.mjs",
     "start": "next start",
     "lint": "next lint",
-    "test": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:recon && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:live-shop && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" node --import tsx --test lib/api-auth.test.ts lib/rate-limit.test.ts lib/patricia-canto/api-client.test.ts lib/office-world.test.ts lib/studio-optics.test.ts lib/studio-lights.test.ts lib/studio-store.test.ts lib/studio-storyboard.test.ts && tsx scripts/test-lead-capture.ts && tsx scripts/test-middleware-auth.ts",
+    "test": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:recon && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" npm run test:live-shop && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require ./scripts/node20-websocket.cjs\" node --import tsx --test lib/api-auth.test.ts lib/rate-limit.test.ts lib/patricia-canto/api-client.test.ts lib/office-world.test.ts lib/studio-optics.test.ts lib/studio-lights.test.ts lib/studio-store.test.ts lib/studio-storyboard.test.ts lib/studio-actor.test.ts && tsx scripts/test-lead-capture.ts && tsx scripts/test-middleware-auth.ts",
     "seed:epm": "tsx scripts/seed-epm-planning.ts",
     "test:epm": "tsx scripts/test-epm-db.ts",
     "test:recon": "tsx scripts/test-recon-scoring.ts && tsx scripts/test-recon-engine.ts",

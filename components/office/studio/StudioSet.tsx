@@ -10,6 +10,8 @@ import { CAMADA_CICLORAMA, CAMADA_GIZMO } from "./camadas";
 import { CorpoDaCamera, OlharPelaCamera, PainelDaCamera } from "./VirtualCamera";
 import { LuzesDoEstudio, PainelDasLuzes } from "./StudioLights";
 import { FormularioDeCaptura, GanchoDeCaptura, type PedidoCaptura } from "./ShotCapture";
+import { AtorNoSet, PainelDoAtor } from "./ActorStandIn";
+import { definirAtor, estadoDoAtor, NOME_ATOR_PADRAO, POSE_ATOR_PADRAO, type EstadoAtor } from "@/lib/studio-actor";
 import type { ShotEstudio } from "@/lib/studio-store";
 
 /**
@@ -211,24 +213,6 @@ function GradeDeLuz() {
   );
 }
 
-/** Escala humana: cápsula r 0.22, comprimento 1.0, centro no raio + metade do corpo, cabeça a 1.62. */
-function Manequim() {
-  const raio = 0.22;
-  const comprimento = 1.0;
-  return (
-    <group position={[0, 0, -0.4]}>
-      <mesh position={[0, raio + comprimento / 2, 0]} castShadow>
-        <capsuleGeometry args={[raio, comprimento, 4, 12]} />
-        <meshStandardMaterial color="#c8c2b6" roughness={0.72} />
-      </mesh>
-      <mesh position={[0, 1.62, 0]} castShadow>
-        <sphereGeometry args={[0.18, 16, 12]} />
-        <meshStandardMaterial color="#d4cec2" roughness={0.6} />
-      </mesh>
-    </group>
-  );
-}
-
 function Exposicao() {
   const gl = useThree((s) => s.gl);
   useEffect(() => {
@@ -243,7 +227,6 @@ export function StudioSet() {
     <group>
       <Ciclorama />
       <GradeDeLuz />
-      <Manequim />
     </group>
   );
 }
@@ -276,6 +259,8 @@ export function EstudioViewport() {
   const fov = fovNoQuadro(lenteMm, sensor, aspecto).vertical;
   const [pedido, setPedido] = useState<PedidoCaptura | null>(null);
   const [ultimo, setUltimo] = useState<ShotEstudio | null>(null);
+  const [ator, setAtor] = useState<EstadoAtor>({ nome: NOME_ATOR_PADRAO, pose: POSE_ATOR_PADRAO });
+  useEffect(() => { setAtor(estadoDoAtor()); }, []);
   const mudarLuz = (id: LuzId, parcial: Partial<AjusteLuz>) => {
     setLuzes((atual) => ({ ...atual, [id]: { ...atual[id], ...parcial } }));
   };
@@ -303,6 +288,9 @@ export function EstudioViewport() {
             <LuzDoCiclorama />
             <LuzesDoEstudio ajustes={luzes} podeOrbitar={!olhando} gizmo={!olhando} selecionada={luzSel} onSelect={setLuzSel} />
             <StudioSet />
+            <Suspense fallback={null}>
+              <AtorNoSet pose={ator.pose} nome={ator.nome} />
+            </Suspense>
             <CorpoDaCamera visivel={!olhando} />
             <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
             <GanchoDeCaptura pedido={pedido} onFeito={aoCapturar} />
@@ -331,6 +319,7 @@ export function EstudioViewport() {
         onAspecto={setAspecto}
       />
       <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />
+      <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />
       <FormularioDeCaptura
         lenteMm={lenteMm}
         sensor={sensor}
