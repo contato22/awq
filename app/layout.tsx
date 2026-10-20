@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  other: { google: "notranslate" },
 };
 
 export default function RootLayout({
@@ -26,7 +27,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.className}>
+    // pt-BR + translate="no": com lang="en" o Chrome oferecia traduzir o app
+    // (conteúdo em PT) e o tradutor quebrava o React ("removeChild ... Node").
+    <html lang="pt-BR" translate="no" className={inter.className}>
       <body>
         <BuildSHAGuard />
         <AuthProvider>
