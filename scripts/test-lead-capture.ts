@@ -4,19 +4,12 @@
  *
  * Uso: npx tsx scripts/test-lead-capture.ts
  */
-import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-
-const require = createRequire(pathToFileURL(resolve("scripts/test-lead-capture.ts")));
-const pathToRegexp = require("next/dist/compiled/path-to-regexp") as {
-  parse: (path: string) => unknown[];
-  tokensToRegexp: (tokens: unknown[]) => RegExp;
-};
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   LEAD_CAPTURE_BUS,
   LEAD_CAPTURE_UNAVAILABLE_MESSAGE,
+  BR_PHONE_ERROR,
   leadCaptureSubmitter,
   readLeadCaptureQuery,
   sanitizeUtm,
@@ -24,6 +17,7 @@ import {
   type LeadCaptureBu,
   type LeadCaptureDraft,
 } from "../lib/lead-capture";
+import { isPublicRoute } from "../lib/public-routes";
 
 let pass = 0;
 let fail = 0;
@@ -89,7 +83,11 @@ console.log("\n── validação e stub ──");
 check("rascunho válido não tem erro", Object.keys(validateLeadCaptureDraft(base())).length === 0);
 check("nome vazio", validateLeadCaptureDraft(base({ contact_name: "  " })).contact_name === "Nome obrigatório");
 check("e-mail inválido", !!validateLeadCaptureDraft(base({ email: "sem-arroba" })).email);
-check("telefone com letra", !!validateLeadCaptureDraft(base({ phone: "abc12345" })).phone);
+check("telefone com letra", validateLeadCaptureDraft(base({ phone: "abc12345" })).phone === BR_PHONE_ERROR);
+check("telefone com 9 dígitos", !!validateLeadCaptureDraft(base({ phone: "119999888" })).phone);
+check("telefone com 10 dígitos", !validateLeadCaptureDraft(base({ phone: "11 3333-4444" })).phone);
+check("telefone com 11 dígitos", !validateLeadCaptureDraft(base({ phone: "11 99999-0000" })).phone);
+check("telefone vazio passa", !validateLeadCaptureDraft(base({ phone: "" })).phone);
 {
   const result = await leadCaptureSubmitter.submit(base({
     bu: "VENTURE" as LeadCaptureBu,
@@ -105,79 +103,76 @@ check("telefone com letra", !!validateLeadCaptureDraft(base({ phone: "abc12345" 
 const stubSource = readFileSync(resolve("lib/lead-capture.ts"), "utf8");
 check("stub não importa supabase", !/supabase|crm-db|fetch\(/.test(stubSource));
 
-console.log("\n── matcher ──");
+console.log("\n── rotas públicas ──");
 const middlewareSrc = readFileSync(resolve("middleware.ts"), "utf8");
-const literal = middlewareSrc.match(/matcher:\s*\[\s*("(?:\\.|[^"\\])*")/);
-if (!literal) {
-  check("matcher literal encontrado", false);
-} else {
-  const matcher: string = JSON.parse(literal[1]);
-  const inner = matcher.slice("/((?!".length, -").*)".length);
-  const parts = inner
-    .replaceAll("(?:/|$)", "\u0000")
-    .split("|")
-    .map((part) => part.replaceAll("\u0000", "(?:/|$)"));
+check("comentário cita leads/capture/?$", middlewareSrc.includes("leads/capture/?$"));
+check("matcher não lista api/public", !/matcher:\s*\[[\s\S]*api\/public/.test(middlewareSrc));
+check("middleware descarta x-user-email nas públicas", middlewareSrc.includes("nextWithoutIdentity"));
 
-  const previous = [
-    "login",
-    "patricia-canto",
-    "api/patricia-canto",
-    "api/auth",
-    "api/health",
-    "api/debug/version",
-    "api/cora/audit-probe",
-    "api/cora/sync-probe",
-    "api/cora/cron-sync",
-    "api/enrd/montagem/cron-sync",
-    "api/live-shop/webhook",
-    "api/live-shop/cron",
-    "api/office/head/tick",
-    "api/setup/seed-santander-extracts",
-    "api/setup/seed-btg-extract-jun2026",
-    "api/setup/seed-itau-extract-jun2026",
-    "api/setup/backfill-snapshots",
-    "api/enrd/debug-saldo",
-    "_next/static",
-    "_next/image",
-    "favicon\\.ico",
-  ];
-  const added = ["leads/capture(?:/|$)", "api/public(?:/|$)"];
-  const expected = new Set([...previous, ...added]);
-  check("só entram /leads/capture e /api/public/*", parts.length === expected.size && parts.every((part) => expected.has(part)), parts.join(","));
-  check("prefixos antigos continuam isentos", previous.every((part) => parts.includes(part)));
+const publicPaths = [
+  "/login",
+  "/leads/capture",
+  "/leads/capture/",
+  "/patricia-canto",
+  "/api/auth/csrf",
+  "/api/health",
+];
+const protectedPaths = [
+  "/",
+  "/awq",
+  "/crm/leads",
+  "/leads",
+  "/leads/captured",
+  "/leads/capture-admin",
+  "/leads/capture/extra",
+  "/LEADS/CAPTURE",
+  "/Leads/Capture",
+  "/leads/capture/%2e%2e/api/crm/leads",
+  "/leads/capture/..%2Fapi/crm/leads",
+  "/leads/capture/%2e%2e%2fapi/erp/health",
+  "//api/erp/health",
+  "//api/crm/leads",
+  "/api/crm/leads",
+  "/api/erp/health",
+  "/api/public",
+  "/api/public/leads/capture",
+  "/api/publicity",
+  "/api/public-leads",
+  "/jacqes",
+];
+for (const path of publicPaths) check(`público ${path}`, isPublicRoute(path));
+for (const path of protectedPaths) check(`protegido ${path}`, !isPublicRoute(path));
 
-  // Next envolve o matcher e compila com path-to-regexp (âncora no pathname).
-  const wrapped = `/:nextData(_next/data/[^/]{1,})?${matcher}(.json)?`;
-  const re = pathToRegexp.tokensToRegexp(pathToRegexp.parse(wrapped));
-  const isPublic = (path: string) => !re.test(path);
-  const publicPaths = [
-    "/login",
-    "/leads/capture",
-    "/leads/capture/",
-    "/leads/capture/extra",
-    "/api/public",
-    "/api/public/leads/capture",
-    "/patricia-canto",
-    "/api/auth/csrf",
-    "/api/health",
-    "/favicon.ico",
-  ];
-  const protectedPaths = [
-    "/",
-    "/awq",
-    "/crm/leads",
-    "/leads",
-    "/leads/captured",
-    "/leads/capture-admin",
-    "/api/crm/leads",
-    "/api/erp/health",
-    "/api/publicity",
-    "/api/public-leads",
-    "/jacqes",
-  ];
-  for (const path of publicPaths) check(`público ${path}`, isPublic(path));
-  for (const path of protectedPaths) check(`protegido ${path}`, !isPublic(path));
+const allowMention = new Set([
+  "app/leads/capture/page.tsx",
+  "app/leads/capture/lead-capture-form.tsx",
+  "components/LayoutShell.tsx",
+  "middleware.ts",
+  "lib/lead-capture.ts",
+  "lib/public-routes.ts",
+  "e2e/smoke.spec.ts",
+  "scripts/test-lead-capture.ts",
+]);
+const leaks: string[] = [];
+function walk(dir: string) {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".next" || name === "out" || name === ".git") continue;
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) {
+      walk(full);
+      continue;
+    }
+    if (!/\.(tsx|ts|jsx|js|xml)$/.test(name)) continue;
+    const rel = full.slice(resolve(".").length + 1);
+    if (allowMention.has(rel)) continue;
+    const text = readFileSync(full, "utf8");
+    if (text.includes("/leads/capture") || text.includes("leads/capture")) leaks.push(rel);
+  }
 }
+for (const root of ["app", "components", "lib", "public"]) {
+  try { walk(resolve(root)); } catch { /* pasta ausente */ }
+}
+check("rota fora de links e sitemap", leaks.length === 0, leaks.join(", "));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

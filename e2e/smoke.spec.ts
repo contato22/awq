@@ -3,7 +3,29 @@
  * CI points PLAYWRIGHT_BASE_URL at the server built in the same job.
  * The default in playwright.config.ts is the live deployment.
  */
+import http from "http";
 import { test, expect } from "@playwright/test";
+
+function rawGet(path: string): Promise<{ status: number; location: string }> {
+  const base = new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000");
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        protocol: base.protocol,
+        hostname: base.hostname,
+        port: base.port || (base.protocol === "https:" ? 443 : 80),
+        path,
+        method: "GET",
+      },
+      (res) => {
+        res.resume();
+        resolve({ status: res.statusCode ?? 0, location: String(res.headers.location ?? "") });
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 test.describe("Public routes", () => {
   test("/login returns 200 and shows login form", async ({ page }) => {
@@ -53,6 +75,12 @@ test.describe("Public lead capture", () => {
     await expect(page.locator('input[name="utm_term"]')).toHaveValue("agencia");
     await expect(page.locator('input[name="utm_content"]')).toHaveValue("hero");
     await expect(page.getByRole("link", { name: "Conciliação Bancária" })).toHaveCount(0);
+    await expect(page.locator("form")).not.toHaveAttribute("action");
+    await expect(page.locator("form")).not.toHaveAttribute("method");
+    await expect(page.getByText("Ao enviar, você concorda com a")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Política de Privacidade" })).toHaveAttribute("href", "#privacidade");
+    await expect(page.getByRole("link", { name: "contato@awq.com.br" }).first()).toBeVisible();
+    await expect(page.getByRole("checkbox")).not.toHaveAttribute("required", "");
 
     await page.getByLabel("Nome completo").fill("Ana Souza");
     await page.getByLabel("Empresa").fill("Oficina Norte");
@@ -70,6 +98,12 @@ test.describe("Public lead capture", () => {
     const response = await page.goto("/leads/capture?bu=ENRD");
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "JACQES", exact: true })).toBeVisible();
+    await page.getByLabel("Nome completo").focus();
+    await page.getByLabel("Nome completo").blur();
+    await expect(page.getByText("Nome obrigatório")).toBeVisible();
+    await page.getByLabel("Telefone / WhatsApp").fill("119999");
+    await page.getByLabel("Telefone / WhatsApp").blur();
+    await expect(page.getByText("Ex.: 11 99999-0000")).toBeVisible();
     await page.getByRole("button", { name: "Enviar mensagem" }).click();
     await expect(page.getByText("Nome obrigatório")).toBeVisible();
     await expect(page.getByText("Empresa obrigatória")).toBeVisible();
@@ -104,13 +138,31 @@ test.describe("Lead capture does not open the rest of the app", () => {
     }
   });
 
-  test("the public API prefix is exempt but has no write handler", async ({ request }) => {
+  test("/api/public stays behind auth while there is no handler", async ({ request }) => {
     const res = await request.post("/api/public/leads/capture", {
       maxRedirects: 0,
       data: { contact_name: "Ana", company_name: "Oficina", email: "ana@oficina.example" },
     });
-    expect(res.status()).toBe(404);
-    expect(res.headers()["location"] ?? "").not.toMatch(/\/login/);
+    expect([302, 307]).toContain(res.status());
+    expect(res.headers()["location"] ?? "").toMatch(/\/api\/auth\/signin|\/login/);
+  });
+
+  test("encoded and uppercase paths do not skip auth", async () => {
+    const paths = [
+      "/LEADS/CAPTURE",
+      "/Leads/Capture",
+      "/leads/capture/%2e%2e/api/erp/health",
+      "/leads/capture/..%2Fapi/erp/health",
+      "/leads/capture/%2e%2e%2fapi/crm/leads",
+      "//api/erp/health",
+      "//api/crm/leads",
+    ];
+    for (const path of paths) {
+      const res = await rawGet(path);
+      expect([302, 307, 308], path).toContain(res.status);
+      expect(res.location, path).toMatch(/\/api\/auth\/signin|\/login|\/api\/erp\/health|\/api\/crm\/leads/);
+      expect(res.location, path).not.toMatch(/\/leads\/capture\/?$/);
+    }
   });
 });
 

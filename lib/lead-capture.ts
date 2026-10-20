@@ -30,6 +30,7 @@ export type LeadCaptureDraft = {
   job_title: string;
   message: string;
   bu: LeadCaptureBu;
+  marketing_opt_in?: boolean;
 } & LeadCaptureUtm;
 
 export type LeadCaptureField = keyof LeadCaptureDraft;
@@ -50,9 +51,14 @@ export interface LeadCaptureSubmitter {
 export const LEAD_CAPTURE_UNAVAILABLE_MESSAGE =
   "Não conseguimos registrar seu contato agora. Tente novamente mais tarde.";
 
+/** Canal alternativo enquanto o stub recusa todo envio. E-mail já público no site. */
+export const LEAD_CAPTURE_CONTACT_EMAIL = "contato@awq.com.br";
+
+export const BR_PHONE_ERROR =
+  "Informe DDD + número com 10 ou 11 dígitos. Ex.: 11 99999-0000";
+
 const UTM_MAX = 200;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[0-9+().\-\s]{8,40}$/;
 
 const LIMITS: Partial<Record<LeadCaptureField, number>> = {
   contact_name: 120,
@@ -106,7 +112,10 @@ export function validateLeadCaptureDraft(
   if (!email) errors.email = "E-mail obrigatório";
   else if (!EMAIL_RE.test(email) || email.length > (LIMITS.email ?? 200)) errors.email = "E-mail inválido";
 
-  if (phone && !PHONE_RE.test(phone)) errors.phone = "Telefone inválido";
+  if (phone) {
+    const digits = phone.replace(/\D/g, "").length;
+    if (digits !== 10 && digits !== 11) errors.phone = BR_PHONE_ERROR;
+  }
 
   if (draft.job_title.trim().length > (LIMITS.job_title ?? 120)) errors.job_title = "Cargo longo demais";
   if (draft.message.trim().length > (LIMITS.message ?? 2000)) errors.message = "Mensagem longa demais";

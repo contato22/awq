@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import {
+  LEAD_CAPTURE_CONTACT_EMAIL,
   leadCaptureSubmitter,
   readLeadCaptureQuery,
   validateLeadCaptureDraft,
@@ -26,36 +27,43 @@ import {
   type LeadCaptureUtm,
 } from "@/lib/lead-capture";
 
-const BU_CONFIG: Record<LeadCaptureBu, { name: string; tagline: string; bg: string; accent: string }> = {
+const BU_CONFIG: Record<
+  LeadCaptureBu,
+  { name: string; tagline: string; bg: string; accent: string; field: string }
+> = {
   JACQES: {
     name: "JACQES",
     tagline: "Social Media & Content Strategy",
     bg: "from-blue-600 to-blue-800",
-    accent: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
+    accent: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-600",
+    field: "focus:border-blue-600 focus:ring-blue-600/30",
   },
   CAZA: {
     name: "Caza Vision",
     tagline: "Produção Audiovisual & Conteúdo Premium",
     bg: "from-violet-600 to-purple-800",
-    accent: "bg-violet-600 hover:bg-violet-700 focus:ring-violet-500",
+    accent: "bg-violet-600 hover:bg-violet-700 focus:ring-violet-600",
+    field: "focus:border-violet-600 focus:ring-violet-600/30",
   },
   ADVISOR: {
     name: "AWQ Advisor",
     tagline: "Consultoria Estratégica de Marketing",
     bg: "from-emerald-600 to-teal-800",
-    accent: "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500",
+    accent: "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-600",
+    field: "focus:border-emerald-600 focus:ring-emerald-600/30",
   },
   VENTURE: {
     name: "AWQ Venture",
     tagline: "Inovação & Investimentos em Startups",
-    bg: "from-amber-500 to-orange-700",
-    accent: "bg-amber-500 hover:bg-amber-600 focus:ring-amber-400",
+    bg: "from-amber-700 to-orange-800",
+    accent: "bg-amber-700 hover:bg-amber-800 focus:ring-amber-700",
+    field: "focus:border-amber-700 focus:ring-amber-700/30",
   },
 };
 
 const inputCls = [
-  "w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-3 text-sm text-gray-900 shadow-sm",
-  "placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/25",
+  "w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-3 text-base text-gray-900 shadow-sm sm:text-sm",
+  "placeholder:text-gray-400 focus:outline-none focus:ring-2",
 ].join(" ");
 
 const FIELD_LIMITS: Partial<Record<LeadCaptureField, number>> = {
@@ -104,14 +112,18 @@ function Field({
     <div>
       <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-gray-700">
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+        {required && (
+          <span aria-hidden="true" className="ml-1 text-red-500">
+            *
+          </span>
+        )}
       </label>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>
         {children}
       </div>
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-[11px] text-red-600">
+        <p id={`${id}-error`} className="mt-1 text-xs text-gray-600">
           {error}
         </p>
       )}
@@ -120,13 +132,17 @@ function Field({
 }
 
 function SuccessState({ name }: { name: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
   return (
-    <div className="px-6 py-12 text-center">
+    <div ref={ref} tabIndex={-1} role="status" className="px-6 py-12 text-center outline-none">
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
         <CheckCircle2 size={32} className="text-emerald-600" aria-hidden="true" />
       </div>
       <h2 className="mb-2 text-xl font-bold text-gray-900">Mensagem recebida!</h2>
-      <p className="mx-auto max-w-xs text-sm text-gray-500">
+      <p className="mx-auto max-w-xs text-sm text-gray-600">
         Nossa equipe de {name} vai entrar em contato em até{" "}
         <strong className="text-gray-700">1 dia útil</strong>.
       </p>
@@ -137,29 +153,18 @@ function SuccessState({ name }: { name: string }) {
 export function LeadCaptureForm() {
   const searchParams = useSearchParams();
   const formId = useId();
-  const ready = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<LeadCaptureField, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
 
-  if (!ready) {
-    return (
-      <div className="min-h-screen bg-gray-50" aria-busy="true">
-        <div className="h-40 bg-gray-200" />
-      </div>
-    );
-  }
-
   const { bu, utm } = readLeadCaptureQuery({
     get: (name) => searchParams?.get(name) ?? null,
   });
   const buCfg = BU_CONFIG[bu];
+  const mailto = `mailto:${LEAD_CAPTURE_CONTACT_EMAIL}`;
 
   function setField(key: keyof FormState, value: string) {
     const limit = FIELD_LIMITS[key];
@@ -170,7 +175,12 @@ export function LeadCaptureForm() {
   }
 
   function draftFrom(state: FormState, brand: LeadCaptureBu, tracking: LeadCaptureUtm): LeadCaptureDraft {
-    return { ...state, bu: brand, ...tracking };
+    return { ...state, bu: brand, ...tracking, marketing_opt_in: marketingOptIn };
+  }
+
+  function blurField(key: keyof FormState) {
+    const message = validateLeadCaptureDraft(draftFrom(form, bu, utm))[key];
+    setErrors((prev) => ({ ...prev, [key]: message }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -187,6 +197,11 @@ export function LeadCaptureForm() {
 
     setSubmitting(true);
     try {
+      // O stub resolve no mesmo turno. Sem este intervalo o aria-live
+      // de "Enviando…" não chega a ser anunciado.
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 400);
+      });
       const result = await leadCaptureSubmitter.submit(draft);
       if (result.ok) {
         setSubmitted(true);
@@ -208,7 +223,8 @@ export function LeadCaptureForm() {
       id,
       "aria-invalid": error ? true : undefined,
       "aria-describedby": error ? `${id}-error` : undefined,
-      className: `${inputCls} ${error ? "border-red-400 focus:ring-red-400/25" : ""}`,
+      className: `${inputCls} ${buCfg.field} ${error ? "border-red-400" : ""}`,
+      onBlur: () => blurField(key),
     };
   };
 
@@ -233,19 +249,18 @@ export function LeadCaptureForm() {
             <>
               <div className="border-b border-gray-100 px-6 pb-4 pt-6">
                 <h2 className="text-base font-bold text-gray-900">Fale com a gente</h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Preencha o formulário e entraremos em contato rapidamente.
+                <p className="mt-1 text-xs text-gray-600">
+                  <span aria-hidden="true">* </span>obrigatório
                 </p>
               </div>
 
               <form
                 onSubmit={handleSubmit}
-                method="post"
-                action="/leads/capture"
                 noValidate
+                aria-busy={submitting}
                 className="space-y-4 px-6 py-5"
               >
-                {UTM_FIELDS(utm)}
+                <UtmFields utm={utm} />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field id={`${formId}-contact_name`} icon={<User size={14} aria-hidden="true" />} label="Nome completo" required error={errors.contact_name}>
@@ -293,6 +308,7 @@ export function LeadCaptureForm() {
                       {...field("phone")}
                       type="tel"
                       name="phone"
+                      inputMode="tel"
                       placeholder="11 99999-0000"
                       value={form.phone}
                       onChange={(e) => setField("phone", e.target.value)}
@@ -323,24 +339,45 @@ export function LeadCaptureForm() {
                     id={`${formId}-message`}
                     name="message"
                     rows={3}
-                    className="w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                    className={`w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${buCfg.field} ${errors.message ? "border-red-400" : ""}`}
                     placeholder="Conte brevemente sobre o seu projeto ou necessidade…"
                     value={form.message}
                     onChange={(e) => setField("message", e.target.value)}
+                    onBlur={() => blurField("message")}
                     aria-invalid={errors.message ? true : undefined}
                     aria-describedby={errors.message ? `${formId}-message-error` : undefined}
                   />
                   {errors.message && (
-                    <p id={`${formId}-message-error`} className="mt-1 text-[11px] text-red-600">
+                    <p id={`${formId}-message-error`} className="mt-1 text-xs text-gray-600">
                       {errors.message}
                     </p>
                   )}
                 </div>
 
+                <label className="flex items-start gap-2 text-xs text-gray-600">
+                  <input
+                    type="checkbox"
+                    name="marketing_opt_in"
+                    checked={marketingOptIn}
+                    onChange={(e) => setMarketingOptIn(e.target.checked)}
+                    className={`mt-0.5 h-4 w-4 rounded border-gray-300 ${buCfg.field}`}
+                  />
+                  <span>Quero receber novidades e comunicações de marketing.</span>
+                </label>
+
                 {formError && (
-                  <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">
-                    <AlertCircle size={13} aria-hidden="true" />
-                    {formError}
+                  <div role="alert" className="space-y-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">
+                    <p className="flex items-center gap-2">
+                      <AlertCircle size={13} aria-hidden="true" />
+                      {formError}
+                    </p>
+                    <p>
+                      Enquanto isso, escreva para{" "}
+                      <a href={mailto} className="font-semibold underline">
+                        {LEAD_CAPTURE_CONTACT_EMAIL}
+                      </a>
+                      .
+                    </p>
                   </div>
                 )}
 
@@ -350,7 +387,7 @@ export function LeadCaptureForm() {
                   className={`flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${buCfg.accent}`}
                 >
                   {submitting ? (
-                    "Enviando…"
+                    <span aria-live="polite">Enviando…</span>
                   ) : (
                     <>
                       <Send size={14} aria-hidden="true" />
@@ -360,23 +397,45 @@ export function LeadCaptureForm() {
                   )}
                 </button>
 
-                <p className="text-center text-[10px] text-gray-400">
-                  Suas informações são confidenciais e não serão compartilhadas com terceiros.
+                <p className="text-xs text-gray-600">
+                  Ao enviar, você concorda com a{" "}
+                  <a href="#privacidade" className="font-semibold underline">
+                    Política de Privacidade
+                  </a>
+                  .
+                </p>
+                <p className="text-xs text-gray-600">
+                  O envio automático ainda não grava contatos. Escreva para{" "}
+                  <a href={mailto} className="font-semibold underline">
+                    {LEAD_CAPTURE_CONTACT_EMAIL}
+                  </a>
+                  .
                 </p>
               </form>
             </>
           )}
+
+          <section id="privacidade" className="border-t border-gray-100 px-6 py-4 text-xs text-gray-600">
+            <h2 className="mb-1 text-sm font-semibold text-gray-900">Política de Privacidade</h2>
+            <p>
+              O formulário pede nome, empresa e e-mail. Telefone, cargo, mensagem e a opção de
+              marketing são opcionais. Também lemos a marca (<span className="font-mono">bu</span>) e
+              os parâmetros de campanha (UTM) do endereço. Esses dados não são gravados enquanto a
+              API de escrita estiver indisponível. O contato segue por {LEAD_CAPTURE_CONTACT_EMAIL}.
+              Não vendemos essas informações.
+            </p>
+          </section>
         </div>
       </div>
 
-      <footer className="py-4 text-center text-[10px] text-gray-400">
+      <footer className="py-4 text-center text-xs text-gray-600">
         © {new Date().getFullYear()} AWQ Group · Todos os direitos reservados
       </footer>
     </div>
   );
 }
 
-function UTM_FIELDS(utm: LeadCaptureUtm) {
+function UtmFields({ utm }: { utm: LeadCaptureUtm }) {
   return (
     <>
       <input type="hidden" name="utm_source" value={utm.utm_source} />
