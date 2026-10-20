@@ -18,29 +18,32 @@ function criarCanvas(tam: number): { canvas: HTMLCanvasElement; ctx: CanvasRende
 }
 
 let _madeira: THREE.CanvasTexture | null = null;
-/** Piso de madeira (tábuas corridas com veios e juntas), tom mel — mesmo espírito do piso 2D. */
+/** Piso de carvalho claro (#d9bf98), tábuas corridas com veios e juntas. 512px para o piso
+ * não pixelar quando a câmera entra na sala. */
 export function texturaMadeira(): THREE.CanvasTexture {
   if (_madeira) return _madeira;
-  const { canvas, ctx } = criarCanvas(256);
-  ctx.fillStyle = "#c9a876";
-  ctx.fillRect(0, 0, 256, 256);
-  const tab = 32;
-  for (let row = 0; row < 8; row++) {
+  const TAM = 512;
+  const { canvas, ctx } = criarCanvas(TAM);
+  ctx.fillStyle = "#d9bf98";
+  ctx.fillRect(0, 0, TAM, TAM);
+  const tab = 64;
+  const fileiras = TAM / 64;
+  for (let row = 0; row < fileiras; row++) {
     const offset = (row % 2) * (tab / 2);
-    ctx.fillStyle = row % 2 === 0 ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.025)";
-    ctx.fillRect(0, row * 32, 256, 32);
-    for (let col = -1; col < 9; col++) {
+    ctx.fillStyle = row % 2 === 0 ? "rgba(255,248,230,0.06)" : "rgba(120,80,40,0.045)";
+    ctx.fillRect(0, row * 64, TAM, 64);
+    for (let col = -1; col < TAM / tab + 1; col++) {
       const x = col * tab + offset;
-      ctx.fillStyle = "rgba(0,0,0,0.14)";
-      ctx.fillRect(x, row * 32, 1.2, 32);
+      ctx.fillStyle = "rgba(110,70,35,0.18)";
+      ctx.fillRect(x, row * 64, 2, 64);
     }
-    ctx.fillStyle = "rgba(0,0,0,0.07)";
-    ctx.fillRect(0, row * 32, 256, 1);
+    ctx.fillStyle = "rgba(90,55,25,0.09)";
+    ctx.fillRect(0, row * 64, TAM, 1.5);
   }
-  for (let i = 0; i < 500; i++) {
-    const x = Math.random() * 256, y = Math.random() * 256, w = 6 + Math.random() * 20;
-    ctx.fillStyle = `rgba(${Math.random() > 0.5 ? "60,38,18" : "255,230,180"},${(0.03 + Math.random() * 0.05).toFixed(3)})`;
-    ctx.fillRect(x, y, w, 0.8);
+  for (let i = 0; i < 1400; i++) {
+    const x = Math.random() * TAM, y = Math.random() * TAM, w = 10 + Math.random() * 36;
+    ctx.fillStyle = `rgba(${Math.random() > 0.5 ? "120,78,40" : "255,236,205"},${(0.035 + Math.random() * 0.06).toFixed(3)})`;
+    ctx.fillRect(x, y, w, 1.2);
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
