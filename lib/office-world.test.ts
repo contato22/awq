@@ -6,6 +6,7 @@ import {
   SALA_ESTUDIO,
   andarDaEmpresa,
   casaNoPonto,
+  centroDaReuniao,
   centroDoEstudio,
 } from "./office-world";
 
@@ -32,7 +33,12 @@ test("no andar caza o slot de reuniões é o Estúdio", () => {
   assert.equal(SALA_ESTUDIO.andar, "caza");
   assert.equal(SALA_ESTUDIO.nome, "Estúdio");
   const centro = centroDoEstudio();
+  const reuniao = centroDaReuniao();
+  assert.equal(centro.x, reuniao.x);
+  assert.equal(centro.y, reuniao.y + 6);
   assert.equal(casaNoPonto(centro.x, centro.y, "caza"), "estudio");
   assert.equal(casaNoPonto(centro.x, centro.y, "jacqes"), "reunioes");
   assert.equal(casaNoPonto(centro.x, centro.y), "reunioes");
+  assert.equal(SALA_ESTUDIO.lado, 5);
+  assert.ok(SALA_ESTUDIO.alt > 0);
 });

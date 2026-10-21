@@ -260,6 +260,20 @@ export default function OfficeGame(props: Props) {
   const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const resultados = (busca ?? []).filter((i) => !termo.trim() || norm(`${i.rotulo} ${i.sub}`).includes(norm(termo.trim()))).slice(0, 8);
 
+  /**
+   * Clique e busca do Estúdio: vai ao 3º andar, aproxima a sala e fecha a gaveta.
+   * A gaveta (ciclo, mensagens, reunião) não tem conteúdo do estúdio — abri-la
+   * deixava a metade direita da planta em branco. O set em si chega no modo 3D
+   * dos PRs seguintes; aqui o clique só enquadra o Estúdio.
+   */
+  const focarEstudio = () => {
+    onPainel(false);
+    if (andarRef.current !== "caza") trocarAndar("caza");
+    const c = centroDoEstudio();
+    setSeguir(false);
+    animar(camMundo.current, { cx: c.x, cy: c.y - 14, z: 2 }, 650);
+  };
+
   const irParaItem = (i: ItemBusca) => {
     setTermo("");
     setBuscaAberta(false);
@@ -269,13 +283,7 @@ export default function OfficeGame(props: Props) {
     if (i.tipo === "andar" && i.andar) { trocarAndar(i.andar); return; }
     if (i.tipo === "sala" && i.sala === "reunioes") { if (andarRef.current !== "jacqes") trocarAndar("jacqes"); onPainel(true, "reuniao"); return; }
     if (i.tipo === "sala" && i.sala === "estudio") {
-      const ir = () => {
-        if (andarRef.current !== "caza") trocarAndar("caza");
-        const c = centroDoEstudio();
-        setSeguir(false);
-        animar(camMundo.current, { cx: c.x + 20, cy: c.y - 8, z: 2.2 }, 650);
-      };
-      noMundo(ir);
+      noMundo(focarEstudio);
       return;
     }
     if (i.tipo === "sala" && i.sala === "diretoria") {
@@ -532,11 +540,7 @@ export default function OfficeGame(props: Props) {
       else {
         const casa = casaNoPonto(lx, ly, andarRef.current);
         if (casa === "reunioes") dados.current.onPainel(true, "reuniao");
-        else if (casa === "estudio") {
-          const c = centroDoEstudio();
-          setSeguir(false);
-          animar(camMundo.current, { cx: c.x + 20, cy: c.y - 8, z: 2.2 }, 650);
-        }
+        else if (casa === "estudio") focarEstudio();
       }
       return;
     }
