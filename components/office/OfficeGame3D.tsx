@@ -1347,7 +1347,11 @@ export default function OfficeGame3D(props: Props) {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0a101f]">
-      {vista === "estudio" ? <EstudioViewport /> : <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
+      {vista === "estudio" ? (
+        <Suspense fallback={null}>
+          <EstudioViewport />
+        </Suspense>
+      ) : <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
         <Suspense fallback={null}>
           <Cena
             predios={predios}
@@ -1370,7 +1374,9 @@ export default function OfficeGame3D(props: Props) {
         </Suspense>
       </Canvas>}
 
-      <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} vista={vista} focoCasa={focoCasa} />
+      {vista !== "estudio" && (
+        <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} vista={vista} focoCasa={focoCasa} />
+      )}
 
       <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
         <span className="rounded-md bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5">
@@ -1394,7 +1400,7 @@ export default function OfficeGame3D(props: Props) {
           {[...ANDARES].reverse().map((a) => (
             <button key={a.id} onClick={() => {
               setAndar(a.id);
-              if (a.id !== "caza" && focoCasa === "estudio") { setFocoCasa("diretoria"); setVista("mundo"); }
+              if (vista === "estudio") setVista("mundo");
             }} aria-pressed={andar === a.id}
               className={`rounded-md px-2 py-1 ${andar === a.id ? "bg-white text-gray-900 font-semibold" : "hover:bg-white/10"}`}>
               {a.numero}º · {a.nome}
