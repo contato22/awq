@@ -11,7 +11,7 @@ import * as THREE from "three";
  * grade de luz no teto. Geometria procedural — nenhum asset pago.
  */
 
-const ALTURA = 8;
+const ALTURA = 12;
 const RAIO = 2.6;
 const COR_CICLO = "#f4f1ea";
 
@@ -88,21 +88,11 @@ function geometriaCiclorama(): THREE.BufferGeometry {
   const base = trajetoDaParede();
   const perfil = perfilDoCove();
   const pos: number[] = [];
-  const cor: number[] = [];
   const idx: number[] = [];
-  const linho = [0xf7 / 255, 0xf4 / 255, 0xee / 255];
-  const curva = [0xe4 / 255, 0xdd / 255, 0xd2 / 255];
   for (let j = 0; j < base.length; j++) {
     const p = base[j];
     for (const [y, recuo] of perfil) {
       pos.push(p.x + p.nx * recuo, y, p.z + p.nz * recuo);
-      const noCove = y > 0.05 && y < RAIO + 0.35 && recuo < RAIO + 0.6;
-      const k = noCove ? Math.sin(Math.min(1, y / RAIO) * Math.PI) * 0.9 : 0;
-      cor.push(
-        linho[0] + (curva[0] - linho[0]) * k,
-        linho[1] + (curva[1] - linho[1]) * k,
-        linho[2] + (curva[2] - linho[2]) * k,
-      );
     }
   }
   const n = perfil.length;
@@ -114,7 +104,6 @@ function geometriaCiclorama(): THREE.BufferGeometry {
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute("color", new THREE.Float32BufferAttribute(cor, 3));
   geo.setIndex(idx);
   geo.computeVertexNormals();
   return geo;
@@ -125,7 +114,7 @@ function Ciclorama() {
   useEffect(() => () => geo.dispose(), [geo]);
   return (
     <mesh geometry={geo} receiveShadow>
-      <meshStandardMaterial color="#ffffff" vertexColors roughness={0.9} metalness={0} side={THREE.DoubleSide} />
+      <meshStandardMaterial color={COR_CICLO} roughness={0.9} metalness={0} side={THREE.DoubleSide} />
     </mesh>
   );
 }
