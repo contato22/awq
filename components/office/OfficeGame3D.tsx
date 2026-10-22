@@ -413,8 +413,121 @@ function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimen
   );
 }
 
+const MOLDURA_JANELA = "#2c3338";
+
+/** Degradê do céu com um risco de reflexo. O vão deixa de ser uma chapa ciano opaca. */
+function VidroCeu({ largura, altura, topo, base }: { largura: number; altura: number; topo: string; base: string }) {
+  const map = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = 16;
+    c.height = 128;
+    const g = c.getContext("2d")!;
+    const grad = g.createLinearGradient(0, 0, 0, 128);
+    grad.addColorStop(0, topo);
+    grad.addColorStop(1, base);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 16, 128);
+    g.strokeStyle = "rgba(255,255,255,0.5)";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(1, 16);
+    g.lineTo(15, 58);
+    g.stroke();
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.needsUpdate = true;
+    return t;
+  }, [topo, base]);
+  useEffect(() => () => map.dispose(), [map]);
+  return (
+    <mesh renderOrder={2}>
+      <planeGeometry args={[largura, altura]} />
+      <meshBasicMaterial map={map} transparent opacity={0.82} toneMapped={false} depthWrite={false} />
+    </mesh>
+  );
+}
+
+/** Cada malha clona o tijolo e repete pela própria medida — a textura compartilhada esticava. */
+function mapaTijolo(largura: number, altura: number) {
+  const t = texturaTijolo().clone();
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(Math.max(largura / 0.68, 0.35), Math.max(altura / 0.32, 0.35));
+  t.needsUpdate = true;
+  return t;
+}
+
+function MalhaTijolo({ args, position }: { args: [number, number, number]; position: [number, number, number] }) {
+  const map = useMemo(() => mapaTijolo(args[0], args[1]), [args[0], args[1]]);
+  useEffect(() => () => map.dispose(), [map]);
+  return (
+    <mesh position={position} castShadow receiveShadow>
+      <boxGeometry args={args} />
+      <meshStandardMaterial map={map} roughness={0.92} />
+    </mesh>
+  );
+}
+
+/** Parede externa da sala: tijolo aparente e janelões do piso ao teto.
+ *  O céu fica atrás do vidro; o caixilho escuro impede que o vão leia como uma placa branca. */
+function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: number }) {
+  const n = Math.max(1, Math.round(comprimento / 3.2));
+  const mod = comprimento / n;
+  const janelaL = mod * 0.7;
+  const janelaBase = 0.1;
+  const janelaTopo = 2.2;
+  const topo = 2.35;
+  const janelaH = janelaTopo - janelaBase;
+  const ceuJanela = ceu(hora);
+  return (
+    <group>
+      <MalhaTijolo args={[comprimento, janelaBase, 0.12]} position={[comprimento / 2, janelaBase / 2, 0]} />
+      <MalhaTijolo args={[comprimento, topo - janelaTopo, 0.12]} position={[comprimento / 2, (janelaTopo + topo) / 2, 0]} />
+      {Array.from({ length: n + 1 }, (_, i) => {
+        const largura = Math.max(i === 0 || i === n ? (mod - janelaL) / 2 : mod - janelaL, 0.08);
+        const centro = i === 0 ? largura / 2 : i === n ? comprimento - largura / 2 : i * mod;
+        return (
+          <MalhaTijolo key={i} args={[largura, janelaTopo - janelaBase, 0.12]} position={[centro, (janelaBase + janelaTopo) / 2, 0]} />
+        );
+      })}
+      {Array.from({ length: n }, (_, i) => {
+        const cx = mod * (i + 0.5);
+        const meio = (janelaBase + janelaTopo) / 2;
+        return (
+          <group key={`j${i}`}>
+            <group position={[cx, meio, 0.07]}>
+              <VidroCeu largura={janelaL} altura={janelaH} topo={ceuJanela.topo} base={ceuJanela.base} />
+            </group>
+            {(
+              [
+                [0, janelaH / 2, janelaL + 0.08, 0.06],
+                [0, -janelaH / 2, janelaL + 0.08, 0.06],
+                [-janelaL / 2, 0, 0.06, janelaH],
+                [janelaL / 2, 0, 0.06, janelaH],
+              ] as const
+            ).map(([ox, oy, lw, lh], k) => (
+              <mesh key={k} position={[cx + ox, meio + oy, 0.09]} castShadow>
+                <boxGeometry args={[lw, lh, 0.05]} />
+                <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+              </mesh>
+            ))}
+            <mesh position={[cx, meio, 0.09]} castShadow>
+              <boxGeometry args={[0.045, janelaH, 0.04]} />
+              <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+            </mesh>
+            <mesh position={[cx, meio, 0.09]}>
+              <boxGeometry args={[janelaL, 0.04, 0.04]} />
+              <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 function Pilar({ posicao, altura = 2.3 }: { posicao: [number, number]; altura?: number }) {
-  const tijolo = useMemo(() => texturaTijolo(), []);
+  const tijolo = useMemo(() => mapaTijolo(Math.PI * 0.32, altura), [altura]);
+  useEffect(() => () => tijolo.dispose(), [tijolo]);
   return (
     <group position={[posicao[0], 0, posicao[1]]}>
       <mesh position={[0, altura / 2, 0]} castShadow receiveShadow>
@@ -504,7 +617,7 @@ function Planta({ posicao, escala = 1 }: { posicao: [number, number]; escala?: n
 // ── Sala de uma squad (piso + 2 paredes de fundo + 4 mesas) ────────────────────────────
 
 function Sala({
-  predio, estados, atividade, selecionado, ativo, detalhado, onEntrar, onSelecionar,
+  predio, estados, atividade, selecionado, ativo, detalhado, hora, onEntrar, onSelecionar,
 }: {
   predio: PredioW;
   estados: Record<Agente, Estado>;
@@ -515,6 +628,7 @@ function Sala({
    * peças decorativas mais caras (estante, plantas, tapete) — continuam reconhecíveis (piso,
    * paredes, mesas, personagens), só sem o acabamento fino que só compensa de perto. */
   detalhado: boolean;
+  hora: number;
   onEntrar: () => void;
   onSelecionar: (a: Agente) => void;
 }) {
@@ -528,6 +642,7 @@ function Sala({
     t.repeat.set(w / 2.4, d / 2.4);
     return t;
   }, [madeira, w, d]);
+  useEffect(() => () => pisoMap.dispose(), [pisoMap]);
   const tapeteMap = useMemo(() => texturaTapete(), []);
   return (
     <group position={[ox, 0, oz]}>
@@ -552,7 +667,11 @@ function Sala({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} brilho={!ativo} />
+        {predio.y <= 1 ? (
+          <ParedeExterna comprimento={w} hora={hora} />
+        ) : (
+          <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} brilho={!ativo} />
+        )}
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} brilho={!ativo} />
@@ -765,11 +884,12 @@ type CasaId = "diretoria" | "reunioes" | "estudio";
 /** Sala do Miguel ou sala de reuniões — o mesmo slot da planta 2D, com o acabamento do Modo 3D.
  * O passeio com pathfinding continua só nas salas de squad; aqui todo mundo fica sentado. */
 function SalaDaCasa({
-  tipo, detalhado, reuniao, onEntrar,
+  tipo, detalhado, reuniao, hora, onEntrar,
 }: {
   tipo: "diretoria" | "reunioes";
   detalhado: boolean;
   reuniao?: EstadoReuniao[];
+  hora: number;
   onEntrar: () => void;
 }) {
   const origem = tipo === "diretoria" ? SALAS_CASA.diretoria : SALAS_CASA.reunioes;
@@ -783,6 +903,7 @@ function SalaDaCasa({
     t.repeat.set(w / 2.4, d / 2.4);
     return t;
   }, [madeira, w, d]);
+  useEffect(() => () => pisoMap.dispose(), [pisoMap]);
   const tapeteMap = useMemo(() => texturaTapete(), []);
   const emReuniao = tipo === "reunioes" && !!reuniao && reuniao.length > 0;
   return (
@@ -806,7 +927,11 @@ function SalaDaCasa({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={accent} brilho={!detalhado} />
+        {origem.y <= 1 ? (
+          <ParedeExterna comprimento={w} hora={hora} />
+        ) : (
+          <ParedeDetalhada comprimento={w} corAccent={accent} brilho={!detalhado} />
+        )}
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={accent} brilho={!detalhado} />
@@ -1169,6 +1294,7 @@ function Cena({
     t.repeat.set(chaoW / 2.4, chaoD / 2.4);
     return t;
   }, [chaoW, chaoD]);
+  useEffect(() => () => pisoGeralMap.dispose(), [pisoGeralMap]);
   return (
     <>
       <ConfigRenderer />
@@ -1189,11 +1315,12 @@ function Cena({
           selecionado={selecionado}
           ativo={vista === "sala" && p.empresa.bu === buAtual}
           detalhado={vista === "sala" && p.empresa.bu === buAtual}
+          hora={hora}
           onEntrar={() => onEntrar(p.empresa.bu)}
           onSelecionar={onSelecionar}
         />
       ))}
-      <SalaDaCasa tipo="diretoria" detalhado={vista === "casa" && focoCasa === "diretoria"} onEntrar={() => onFocarCasa("diretoria")} />
+      <SalaDaCasa tipo="diretoria" detalhado={vista === "casa" && focoCasa === "diretoria"} hora={hora} onEntrar={() => onFocarCasa("diretoria")} />
       {andar === "caza" ? (
         <SlotDoEstudio detalhado={vista === "casa" && focoCasa === "estudio"} onEntrar={() => onFocarCasa("estudio")} />
       ) : (
@@ -1201,6 +1328,7 @@ function Cena({
           tipo="reunioes"
           detalhado={vista === "casa" && focoCasa === "reunioes"}
           reuniao={reuniao}
+          hora={hora}
           onEntrar={() => onFocarCasa("reunioes")}
         />
       )}
