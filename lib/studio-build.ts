@@ -117,15 +117,25 @@ export function removerProp(id: string) {
   gravar(carregar().filter((p) => p.id !== id));
 }
 
-/** Próximo vão livre, já no passo da grade, para o botão Colocar. */
+/** Centro do set, à frente da câmera (ela olha de z=8 para o ator em z≈0). */
+const FRENTE_DA_CAMERA = { x: 0, z: 1 };
+
+/** Próximo vão livre, perto do centro e na frente da câmera — o canto (-8, -3) fica fora do quadro. */
 export function proximoPonto(ocupados: { x: number; z: number }[]): { x: number; z: number } {
+  let melhor: { x: number; z: number } | null = null;
+  let distancia = Infinity;
   for (let z = PISO.zMin; z <= PISO.zMax + 1e-6; z += PASSO_ENCAIXE) {
     for (let x = -PISO.x; x <= PISO.x + 1e-6; x += PASSO_ENCAIXE) {
       const ponto = encaixar(x, z);
-      if (cabeNoPiso(ponto.x, ponto.z) && !ocupados.some((p) => mesmaCelula(p, ponto))) return ponto;
+      if (!cabeNoPiso(ponto.x, ponto.z) || ocupados.some((p) => mesmaCelula(p, ponto))) continue;
+      const d = Math.abs(ponto.x - FRENTE_DA_CAMERA.x) + Math.abs(ponto.z - FRENTE_DA_CAMERA.z);
+      if (d < distancia) {
+        distancia = d;
+        melhor = ponto;
+      }
     }
   }
-  return encaixar(0, 0);
+  return melhor ?? encaixar(FRENTE_DA_CAMERA.x, FRENTE_DA_CAMERA.z);
 }
 
 export function resetBuildParaTeste() {

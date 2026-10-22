@@ -337,7 +337,7 @@ export function EstudioViewport() {
         type="button"
         aria-pressed={paineis}
         onClick={() => setPaineis((v) => !v)}
-        className="absolute top-14 left-16 z-10 pointer-events-auto rounded-lg bg-black/75 text-white text-[11px] font-semibold px-2.5 py-1.5"
+        className="absolute top-14 left-48 z-10 pointer-events-auto rounded-lg bg-black/75 text-white text-[11px] font-semibold px-2.5 py-1.5"
       >
         {paineis ? "Recolher painéis" : "Painéis"}
       </button>

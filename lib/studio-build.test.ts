@@ -47,6 +47,7 @@ test("o encaixe é de meio metro e a flag guarda os props", () => {
   assert.equal(cabeNoPiso(seguinte.x, seguinte.z), true);
   removerProp(mesa.id);
   assert.equal(listarProps().length, 0);
+  assert.deepEqual(proximoPonto([]), { x: 0, z: 1 });
 
   process.env.CAZA_STUDIO_PERSIST = "1";
   store.clear();
