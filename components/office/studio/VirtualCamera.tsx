@@ -140,7 +140,11 @@ export function PainelDaCamera({
           </svg>
           <p
             className="absolute text-[11px] text-white pointer-events-none rounded-md bg-black/80 px-2 py-1"
-            style={{ left: q.x + 12, top: Math.min(q.y + q.h - 32, Math.max(q.y + 8, 56)) }}
+            style={{
+              // O trilho de ícones do Office ocupa a esquerda (left-3 + w-10). O rótulo fica ao lado dele.
+              left: Math.min(Math.max(q.x + 12, 64), q.x + Math.max(8, q.w - 160)),
+              top: Math.min(q.y + q.h - 36, Math.max(q.y + 12, 72)),
+            }}
           >
             {lenteMm} mm · {SENSORES[sensor].nome} · {aspecto} · {fov.vertical.toFixed(1)}° vertical
           </p>
