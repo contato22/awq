@@ -11,6 +11,8 @@ import { CorpoDaCamera, OlharPelaCamera, PainelDaCamera } from "./VirtualCamera"
 import { LuzesDoEstudio, PainelDasLuzes } from "./StudioLights";
 import { FormularioDeCaptura, GanchoDeCaptura, type PedidoCaptura } from "./ShotCapture";
 import { AtorNoSet, PainelDoAtor } from "./ActorStandIn";
+import { PainelDeMontagem, PisoDeEncaixe, PropsNoSet } from "./BuildMode";
+import { colocarProp, girarProp, listarProps, proximoPonto, removerProp, type PropId, type PropNoSet } from "@/lib/studio-build";
 import { definirAtor, estadoDoAtor, NOME_ATOR_PADRAO, POSE_ATOR_PADRAO, type EstadoAtor } from "@/lib/studio-actor";
 import type { ShotEstudio } from "@/lib/studio-store";
 
@@ -260,7 +262,15 @@ export function EstudioViewport() {
   const [pedido, setPedido] = useState<PedidoCaptura | null>(null);
   const [ultimo, setUltimo] = useState<ShotEstudio | null>(null);
   const [ator, setAtor] = useState<EstadoAtor>({ nome: NOME_ATOR_PADRAO, pose: POSE_ATOR_PADRAO });
-  useEffect(() => { setAtor(estadoDoAtor()); }, []);
+  const [montando, setMontando] = useState(false);
+  const [tipoProp, setTipoProp] = useState<PropId>("cadeira");
+  const [propsSet, setPropsSet] = useState<PropNoSet[]>([]);
+  const [propSel, setPropSel] = useState<string | null>(null);
+  const [paineis, setPaineis] = useState(true);
+  useEffect(() => {
+    setAtor(estadoDoAtor());
+    setPropsSet(listarProps());
+  }, []);
   const mudarLuz = (id: LuzId, parcial: Partial<AjusteLuz>) => {
     setLuzes((atual) => ({ ...atual, [id]: { ...atual[id], ...parcial } }));
   };
@@ -290,7 +300,12 @@ export function EstudioViewport() {
             <StudioSet />
             <Suspense fallback={null}>
               <AtorNoSet pose={ator.pose} nome={ator.nome} />
+              <PropsNoSet props={propsSet} selecionado={propSel} montando={montando} onSelect={setPropSel} />
             </Suspense>
+            <PisoDeEncaixe
+              ativo={montando && !olhando}
+              onColocar={(x, z) => { if (colocarProp(tipoProp, x, z)) setPropsSet(listarProps()); }}
+            />
             <CorpoDaCamera visivel={!olhando} />
             <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
             <GanchoDeCaptura pedido={pedido} onFeito={aoCapturar} />
@@ -318,9 +333,42 @@ export function EstudioViewport() {
         aspecto={aspecto}
         onAspecto={setAspecto}
       />
-      <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />
-      <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />
-      <FormularioDeCaptura
+      <button
+        type="button"
+        aria-pressed={paineis}
+        onClick={() => setPaineis((v) => !v)}
+        className="absolute top-14 left-48 z-10 pointer-events-auto rounded-lg bg-black/75 text-white text-[11px] font-semibold px-2.5 py-1.5"
+      >
+        {paineis ? "Recolher painéis" : "Painéis"}
+      </button>
+      {paineis && <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />}
+      {paineis && <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />}
+      {paineis && (
+      <PainelDeMontagem
+        montando={montando}
+        tipo={tipoProp}
+        props={propsSet}
+        selecionadoId={propSel}
+        onMontando={setMontando}
+        onTipo={setTipoProp}
+        onSelect={setPropSel}
+        onColocar={() => {
+          const ponto = proximoPonto(propsSet);
+          if (colocarProp(tipoProp, ponto.x, ponto.z)) setPropsSet(listarProps());
+        }}
+        onGirar={() => {
+          if (!propSel || !girarProp(propSel)) return;
+          setPropsSet(listarProps());
+        }}
+        onRemover={() => {
+          if (!propSel) return;
+          removerProp(propSel);
+          setPropSel(null);
+          setPropsSet(listarProps());
+        }}
+      />
+      )}
+      {paineis && <FormularioDeCaptura
         lenteMm={lenteMm}
         sensor={sensor}
         aspecto={aspecto}
@@ -335,7 +383,7 @@ export function EstudioViewport() {
           aspecto,
           fovVertical: fov,
         })}
-      />
+      />}
     </div>
   );
 }
