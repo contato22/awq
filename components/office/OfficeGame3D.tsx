@@ -137,6 +137,8 @@ const chaveCel = (c: [number, number]) => `${c[0]},${c[1]}`;
 // pilar estrutural no canto interno, estante numa lateral aberta, duas plantas decorativas.
 const PILAR_POS: [number, number] = [0.32, 0.32];
 const ESTANTE_POS: [number, number] = [8.6, 0.3];
+/** Entre as quatro mesas, como divisória do corredor. */
+const ESTANTE_BAIXA_POS: [number, number] = [2.42, 2.53];
 const PLANTAS_POS: [number, number][] = [[9.6, 2.1], [1.8, 9.5]];
 
 const OBSTACULOS: Set<string> = (() => {
@@ -155,6 +157,7 @@ const OBSTACULOS: Set<string> = (() => {
   };
   bloquear(PILAR_POS, 0.22);
   bloquear(ESTANTE_POS, 0.45);
+  bloquear(ESTANTE_BAIXA_POS, 0.4);
   for (const p of PLANTAS_POS) bloquear(p, 0.22);
   return s;
 })();
@@ -558,6 +561,7 @@ function Sala({
       {detalhado && (
         <>
           <Estante posicao={ESTANTE_POS} />
+          <EstanteBaixa posicao={ESTANTE_BAIXA_POS} rotacao={OLHAR_CAMERA} />
           {PLANTAS_POS.map((p, i) => <Planta key={i} posicao={p} />)}
         </>
       )}
@@ -599,24 +603,11 @@ function Sala({
               <cylinderGeometry args={[0.028, 0.028, 0.06, 10]} />
               <meshStandardMaterial color={tema.paredeD} roughness={0.5} />
             </mesh>
-            {/* cadeira atrás de quem olha para a câmera do close */}
-            <group
-              position={[-Math.sin(OLHAR_CAMERA) * 0.18, 0, 0.3 - Math.cos(OLHAR_CAMERA) * 0.18]}
-              rotation-y={OLHAR_CAMERA}
-            >
-              <RoundedBox args={[0.34, 0.05, 0.32]} radius={0.02} position={[0, 0.26, 0]} castShadow>
-                <meshStandardMaterial color="#374151" roughness={0.7} />
-              </RoundedBox>
-              <RoundedBox args={[0.32, 0.4, 0.05]} radius={0.03} position={[0, 0.48, 0.15]} rotation-x={-0.08} castShadow>
-                <meshStandardMaterial color="#374151" roughness={0.7} />
-              </RoundedBox>
-              {[[-0.14, -0.14], [0.14, -0.14], [-0.14, 0.14], [0.14, 0.14]].map(([lx, lz]) => (
-                <mesh key={`${lx}-${lz}`} position={[lx, 0.13, lz]} castShadow>
-                  <cylinderGeometry args={[0.012, 0.012, 0.26, 6]} />
-                  <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.5} />
-                </mesh>
-              ))}
-            </group>
+            {/* poltrona atrás de quem olha para a câmera do close */}
+            <Poltrona
+              posicao={[-Math.sin(OLHAR_CAMERA) * 0.18, 0.3 - Math.cos(OLHAR_CAMERA) * 0.18]}
+              rotacao={OLHAR_CAMERA}
+            />
           </group>
         );
       })}
@@ -644,20 +635,103 @@ function Sala({
   );
 }
 
-function Cadeira({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
+const ESTOFADO = "#7d8288";
+const BASE_ESTRELA = "#4e5256";
+const MADEIRA_MOVEL = "#b89a74";
+
+/** Poltrona cinza com base estrela — o marrom sumia no piso de carvalho. */
+function Poltrona({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
+  const raios = [0, 72, 144, 216, 288];
   return (
     <group position={[posicao[0], 0, posicao[1]]} rotation-y={rotacao}>
-      <RoundedBox args={[0.34, 0.05, 0.32]} radius={0.02} position={[0, 0.26, 0]} castShadow>
-        <meshStandardMaterial color="#374151" roughness={0.7} />
+      <RoundedBox args={[0.46, 0.1, 0.42]} radius={0.04} position={[0, 0.36, 0]} castShadow receiveShadow>
+        <meshStandardMaterial color={ESTOFADO} roughness={0.85} />
       </RoundedBox>
-      <RoundedBox args={[0.32, 0.4, 0.05]} radius={0.03} position={[0, 0.48, 0.15]} rotation-x={-0.08} castShadow>
-        <meshStandardMaterial color="#374151" roughness={0.7} />
+      <RoundedBox args={[0.46, 0.36, 0.08]} radius={0.04} position={[0, 0.54, 0.17]} rotation-x={-0.1} castShadow>
+        <meshStandardMaterial color={ESTOFADO} roughness={0.85} />
       </RoundedBox>
-      {([[-0.14, -0.14], [0.14, -0.14], [-0.14, 0.14], [0.14, 0.14]] as const).map(([lx, lz]) => (
-        <mesh key={`${lx}-${lz}`} position={[lx, 0.13, lz]} castShadow>
-          <cylinderGeometry args={[0.012, 0.012, 0.26, 6]} />
-          <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.5} />
+      {([-0.22, 0.22] as const).map((x) => (
+        <RoundedBox key={x} args={[0.07, 0.1, 0.32]} radius={0.02} position={[x, 0.44, 0.02]} castShadow>
+          <meshStandardMaterial color={ESTOFADO} roughness={0.85} />
+        </RoundedBox>
+      ))}
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <cylinderGeometry args={[0.035, 0.045, 0.22, 10]} />
+        <meshStandardMaterial color={BASE_ESTRELA} metalness={0.55} roughness={0.35} />
+      </mesh>
+      {raios.map((graus) => {
+        const a = (graus * Math.PI) / 180;
+        return (
+          <group key={graus}>
+            <mesh position={[Math.cos(a) * 0.13, 0.07, Math.sin(a) * 0.13]} rotation={[0, -a, Math.PI / 2]} castShadow>
+              <boxGeometry args={[0.26, 0.02, 0.035]} />
+              <meshStandardMaterial color={BASE_ESTRELA} metalness={0.6} roughness={0.32} />
+            </mesh>
+            <mesh position={[Math.cos(a) * 0.26, 0.035, Math.sin(a) * 0.26]} castShadow>
+              <sphereGeometry args={[0.026, 8, 8]} />
+              <meshStandardMaterial color="#2a2d30" metalness={0.35} roughness={0.45} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/** Estante baixa. Na squad fica entre as mesas; na diretoria e na reunião, na parede.
+ *  A caixa é escura para separar do piso de carvalho, e os livros olham para a câmera. */
+function EstanteBaixa({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
+  const lombadas = ["#1f4e79", "#c23b4e", "#2f6f6a", "#e6d3a3", "#d4a017", "#6b3f69", "#1f4e79", "#c23b4e"];
+  const caixa = "#3f342b";
+  return (
+    <group position={[posicao[0], 0, posicao[1]]} rotation-y={rotacao}>
+      <mesh position={[0, 0.39, -0.14]} castShadow receiveShadow>
+        <boxGeometry args={[1.35, 0.78, 0.04]} />
+        <meshStandardMaterial color={caixa} roughness={0.72} />
+      </mesh>
+      {([-0.66, 0.66] as const).map((x) => (
+        <mesh key={x} position={[x, 0.39, 0]} castShadow>
+          <boxGeometry args={[0.04, 0.78, 0.32]} />
+          <meshStandardMaterial color={caixa} roughness={0.72} />
         </mesh>
+      ))}
+      <mesh position={[0, 0.04, 0]} receiveShadow>
+        <boxGeometry args={[1.32, 0.04, 0.32]} />
+        <meshStandardMaterial color={caixa} roughness={0.72} />
+      </mesh>
+      <mesh position={[0, 0.76, 0]} castShadow>
+        <boxGeometry args={[1.35, 0.04, 0.32]} />
+        <meshStandardMaterial color={caixa} roughness={0.72} />
+      </mesh>
+      {[0.28, 0.52].map((y) => (
+        <mesh key={y} position={[0, y, 0]} receiveShadow>
+          <boxGeometry args={[1.26, 0.025, 0.28]} />
+          <meshStandardMaterial color={MADEIRA_MOVEL} roughness={0.65} />
+        </mesh>
+      ))}
+      {lombadas.map((cor, i) => (
+        <group key={`b-${i}`} position={[-0.52 + i * 0.15, 0.4, 0.1]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.12, 0.22, 0.2]} />
+            <meshStandardMaterial color={cor} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0, 0.101]}>
+            <boxGeometry args={[0.1, 0.18, 0.004]} />
+            <meshStandardMaterial color={cor} emissive={cor} emissiveIntensity={0.25} roughness={0.4} />
+          </mesh>
+        </group>
+      ))}
+      {lombadas.map((cor, i) => (
+        <group key={`a-${i}`} position={[-0.52 + i * 0.15, 0.64, 0.1]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.12, 0.2, 0.2]} />
+            <meshStandardMaterial color={cor} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0, 0.101]}>
+            <boxGeometry args={[0.1, 0.16, 0.004]} />
+            <meshStandardMaterial color={cor} emissive={cor} emissiveIntensity={0.25} roughness={0.4} />
+          </mesh>
+        </group>
       ))}
     </group>
   );
@@ -751,7 +825,7 @@ function SalaDaCasa({
             <planeGeometry args={[0.36, 0.2]} />
             <meshStandardMaterial color="#1d4ed8" emissive="#3b82f6" emissiveIntensity={0.7} />
           </mesh>
-          <Cadeira posicao={cadeiraAtras([5.5, 3.85], Math.PI)} rotacao={0} />
+          <Poltrona posicao={cadeiraAtras([5.5, 3.85], Math.PI)} rotacao={0} />
           <Personagem
             papel="cs"
             estado="working"
@@ -765,6 +839,7 @@ function SalaDaCasa({
           {detalhado && (
             <>
               <Estante posicao={[1.3, 0.35]} />
+              <EstanteBaixa posicao={[9.2, 0.45]} />
               <Planta posicao={[9.4, 1.4]} />
               <RoundedBox args={[0.46, 0.28, 0.32]} radius={0.02} position={[2.1, 0.14, 8.3]} castShadow>
                 <meshStandardMaterial color="#e0cba6" roughness={0.75} />
@@ -794,11 +869,11 @@ function SalaDaCasa({
             </mesh>
           ))}
           {ASSENTOS_REUNIAO.map((a) => (
-            <Cadeira key={`${a.pos[0]}-${a.pos[1]}`} posicao={cadeiraAtras(a.pos, a.olhar)} rotacao={a.olhar + Math.PI} />
+            <Poltrona key={`${a.pos[0]}-${a.pos[1]}`} posicao={cadeiraAtras(a.pos, a.olhar)} rotacao={a.olhar + Math.PI} />
           ))}
           {emReuniao && reuniao && (
             <>
-              <Cadeira posicao={cadeiraAtras(CABECEIRA_REUNIAO.pos, CABECEIRA_REUNIAO.olhar)} rotacao={CABECEIRA_REUNIAO.olhar + Math.PI} />
+              <Poltrona posicao={cadeiraAtras(CABECEIRA_REUNIAO.pos, CABECEIRA_REUNIAO.olhar)} rotacao={CABECEIRA_REUNIAO.olhar + Math.PI} />
               <Personagem
                 papel="cs"
                 estado="idle"
@@ -830,6 +905,7 @@ function SalaDaCasa({
           {detalhado && (
             <>
               <Planta posicao={[9.4, 1.3]} />
+              <EstanteBaixa posicao={[1.2, 0.45]} />
               <group position={[5.5, 1.35, 0.14]}>
                 <mesh castShadow>
                   <boxGeometry args={[1.7, 0.95, 0.05]} />

@@ -46,8 +46,8 @@ const INTACTO = /eye|brow|earring|gold|teeth|mouth/i;
 const POSE = ["Hips", "Abdomen", "Chest", "UpperLegL", "UpperLegR", "LowerLegL", "LowerLegR", "FootL", "FootR", "UpperArmL", "UpperArmR", "LowerArmL", "LowerArmR", "WristL", "WristR"];
 const MEMBROS = ["UpperLegL", "UpperLegR", "LowerLegL", "LowerLegR", "FootL", "FootR", "UpperArmL", "UpperArmR", "LowerArmL", "LowerArmR"];
 
-/** Topo do assento da cadeira da squad (caixa em y=0.26, altura 0.05). */
-const TOPO_ASSENTO = 0.285;
+/** Topo do estofado da poltrona (caixa em y=0.36, altura 0.1). A folga da pelve soma em cima. */
+const TOPO_ASSENTO = 0.41;
 /** Sem vértices de pelve (o rig feminino não pesa o Hips sozinho). */
 const FOLGA_PADRAO = 0.04;
 
