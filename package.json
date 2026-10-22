@@ -19,7 +19,7 @@
     "@anthropic-ai/sdk": "^0.80.0",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
-    "@supabase/supabase-js": "^2.105.4",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/bcryptjs": "^2.4.6",
     "@vercel/blob": "^2.3.3",
     "bcryptjs": "^3.0.3",
