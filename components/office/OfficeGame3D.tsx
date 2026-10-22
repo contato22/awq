@@ -635,7 +635,7 @@ function Sala({
   );
 }
 
-const ESTOFADO = "#8a8d8f";
+const ESTOFADO = "#7d8288";
 const BASE_ESTRELA = "#4e5256";
 const MADEIRA_MOVEL = "#b89a74";
 
@@ -645,14 +645,14 @@ function Poltrona({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao
   return (
     <group position={[posicao[0], 0, posicao[1]]} rotation-y={rotacao}>
       <RoundedBox args={[0.46, 0.1, 0.42]} radius={0.04} position={[0, 0.36, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color={ESTOFADO} roughness={0.72} />
+        <meshStandardMaterial color={ESTOFADO} roughness={0.85} />
       </RoundedBox>
       <RoundedBox args={[0.46, 0.36, 0.08]} radius={0.04} position={[0, 0.54, 0.17]} rotation-x={-0.1} castShadow>
-        <meshStandardMaterial color={ESTOFADO} roughness={0.72} />
+        <meshStandardMaterial color={ESTOFADO} roughness={0.85} />
       </RoundedBox>
       {([-0.22, 0.22] as const).map((x) => (
         <RoundedBox key={x} args={[0.07, 0.1, 0.32]} radius={0.02} position={[x, 0.44, 0.02]} castShadow>
-          <meshStandardMaterial color={ESTOFADO} roughness={0.72} />
+          <meshStandardMaterial color={ESTOFADO} roughness={0.85} />
         </RoundedBox>
       ))}
       <mesh position={[0, 0.2, 0]} castShadow>
