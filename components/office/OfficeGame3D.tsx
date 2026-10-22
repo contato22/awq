@@ -666,9 +666,14 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
-      {/* As luzes ficam montadas; só a intensidade muda, para o shader não recompilar. */}
-      <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={ativo ? 6 : 0} distance={14} decay={2} />
-      <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={!ativo && luzDoDia(hora) < 0.55 ? 4 : 0} distance={12} decay={2} />
+      {/* Uma luz só, sempre montada: cor e intensidade trocam sem recompilar o shader. */}
+      <pointLight
+        position={[w / 2, 2.2, d / 2]}
+        color={ativo ? "#ffc48a" : "#ffb060"}
+        intensity={ativo ? 6 : luzDoDia(hora) < 0.55 ? 4 : 0}
+        distance={ativo ? 14 : 12}
+        decay={2}
+      />
       <group position={[0, 0, 0.02]}>
         {predio.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -926,8 +931,13 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
-      <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={detalhado ? 6 : 0} distance={14} decay={2} />
-      <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={!detalhado && luzDoDia(hora) < 0.55 ? 4 : 0} distance={12} decay={2} />
+      <pointLight
+        position={[w / 2, 2.2, d / 2]}
+        color={detalhado ? "#ffc48a" : "#ffb060"}
+        intensity={detalhado ? 6 : luzDoDia(hora) < 0.55 ? 4 : 0}
+        distance={detalhado ? 14 : 12}
+        decay={2}
+      />
       <group position={[0, 0, 0.02]}>
         {origem.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -1128,8 +1138,10 @@ function texturaDegrade(topo: string, base: string): THREE.CanvasTexture {
   c.height = 256;
   const g = c.getContext("2d")!;
   const grad = g.createLinearGradient(0, 0, 0, 256);
+  // O plano preenche o quadro: o topo segura a cor do céu e o degradê chega no horizonte, não no rodapé.
   grad.addColorStop(0, topo);
-  grad.addColorStop(0.45, topo);
+  grad.addColorStop(0.12, topo);
+  grad.addColorStop(0.48, base);
   grad.addColorStop(1, base);
   g.fillStyle = grad;
   g.fillRect(0, 0, 8, 256);
@@ -1139,19 +1151,27 @@ function texturaDegrade(topo: string, base: string): THREE.CanvasTexture {
   return t;
 }
 
-/** Painel atrás da cidade, de frente para a câmera, para o entardecer não ser um azul chapado. */
-function CeuPainel({ hora }: { hora: number }) {
+/** Degradê atrás da cidade, preso à câmera e maior que o quadro, para a órbita não revelar a borda. */
+function FundoCeu({ hora }: { hora: number }) {
+  const ref = useRef<THREE.Mesh>(null);
   const ceuAtual = ceuEntardecer(hora);
   const tex = useMemo(() => texturaDegrade(ceuAtual.topo, ceuAtual.base), [ceuAtual.topo, ceuAtual.base]);
   useEffect(() => () => tex.dispose(), [tex]);
-  const ref = useRef<THREE.Mesh>(null);
-  useEffect(() => {
-    const camera = new THREE.Vector3(22, 16, 16).addScaledVector(DIRECAO_CAM, 30);
-    ref.current?.lookAt(camera);
-  }, [tex]);
+  useFrame(({ camera }) => {
+    const mesh = ref.current;
+    if (!mesh || !(camera instanceof THREE.PerspectiveCamera)) return;
+    const dist = 500;
+    const vFov = (camera.fov * Math.PI) / 180;
+    const altura = 2 * Math.tan(vFov / 2) * dist * 1.5;
+    const largura = altura * camera.aspect * 1.5;
+    mesh.scale.set(largura, altura, 1);
+    mesh.position.copy(camera.position);
+    mesh.quaternion.copy(camera.quaternion);
+    mesh.translateZ(-dist);
+  });
   return (
-    <mesh ref={ref} position={[22 - DIRECAO_CAM.x * 90, 16, 16 - DIRECAO_CAM.z * 90]} renderOrder={-1}>
-      <planeGeometry args={[260, 120]} />
+    <mesh ref={ref} renderOrder={-1} frustumCulled={false}>
+      <planeGeometry args={[1, 1]} />
       <meshBasicMaterial map={tex} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
     </mesh>
   );
@@ -1167,8 +1187,7 @@ function Iluminacao({ hora }: { hora: number }) {
   }, []);
   return (
     <>
-      <color attach="background" args={[ceuAtual.topo]} />
-      <CeuPainel hora={hora} />
+      <FundoCeu hora={hora} />
       <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.08 + l * 0.18]} />
       {/* De dia (luzDoDia = 1) fica em 0.38, acima de 0.35. À noite volta para 0.08. */}
       <ambientLight intensity={0.08 + l * 0.30} />
