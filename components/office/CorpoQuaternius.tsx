@@ -33,47 +33,56 @@ const PELE_MAT = /skin/i;
 const INTACTO = /eye|brow|earring|gold|teeth|mouth/i;
 
 /**
- * O GLTFLoader tira o ponto do nome (`UpperLeg.L` → `UpperLegL`). O eixo local
- * X da coxa no rig masculino aponta para trás, então rotateX abre as pernas
- * de lado. O sentar gira em torno do eixo lateral do personagem (para a
- * frente da cadeira) e os braços usam o Z local, com sinal espelhado, nas
- * magnitudes de digitação (~1.0 no braço, ~0.6 no antebraço).
+ * O pacote Quaternius não traz clipe de sentar (só Idle, Walk, Interact…).
+ * O eixo local também muda entre os rigs: no masculino o X da coxa aponta
+ * para trás, no feminino aponta para o lado, e o Z do braço não é o mesmo
+ * depois que o grupo gira para a câmera. `rotateX` / `rotateZ` / `rotateOnWorldAxis`
+ * misturam esses eixos e abrem as pernas. A pose aponta o +Y de cada osso
+ * (o eixo que segue o membro) para uma direção no espaço do personagem,
+ * compondo o quaternion do pai — vale igual para os dois GLBs.
+ * Os pés ficam no Root, separados da perna: só recebem a rotação de repouso.
+ * Transladar o osso do pé estica a malha. Quem desce até o assento é o osso
+ * Body (quadril e pernas), uma vez calibrado.
  */
-const PERNAS = new Set(["Hips", "UpperLegL", "UpperLegR", "LowerLegL", "LowerLegR", "FootL", "FootR"]);
-const COXA = -1.15;
-const CANELA = -1.9;
-const BRACO = 1.0;
-const ANTEBRACO = 0.6;
-const INCLINACAO = -0.18;
-/** Desce o quadril até o assento. -0.12 deixava o corpo em pé atrás da cadeira. */
-const QUEDA = -0.22;
+const POSE = ["Hips", "Abdomen", "Chest", "UpperLegL", "UpperLegR", "LowerLegL", "LowerLegR", "FootL", "FootR", "UpperArmL", "UpperArmR", "LowerArmL", "LowerArmR", "WristL", "WristR"];
+/** Quadril no mundo, em cima do assento (topo ~0.29). A malha da pelve fica um pouco abaixo do osso. */
+const ALVO_QUADRIL = 0.38;
 
-const _eixo = new THREE.Vector3();
-const _q = new THREE.Quaternion();
-const _joelho = new THREE.Vector3();
-const _dir = new THREE.Vector3();
+const _lateral = new THREE.Vector3();
+const _frente = new THREE.Vector3();
+const _cima = new THREE.Vector3();
+const _baixo = new THREE.Vector3();
 const _alvo = new THREE.Vector3();
-const _escala = new THREE.Vector3();
+const _atual = new THREE.Vector3();
+const _v = new THREE.Vector3();
+const _delta = new THREE.Quaternion();
+const _pai = new THREE.Quaternion();
+const _local = new THREE.Quaternion();
 
-function nomeOsso(nome: string) {
-  return nome.replace(/\./g, "");
+/** Rotação no mundo que respeita o quaternion dos pais (o grupo está virado para a câmera). */
+function girarNoMundo(osso: THREE.Bone, eixo: THREE.Vector3, angulo: number) {
+  if (!osso.parent || Math.abs(angulo) < 1e-4) return;
+  _delta.setFromAxisAngle(eixo, angulo);
+  osso.parent.getWorldQuaternion(_pai);
+  _local.copy(_pai).invert().multiply(_delta).multiply(_pai);
+  osso.quaternion.premultiply(_local);
 }
 
-function girarLateral(osso: THREE.Bone, grupo: THREE.Object3D, angulo: number) {
-  grupo.updateMatrixWorld(true);
-  _eixo.set(1, 0, 0).transformDirection(grupo.matrixWorld);
-  if (_eixo.lengthSq() < 1e-6) return;
-  osso.rotateOnWorldAxis(_eixo.normalize(), angulo);
-}
-
-function plantarPe(perna: THREE.Bone, pe: THREE.Bone) {
-  perna.getWorldPosition(_joelho);
-  _dir.set(0, -1, 0).applyQuaternion(perna.getWorldQuaternion(_q));
-  perna.getWorldScale(_escala);
-  _alvo.copy(_joelho).addScaledVector(_dir, 0.42 * _escala.y);
-  _alvo.y = 0.04;
-  pe.parent?.worldToLocal(_alvo);
-  pe.position.copy(_alvo);
+/** Aponta o +Y do osso (direção do membro) para `desejado`, já em mundo. */
+function apontar(osso: THREE.Bone, desejado: THREE.Vector3) {
+  if (!osso.parent) return;
+  _alvo.copy(desejado);
+  if (_alvo.lengthSq() < 1e-6) return;
+  _alvo.normalize();
+  osso.updateMatrixWorld(true);
+  _atual.set(0, 1, 0).transformDirection(osso.matrixWorld);
+  if (_atual.lengthSq() < 1e-6) return;
+  _atual.normalize();
+  if (_atual.dot(_alvo) > 0.9995) return;
+  _delta.setFromUnitVectors(_atual, _alvo);
+  osso.parent.getWorldQuaternion(_pai);
+  _local.copy(_pai).invert().multiply(_delta).multiply(_pai);
+  osso.quaternion.premultiply(_local);
 }
 
 export function urlDoRig(semente: string): string {
@@ -145,15 +154,13 @@ function montarInstancia(cena: THREE.Object3D, manter: Set<string>, a: Aparencia
   });
   for (const o of remover) o.removeFromParent();
   const descanso = new Map<string, THREE.Quaternion>();
-  const pes = new Map<string, THREE.Vector3>();
   clone.traverse((o) => {
     const bone = o as THREE.Bone;
     if (!bone.isBone) return;
     descanso.set(bone.name, bone.quaternion.clone());
-    if (bone.name === "FootL" || bone.name === "FootR") pes.set(bone.name, bone.position.clone());
   });
   aplicarTinta(clone, a);
-  return { clone, descanso, pes };
+  return { clone, descanso };
 }
 
 /** Cabeça da semente, já tingida, para o retrato fora da cena. */
@@ -178,7 +185,9 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
   const acoes = useRef<Record<string, THREE.AnimationAction>>({});
   const atual = useRef<THREE.AnimationAction | null>(null);
   const descanso = useRef<Map<string, THREE.Quaternion>>(new Map());
-  const pes = useRef<Map<string, THREE.Vector3>>(new Map());
+  const ossos = useRef<Record<string, THREE.Bone> | null>(null);
+  const corpoBindY = useRef(0);
+  const quedaCorpo = useRef<number | null>(null);
   const jaSentado = useRef(false);
   const relogio = useRef(Math.random() * 10);
 
@@ -193,7 +202,14 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
     root.clear();
     root.add(montado.clone);
     descanso.current = montado.descanso;
-    pes.current = montado.pes;
+    const porOsso: Record<string, THREE.Bone> = {};
+    montado.clone.traverse((o) => {
+      const bone = o as THREE.Bone;
+      if (bone.isBone) porOsso[bone.name] = bone;
+    });
+    ossos.current = porOsso;
+    corpoBindY.current = porOsso.Body?.position.y ?? 0;
+    quedaCorpo.current = null;
     const mix = new THREE.AnimationMixer(montado.clone);
     mixer.current = mix;
     const mapa: Record<string, THREE.AnimationAction> = {};
@@ -214,73 +230,66 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
     const dt = Math.min(dtBruto, 0.05);
     relogio.current += dt;
     const pose = poseRef.current;
-    if (pose === "sentado") {
-      const base = acoes.current.Idle ?? acoes.current.Interact ?? acoes.current.Idle_Neutral;
-      if (base) {
-        if (atual.current !== base) {
-          mix.stopAllAction();
-          base.reset();
-          base.play();
-          base.paused = true;
-          atual.current = base;
-        }
-        base.paused = true;
-        base.time = 0;
-        mix.update(0);
+    const mapa = ossos.current;
+    const corpo = mapa?.Body;
+    if (pose === "sentado" && mapa && corpo) {
+      if (!jaSentado.current) {
+        mix.stopAllAction();
+        atual.current = null;
+        jaSentado.current = true;
       }
       const resp = Math.sin(relogio.current * 1.4);
-      const digita = Math.sin(relogio.current * 7) * 0.12;
-      root.position.y = QUEDA + resp * 0.008;
-      root.updateMatrixWorld(true);
-      const ossos = new Map<string, THREE.Bone>();
-      root.traverse((o) => {
-        const bone = o as THREE.Bone;
-        if (!bone.isBone) return;
-        const nome = nomeOsso(bone.name);
-        ossos.set(nome, bone);
-        if (!PERNAS.has(nome)) return;
-        const q = descanso.current.get(bone.name);
-        if (q) bone.quaternion.copy(q);
-      });
-      root.updateMatrixWorld(true);
-      for (const nome of ["UpperLegL", "UpperLegR"]) {
-        const bone = ossos.get(nome);
-        if (bone) girarLateral(bone, root, COXA);
+      const digita = Math.sin(relogio.current * 7) * 0.1;
+      root.position.y = 0;
+      root.updateWorldMatrix(true, true);
+      if (quedaCorpo.current == null && mapa.Hips) {
+        corpo.position.y = corpoBindY.current;
+        root.updateWorldMatrix(true, true);
+        const y0 = mapa.Hips.getWorldPosition(_v).y;
+        corpo.position.y = corpoBindY.current - 0.25;
+        root.updateWorldMatrix(true, true);
+        const ganho = (y0 - mapa.Hips.getWorldPosition(_v).y) / 0.25;
+        quedaCorpo.current = ganho > 1e-4 ? (y0 - ALVO_QUADRIL) / ganho : 0;
       }
-      for (const nome of ["LowerLegL", "LowerLegR"]) {
-        const bone = ossos.get(nome);
-        if (bone) bone.rotateX(CANELA);
+      corpo.position.y = corpoBindY.current - (quedaCorpo.current ?? 0) + resp * 0.01;
+      for (const nome of POSE) {
+        const bone = mapa[nome];
+        const q = bone && descanso.current.get(bone.name);
+        if (bone && q) bone.quaternion.copy(q);
       }
-      const bracoE = ossos.get("UpperArmL");
-      const bracoD = ossos.get("UpperArmR");
-      const anteE = ossos.get("LowerArmL");
-      const anteD = ossos.get("LowerArmR");
-      if (bracoE) bracoE.rotateZ(-(BRACO + digita));
-      if (bracoD) bracoD.rotateZ(BRACO + digita);
-      if (anteE) anteE.rotateZ(-(ANTEBRACO + digita * 0.5));
-      if (anteD) anteD.rotateZ(ANTEBRACO + digita * 0.5);
-      for (const nome of ["Abdomen", "Chest"]) {
-        const bone = ossos.get(nome);
-        if (bone) girarLateral(bone, root, INCLINACAO + resp * 0.04);
+      root.updateWorldMatrix(true, true);
+      _lateral.set(1, 0, 0).transformDirection(root.matrixWorld);
+      _frente.set(0, 0, 1).transformDirection(root.matrixWorld);
+      _cima.set(0, 1, 0).transformDirection(root.matrixWorld);
+      if (_lateral.lengthSq() > 1e-6 && _frente.lengthSq() > 1e-6) {
+        _lateral.normalize();
+        _frente.normalize();
+        _cima.normalize();
+        _baixo.copy(_cima).negate();
+        if (mapa.Abdomen) girarNoMundo(mapa.Abdomen, _lateral, -0.12 + resp * 0.04);
+        if (mapa.Chest) girarNoMundo(mapa.Chest, _lateral, -0.06 + resp * 0.02);
+        _v.copy(_frente).multiplyScalar(0.97).addScaledVector(_baixo, 0.24);
+        if (mapa.UpperLegL) apontar(mapa.UpperLegL, _v);
+        if (mapa.UpperLegR) apontar(mapa.UpperLegR, _v);
+        root.updateWorldMatrix(true, true);
+        _v.copy(_baixo).multiplyScalar(0.97).addScaledVector(_frente, -0.22);
+        if (mapa.LowerLegL) apontar(mapa.LowerLegL, _v);
+        if (mapa.LowerLegR) apontar(mapa.LowerLegR, _v);
+        root.updateWorldMatrix(true, true);
+        _v.copy(_frente).multiplyScalar(0.34).addScaledVector(_baixo, 0.9).addScaledVector(_lateral, 0.2);
+        if (mapa.UpperArmL) apontar(mapa.UpperArmL, _v);
+        _v.copy(_frente).multiplyScalar(0.34).addScaledVector(_baixo, 0.9).addScaledVector(_lateral, -0.2);
+        if (mapa.UpperArmR) apontar(mapa.UpperArmR, _v);
+        root.updateWorldMatrix(true, true);
+        _v.copy(_frente).multiplyScalar(0.42 + digita).addScaledVector(_baixo, 0.9 - digita);
+        if (mapa.LowerArmL) apontar(mapa.LowerArmL, _v);
+        if (mapa.LowerArmR) apontar(mapa.LowerArmR, _v);
       }
-      root.updateMatrixWorld(true);
-      const peE = ossos.get("FootL");
-      const peD = ossos.get("FootR");
-      const canelaE = ossos.get("LowerLegL");
-      const canelaD = ossos.get("LowerLegR");
-      if (peE && canelaE) plantarPe(canelaE, peE);
-      if (peD && canelaD) plantarPe(canelaD, peD);
-      jaSentado.current = true;
       return;
     }
     if (jaSentado.current) {
       root.position.y = 0;
-      root.traverse((o) => {
-        const bone = o as THREE.Bone;
-        if (!bone.isBone) return;
-        const p = pes.current.get(bone.name);
-        if (p) bone.position.copy(p);
-      });
+      if (corpo) corpo.position.y = corpoBindY.current;
       atual.current = null;
       jaSentado.current = false;
     }
