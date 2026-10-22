@@ -6,6 +6,7 @@ import * as THREE from "three";
 import type { AspectoQuadro, SensorId } from "@/lib/studio-optics";
 import { SENSORES } from "@/lib/studio-optics";
 import { avisoDaCota, listarShots, persistenciaDoEstudioLigada, salvarShot, type ShotEstudio } from "@/lib/studio-store";
+import { CAMADA_CICLORAMA } from "./camadas";
 import { ALVO_CAMERA, POSICAO_CAMERA } from "./VirtualCamera";
 
 export interface PedidoCaptura {
@@ -23,7 +24,12 @@ function razaoDoQuadro(aspecto: AspectoQuadro): number {
 }
 
 function ehAjuda(obj: THREE.Object3D): boolean {
-  return Boolean(obj.userData?.ocultarNaCaptura) || obj.constructor?.name === "TransformControls";
+  let atual: THREE.Object3D | null = obj;
+  while (atual) {
+    if (atual.userData?.ocultarNaCaptura) return true;
+    atual = atual.parent;
+  }
+  return false;
 }
 
 /** Renderiza pela câmera virtual, no quadro da lente, sem gizmos. */
@@ -39,6 +45,7 @@ function pngPelaCamera(
   cam.position.set(...POSICAO_CAMERA);
   cam.up.set(0, 1, 0);
   cam.lookAt(...ALVO_CAMERA);
+  cam.layers.enable(CAMADA_CICLORAMA);
   cam.updateProjectionMatrix();
 
   const ocultos: THREE.Object3D[] = [];
@@ -49,7 +56,11 @@ function pngPelaCamera(
     }
   });
 
-  const alvo = new THREE.WebGLRenderTarget(w, h, { type: THREE.UnsignedByteType });
+  const alvo = new THREE.WebGLRenderTarget(w, h, {
+    type: THREE.UnsignedByteType,
+    colorSpace: THREE.SRGBColorSpace,
+  });
+  alvo.texture.colorSpace = THREE.SRGBColorSpace;
   const anterior = gl.getRenderTarget();
   const xr = gl.xr.enabled;
   gl.xr.enabled = false;
