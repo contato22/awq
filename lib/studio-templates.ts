@@ -78,7 +78,11 @@ function horario(indice: number): string {
 
 function setupDe(atual: ShotEstudio, anterior: ShotEstudio | undefined): string {
   if (!anterior) return "primeiro setup";
-  if (anterior.lenteMm === atual.lenteMm && anterior.sensor === atual.sensor) return "mesmo setup";
+  const lente = anterior.lenteMm !== atual.lenteMm;
+  const sensor = anterior.sensor !== atual.sensor;
+  if (!lente && !sensor) return "mesmo setup";
+  if (lente && sensor) return "troca de lente e sensor";
+  if (sensor) return "troca de sensor";
   return "troca de lente";
 }
 
@@ -105,7 +109,8 @@ export function callSheetDaProducao(shots: ShotEstudio[]): OrdemDoDia {
 }
 
 function celula(valor: string): string {
-  return `"${valor.replace(/"/g, '""')}"`;
+  const texto = /^[=+\-@]/.test(valor) ? `'${valor}` : valor;
+  return `"${texto.replace(/"/g, '""')}"`;
 }
 
 export function csvDoDiretor(shots: ShotEstudio[]): string {

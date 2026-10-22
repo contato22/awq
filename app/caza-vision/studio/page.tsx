@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import { FileSpreadsheet, Printer } from "lucide-react";
 import { persistenciaDoEstudioLigada } from "@/lib/studio-store";
@@ -59,8 +60,8 @@ export default function EstudioCazaPage() {
           Os dois agentes leem os planos capturados no Estúdio e preenchem a lista e a ordem do dia com regras fixas. Sem modelo de linguagem.
           {" "}
           {ligado
-            ? "A flag CAZA_STUDIO_PERSIST está ligada: os planos sobrevivem ao recarregar."
-            : "Sem a flag CAZA_STUDIO_PERSIST, os planos vivem só nesta sessão do navegador."}
+            ? "Os planos ficam guardados neste navegador."
+            : "Os planos vivem só nesta sessão do navegador."}
         </p>
 
         <section className="card p-4 space-y-3">
@@ -75,15 +76,31 @@ export default function EstudioCazaPage() {
               <FileSpreadsheet size={12} /> CSV
             </button>
           </div>
-          {diretor.length === 0 && <p className="text-xs text-gray-400">Nenhum plano. Capture no Estúdio do Office.</p>}
+          {diretor.length === 0 && (
+            <p className="text-xs text-gray-400">
+              Nenhum plano.{" "}
+              <Link href="/agents/office" className="font-medium text-brand-700 underline">Abra o Estúdio no Office</Link>
+              {" "}e capture um plano.
+            </p>
+          )}
           <ol className="space-y-2">
-            {diretor.map((l) => (
-              <li key={l.ordem} className="text-sm text-gray-800">
-                <span className="font-semibold">{l.ordem}. {l.plano}</span>
-                <span className="text-gray-500"> · {l.enquadramento} · {l.lenteMm} mm · {l.sensor} · {l.aspecto}</span>
-                <div className="text-xs text-gray-600">{l.indicacao}</div>
-              </li>
-            ))}
+            {diretor.map((l, i) => {
+              const png = shots[i]?.png ?? "";
+              const miniatura = png.startsWith("data:image/");
+              return (
+                <li key={l.ordem} className="text-sm text-gray-800 flex gap-3">
+                  {miniatura && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={png} alt={`Miniatura de ${l.plano}`} className="w-28 h-16 object-cover rounded-md bg-gray-900 shrink-0" />
+                  )}
+                  <div>
+                    <span className="font-semibold">{l.ordem}. {l.plano}</span>
+                    <span className="text-gray-500"> · {l.enquadramento} · {l.lenteMm} mm · {l.sensor} · {l.aspecto}</span>
+                    <div className="text-xs text-gray-600">{l.indicacao}</div>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </section>
 

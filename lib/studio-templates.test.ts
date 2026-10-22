@@ -47,7 +47,7 @@ test("diretor e produção saem de regras locais, sem o PNG no CSV", () => {
   assert.equal(dia.planos, 3);
   assert.equal(dia.lentes, "24 mm, 85 mm");
   assert.deepEqual(dia.linhas.map((l) => l.horario), ["08:00", "08:20", "08:40"]);
-  assert.deepEqual(dia.linhas.map((l) => l.setup), ["primeiro setup", "troca de lente", "troca de lente"]);
+  assert.deepEqual(dia.linhas.map((l) => l.setup), ["primeiro setup", "troca de lente", "troca de sensor"]);
 
   const mesmo = callSheetDaProducao([
     plano({ nome: "A", lenteMm: 50 }),
