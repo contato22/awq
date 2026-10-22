@@ -19,7 +19,7 @@ const GHm = 13;
 const WALL = 44;
 
 /** Andares do prédio: cada um é uma BU do grupo, com paleta própria. */
-export type AndarId = "jacqes" | "awaqe";
+export type AndarId = "jacqes" | "awaqe" | "caza";
 
 export interface Andar {
   id: AndarId;
@@ -31,12 +31,25 @@ export interface Andar {
 export const ANDARES: Andar[] = [
   { id: "jacqes", numero: 1, nome: "JACQES", descricao: "BU que cuida dos clientes de social media" },
   { id: "awaqe", numero: 2, nome: "AWAQE", descricao: "BU AWAQE" },
+  { id: "caza", numero: 3, nome: "Caza Vision", descricao: "Produtora" },
 ];
 
-/** BUs (nomes das squads) que ficam fora do 1º andar. Hoje todas as squads de clientes são da JACQES. */
-export const ANDAR_DA_BU: Record<string, AndarId> = {};
+/**
+ * BUs (nomes das squads) que ficam fora do 1º andar.
+ * A Caza Vision, produtora, mora no 3º andar — o do Estúdio.
+ */
+export const ANDAR_DA_BU: Record<string, AndarId> = {
+  "Caza Vision": "caza",
+  Caza_Vision: "caza",
+  CAZA: "caza",
+};
 
-export const andarDaEmpresa = (e: { bu: string; andar?: AndarId }): AndarId => e.andar ?? ANDAR_DA_BU[e.bu] ?? "jacqes";
+const ANDAR_DA_BU_NORM: Record<string, AndarId> = Object.fromEntries(
+  Object.entries(ANDAR_DA_BU).map(([k, v]) => [k.trim().toLowerCase(), v]),
+);
+
+export const andarDaEmpresa = (e: { bu: string; andar?: AndarId }): AndarId =>
+  e.andar ?? ANDAR_DA_BU[e.bu] ?? ANDAR_DA_BU_NORM[e.bu.trim().toLowerCase()] ?? "jacqes";
 
 export interface Empresa {
   bu: string;
@@ -84,6 +97,18 @@ export const SALAS_CASA = {
   reunioes: SLOTS[5],
 } as const;
 
+/** Sala do Estúdio no andar da Caza Vision (mesmo slot da sala de reuniões dos outros andares). */
+export const SALA_ESTUDIO = {
+  id: "estudio" as const,
+  nome: "Estúdio",
+  andar: "caza" as const,
+  slot: SLOTS[5],
+  lado: LADO,
+  alt: ALT_PAREDE,
+};
+
+export type SalaCasaId = "diretoria" | "reunioes" | "estudio";
+
 export function layoutPredios(empresas: Empresa[]): PredioW[] {
   return empresas.slice(0, SLOTS_CLIENTES.length).map((e, i) => {
     const sl = SLOTS[SLOTS_CLIENTES[i]];
@@ -130,6 +155,12 @@ export function centroDaReuniao(): { x: number; y: number } {
   return { x: c.x, y: c.y - 6 };
 }
 
+/** Centro geométrico do piso do Estúdio. Não reusa o deslocamento de -6 da sala de reuniões. */
+export function centroDoEstudio(): { x: number; y: number } {
+  const { slot, lado } = SALA_ESTUDIO;
+  return iw(slot.x + lado / 2, slot.y + lado / 2);
+}
+
 /** Centro da sala do Miguel (para a câmera). */
 export function centroDaDiretoria(): { x: number; y: number } {
   const sl = SLOTS[0];
@@ -142,9 +173,10 @@ const ASSENTOS: [number, number][] = [[1.5, 1.5], [2.5, 1.5], [3.5, 1.5], [1.5, 
 const CABECEIRA: [number, number] = [4.5, 2.5];
 const LOOKS: Papel[] = ["ref", "criativo", "midia", "ref", "criativo", "midia"];
 
-/** Sala da casa (sala do Miguel ou de reuniões) sob o ponto, se houver. */
-export function casaNoPonto(x: number, y: number): "diretoria" | "reunioes" | null {
-  for (const [i, tipo] of [[0, "diretoria"], [5, "reunioes"]] as const) {
+/** Sala da casa sob o ponto. No andar da Caza o slot de reuniões é o Estúdio. */
+export function casaNoPonto(x: number, y: number, andar: AndarId = "jacqes"): SalaCasaId | null {
+  const salas: [number, SalaCasaId][] = [[0, "diretoria"], [5, andar === "caza" ? "estudio" : "reunioes"]];
+  for (const [i, tipo] of salas) {
     const sl = SLOTS[i];
     const t = iw(sl.x, sl.y), r = iw(sl.x + LADO, sl.y), b = iw(sl.x + LADO, sl.y + LADO), l = iw(sl.x, sl.y + LADO);
     const poly = [
@@ -161,6 +193,7 @@ interface Paleta { paredeD: string; paredeE: string; rodape: string; corredor: [
 const PALETAS: Record<AndarId, Paleta> = {
   jacqes: { paredeD: "#2c4382", paredeE: "#22346a", rodape: "#15204a", corredor: ["#c9a876", "#bd9a66"], passadeira: ["#35508f", "#30498a"], faixa: "#2c4382" },
   awaqe: { paredeD: "#1f5e58", paredeE: "#184a46", rodape: "#0d302d", corredor: ["#cdb37f", "#c2a873"], passadeira: ["#2f7a6f", "#2a6e64"], faixa: "#1f5e58" },
+  caza: { paredeD: "#6b2d3c", paredeE: "#542333", rodape: "#3a1520", corredor: ["#c4b49a", "#b7a78c"], passadeira: ["#8f3d4e", "#7d3344"], faixa: "#6b2d3c" },
 };
 
 function colunaParede(lado: "D" | "E", u: number) {
@@ -672,6 +705,143 @@ function rotulo(c: CanvasRenderingContext2D, p: PredioW, op: OpcoesMundo) {
   }
 }
 
+/** Barra isométrica elevada (grade de teto): de (gx0, gy) até (gx1, gy), a `h` px do piso. */
+function barraGx(c: CanvasRenderingContext2D, gx0: number, gy: number, gx1: number, h: number, cor: string) {
+  const n = Math.max(1, Math.round((gx1 - gx0) * 32));
+  for (let k = 0; k < n; k++) {
+    const p = iw(gx0 + k / 32, gy);
+    ret(c, p.x, p.y - h, 0.5, 0.7, cor);
+  }
+}
+
+function barraGy(c: CanvasRenderingContext2D, gx: number, gy0: number, gy1: number, h: number, cor: string) {
+  const n = Math.max(1, Math.round((gy1 - gy0) * 32));
+  for (let k = 0; k < n; k++) {
+    const p = iw(gx, gy0 + k / 32);
+    ret(c, p.x, p.y - h, 0.5, 0.7, cor);
+  }
+}
+
+/**
+ * Ciclorama no canto do fundo da sala: sobe nas duas paredes e curva até o piso.
+ * O degradê vai do linho claro (#f7f4ee) no alto ao bege do chão (#e4ddd2).
+ */
+function cicloramaNoCanto(c: CanvasRenderingContext2D, s: { x: number; y: number }, alt: number) {
+  const alcance = 2.5;
+  const canto = iw(s.x, s.y);
+  const sobe = Math.round(alt * 0.62);
+  const paredeDir = iw(s.x + alcance, s.y);
+  const paredeEsq = iw(s.x, s.y + alcance);
+  const pisoDir = iw(s.x + alcance, s.y + 1.15);
+  const pisoEsq = iw(s.x + 1.15, s.y + alcance);
+  const meioPiso = iw(s.x + 2.15, s.y + 2.15);
+  const g = c.createLinearGradient(canto.x, canto.y - sobe, meioPiso.x, meioPiso.y);
+  g.addColorStop(0, "#f7f4ee");
+  g.addColorStop(1, "#e4ddd2");
+  c.beginPath();
+  c.moveTo(canto.x, canto.y - sobe);
+  c.lineTo(paredeDir.x, paredeDir.y - sobe * 0.22);
+  c.quadraticCurveTo(paredeDir.x, paredeDir.y + 2, pisoDir.x, pisoDir.y);
+  c.quadraticCurveTo(meioPiso.x, meioPiso.y, pisoEsq.x, pisoEsq.y);
+  c.quadraticCurveTo(paredeEsq.x, paredeEsq.y + 2, paredeEsq.x, paredeEsq.y - sobe * 0.22);
+  c.closePath();
+  c.fillStyle = g;
+  c.fill();
+  c.fillStyle = "#ffffff";
+  c.fillRect(canto.x - 0.5, canto.y - sobe, 1, 1);
+  const n = Math.round(alcance * 32);
+  for (let k = 0; k < n; k++) {
+    const t = k / 32;
+    const a = iw(s.x + t, s.y);
+    const b = iw(s.x, s.y + t);
+    const queda = sobe * (1 - (t / alcance) * 0.78);
+    ret(c, a.x, a.y - queda, 0.5, 0.8, "#ffffff");
+    ret(c, b.x, b.y - queda, 0.5, 0.8, "#f7f4ee");
+  }
+  for (let gy = 0; gy < 2; gy++) {
+    for (let gx = 0; gx < 2; gx++) {
+      if (gx + gy > 2) continue;
+      const q = iw(s.x + gx, s.y + gy);
+      losango(c, q.x, q.y, mistura("#f7f4ee", "#e4ddd2", (gx + gy) / 3));
+    }
+  }
+}
+
+/** Refletor de chão: tripé, cabeça e cone de luz apontado para o ciclorama. */
+function refletor(c: CanvasRenderingContext2D, gx: number, gy: number, cor: string, canto: { x: number; y: number }) {
+  const q = iw(gx, gy);
+  const alvo = iw(canto.x + 0.7, canto.y + 0.7);
+  c.save();
+  c.globalAlpha = 0.34;
+  c.fillStyle = cor;
+  c.beginPath();
+  c.moveTo(q.x - 1.4, q.y - 18);
+  c.lineTo(q.x + 2.2, q.y - 18);
+  c.lineTo(alvo.x + 10, alvo.y + 2);
+  c.lineTo(alvo.x - 8, alvo.y + 6);
+  c.closePath();
+  c.fill();
+  c.restore();
+  ret(c, q.x - 4, q.y - 0.6, 8, 0.8, "#334155");
+  ret(c, q.x, q.y - 18, 0.8, 18, "#475569");
+  ret(c, q.x - 3.2, q.y - 23, 7, 5, "#1e293b");
+  ret(c, q.x - 3.2, q.y - 23, 7, 1, "#64748b");
+  disco(c, q.x + 0.4, q.y - 20.2, 1.8, cor);
+}
+
+/** Câmera no tripé, maior que o ícone anterior, no eixo da sala. */
+function cameraNoTripe(c: CanvasRenderingContext2D, gx: number, gy: number) {
+  const q = iw(gx, gy);
+  ret(c, q.x - 7, q.y - 0.8, 14, 1, "#1e293b");
+  ret(c, q.x - 5, q.y - 1, 2, 2, "#334155");
+  ret(c, q.x + 3, q.y - 1, 2, 2, "#334155");
+  ret(c, q.x - 0.6, q.y - 20, 1.4, 20, "#334155");
+  ret(c, q.x - 8, q.y - 30, 16, 10, "#0f172a");
+  ret(c, q.x - 8, q.y - 30, 16, 1.5, "#334155");
+  ret(c, q.x - 3, q.y - 34, 6, 4, "#1e293b");
+  ret(c, q.x + 7, q.y - 27, 8, 5, "#0369a1");
+  disco(c, q.x + 15, q.y - 24.5, 2.6, "#7dd3fc");
+  ret(c, q.x + 13.5, q.y - 25.5, 1.5, 2, "#e0f2fe");
+}
+
+/** Estúdio da Caza: ciclorama no canto, grade de luz, três refletores e a câmera. */
+function estudio(c: CanvasRenderingContext2D, add: (d: number, f: () => void) => void) {
+  const { slot: s, lado, alt } = SALA_ESTUDIO;
+  add(s.x + s.y + 0.6, () => {
+    const topo = iw(s.x + lado / 2, s.y);
+    const nome = "ESTÚDIO";
+    c.font = "bold 5.5px sans-serif";
+    const w = Math.ceil(c.measureText(nome).width) + 10;
+    const x = Math.round(topo.x - w / 2), y = Math.round(topo.y - alt - 18);
+    ret(c, x - 0.5, y - 0.5, w + 1, 10, OUT);
+    ret(c, x, y, w, 9, "#6b2d3c");
+    ret(c, x + 2, y + 3, 3, 3, "#fbbf24");
+    c.fillStyle = "#f8fafc";
+    c.textAlign = "left";
+    c.textBaseline = "middle";
+    c.fillText(nome, x + 6.5, y + 4.8);
+  });
+  add(s.x + s.y + 0.35, () => cicloramaNoCanto(c, s, alt));
+  const hGrade = Math.round(alt * 0.78);
+  add(s.x + lado / 2 + s.y + lado / 2, () => {
+    const trilha = "#334155";
+    for (let i = 1; i <= 3; i++) barraGx(c, s.x + 0.45, s.y + (lado * i) / 4, s.x + lado - 0.45, hGrade, trilha);
+    for (let i = 1; i <= 3; i++) barraGy(c, s.x + (lado * i) / 4, s.y + 0.45, s.y + lado - 0.45, hGrade, trilha);
+    for (let ix = 1; ix <= 3; ix++) {
+      for (let iy = 1; iy <= 3; iy++) {
+        const q = iw(s.x + (lado * ix) / 4, s.y + (lado * iy) / 4);
+        disco(c, q.x + 0.3, q.y - hGrade - 1.2, 1.3, "#fde68a");
+        ret(c, q.x - 1.2, q.y - hGrade, 3, 1.2, "#1e293b");
+      }
+    }
+  });
+  const luzes: [number, number, string][] = [[1.5, 2.6, "#fde68a"], [3.5, 2.4, "#bfdbfe"], [2.4, 1.7, "#ffffff"]];
+  for (const [dx, dy, cor] of luzes) {
+    add(s.x + dx + s.y + dy + 0.2, () => refletor(c, s.x + dx, s.y + dy, cor, s));
+  }
+  add(s.x + lado * 0.62 + s.y + lado * 0.78, () => cameraNoTripe(c, s.x + lado * 0.62, s.y + lado * 0.78));
+}
+
 /** Áreas da casa: a sala do Miguel (topo da planta) e a sala de reuniões. */
 function areaDaCasa(c: CanvasRenderingContext2D, s: { x: number; y: number }, tipo: "diretoria" | "reunioes", op: OpcoesMundo, add: (d: number, f: () => void) => void) {
   const nome = tipo === "diretoria" ? "SALA DO MIGUEL" : "SALA DE REUNIÕES";
@@ -792,6 +962,7 @@ export function desenharMundo(c: CanvasRenderingContext2D, predios: PredioW[], o
     if (predios.some((p) => p.x === s.x && p.y === s.y)) return;
     if (SLOTS_CLIENTES.includes(i)) lounge(c, s, op, add, sombra);
     else if (i === 0) areaDaCasa(c, s, "diretoria", op, add);
+    else if (i === 5 && andar === "caza") estudio(c, add);
     else if (i === 5) areaDaCasa(c, s, "reunioes", op, add);
   });
   for (const [gx, gy] of [[0, 6.5], [17, 6.5], [6, 12], [12, 0]] as const) add(gx + gy + 0.3, () => { const q = iw(gx + 0.5, gy + 0.5); planta(c, q.x, q.y, op.quadro + gx); });

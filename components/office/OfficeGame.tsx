@@ -9,7 +9,7 @@ import {
   atorNoPonto, criarMundo, desenhar, ESCALA, H, humorDe, isoC, moverGestor, passo, TEMAS, tileDoPonto, W,
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
-import { ANDARES, andarDaEmpresa, casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type AndarId, type Empresa, type EstadoReuniao } from "@/lib/office-world";
+import { ANDARES, andarDaEmpresa, casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoEstudio, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type AndarId, type Empresa, type EstadoReuniao } from "@/lib/office-world";
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de
@@ -24,7 +24,7 @@ export interface ItemBusca {
   sub: string;
   bu?: string;
   role?: Agente;
-  sala?: "reunioes" | "diretoria";
+  sala?: "reunioes" | "diretoria" | "estudio";
   andar?: AndarId;
 }
 
@@ -260,6 +260,20 @@ export default function OfficeGame(props: Props) {
   const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const resultados = (busca ?? []).filter((i) => !termo.trim() || norm(`${i.rotulo} ${i.sub}`).includes(norm(termo.trim()))).slice(0, 8);
 
+  /**
+   * Clique e busca do Estúdio: vai ao 3º andar, aproxima a sala e fecha a gaveta.
+   * A gaveta (ciclo, mensagens, reunião) não tem conteúdo do estúdio — abri-la
+   * deixava a metade direita da planta em branco. O set em si chega no modo 3D
+   * dos PRs seguintes; aqui o clique só enquadra o Estúdio.
+   */
+  const focarEstudio = () => {
+    onPainel(false);
+    if (andarRef.current !== "caza") trocarAndar("caza");
+    const c = centroDoEstudio();
+    setSeguir(false);
+    animar(camMundo.current, { cx: c.x, cy: c.y - 14, z: 2 }, 650);
+  };
+
   const irParaItem = (i: ItemBusca) => {
     setTermo("");
     setBuscaAberta(false);
@@ -268,6 +282,10 @@ export default function OfficeGame(props: Props) {
     };
     if (i.tipo === "andar" && i.andar) { trocarAndar(i.andar); return; }
     if (i.tipo === "sala" && i.sala === "reunioes") { if (andarRef.current !== "jacqes") trocarAndar("jacqes"); onPainel(true, "reuniao"); return; }
+    if (i.tipo === "sala" && i.sala === "estudio") {
+      noMundo(focarEstudio);
+      return;
+    }
     if (i.tipo === "sala" && i.sala === "diretoria") {
       noMundo(() => { const c = centroDaDiretoria(); setSeguir(false); animar(camMundo.current, { cx: c.x + 20, cy: c.y - 8, z: 2.2 }, 650); });
       return;
@@ -498,7 +516,8 @@ export default function OfficeGame(props: Props) {
     if (vistaRef.current === "mundo") {
       const p = predioNoPonto(prediosDoAndar(), lx, ly);
       hoverPredio.current = p?.empresa.bu ?? null;
-      setCursor(p || casaNoPonto(lx, ly) === "reunioes" ? "pointer" : "grab");
+      const casa = casaNoPonto(lx, ly, andarRef.current);
+      setCursor(p || casa === "reunioes" || casa === "estudio" ? "pointer" : "grab");
     } else {
       const m = mundoRef.current;
       if (!m) return;
@@ -518,7 +537,11 @@ export default function OfficeGame(props: Props) {
     if (vistaRef.current === "mundo") {
       const p = predioNoPonto(prediosDoAndar(), lx, ly);
       if (p) entrar(p.empresa.bu);
-      else if (casaNoPonto(lx, ly) === "reunioes") dados.current.onPainel(true, "reuniao");
+      else {
+        const casa = casaNoPonto(lx, ly, andarRef.current);
+        if (casa === "reunioes") dados.current.onPainel(true, "reuniao");
+        else if (casa === "estudio") focarEstudio();
+      }
       return;
     }
     const m = mundoRef.current;
