@@ -477,7 +477,10 @@ function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: numbe
   const janelaTopo = 2.2;
   const topo = 2.35;
   const janelaH = janelaTopo - janelaBase;
-  const ceuJanela = ceu(hora);
+  const luz = luzDoDia(hora);
+  const entardecer = luz < 0.55;
+  const ceuAtual = ceu(hora);
+  const ceuJanela = entardecer ? { topo: "#ffbf70", base: "#e07a32" } : ceuAtual;
   return (
     <group>
       <MalhaTijolo args={[comprimento, janelaBase, 0.12]} position={[comprimento / 2, janelaBase / 2, 0]} />
@@ -1111,9 +1114,19 @@ function CameraRig({
   );
 }
 
+/** Entre 18h e 20h o céu vira um degradê de entardecer (topo azul, base âmbar) e volta. */
+function ceuEntardecer(hora: number): { topo: string; base: string } {
+  const atual = ceu(hora);
+  if (hora <= 18 || hora >= 20) return atual;
+  const t = hora < 19 ? hora - 18 : 20 - hora;
+  const topo = new THREE.Color(atual.topo).lerp(new THREE.Color("#1f4f8a"), t);
+  const base = new THREE.Color(atual.base).lerp(new THREE.Color("#e8923a"), t);
+  return { topo: `#${topo.getHexString()}`, base: `#${base.getHexString()}` };
+}
+
 function Iluminacao({ hora }: { hora: number }) {
   const l = luzDoDia(hora);
-  const ceuAtual = hora >= 18 && hora < 20 ? { topo: "#1f4f8a", base: "#1f4f8a" } : ceu(hora);
+  const ceuAtual = ceuEntardecer(hora);
   const sol = useRef<THREE.DirectionalLight>(null);
   const alvoSol = useRef<THREE.Object3D>(null);
   useEffect(() => {
@@ -1166,12 +1179,32 @@ function ConfigRenderer() {
  * andar — dá a luz quente entrando pela janela pedida, visível na visão geral do mundo. */
 function Fachada({ largura, hora }: { largura: number; hora: number }) {
   const tijolo = useMemo(() => mapaTijolo(largura, 1), [largura]);
-  const furos = useMemo(() => texturaPerfurada(), []);
+  useEffect(() => () => tijolo.dispose(), [tijolo]);
+  const peles = useMemo(() => {
+    return [2.8, 3.4, 2.6].map((profundidade) => {
+      const alpha = texturaPerfurada().clone();
+      alpha.wrapS = alpha.wrapT = THREE.RepeatWrapping;
+      alpha.repeat.set(Math.max(profundidade, 2), 4);
+      const depth = new THREE.MeshDepthMaterial({
+        depthPacking: THREE.RGBADepthPacking,
+        alphaMap: alpha,
+        alphaTest: 0.5,
+      });
+      return { alpha, depth };
+    });
+  }, []);
+  useEffect(() => () => {
+    for (const p of peles) {
+      p.alpha.dispose();
+      p.depth.dispose();
+    }
+  }, [peles]);
   const l = luzDoDia(hora);
+  const baseY = 1.12;
   const volumes = [
-    { id: "esquerda", x: largura * 0.17, y: 1.35, w: largura * 0.32, h: 1.8, d: 2.8 },
-    { id: "centro", x: largura * 0.5, y: 1.55, w: largura * 0.3, h: 2.2, d: 3.4 },
-    { id: "direita", x: largura * 0.83, y: 1.25, w: largura * 0.32, h: 1.65, d: 2.6 },
+    { id: "esquerda", x: largura * 0.17, w: largura * 0.32, h: 1.8, d: 2.8 },
+    { id: "centro", x: largura * 0.5, w: largura * 0.3, h: 2.2, d: 3.4 },
+    { id: "direita", x: largura * 0.83, w: largura * 0.32, h: 1.65, d: 2.6 },
   ];
   return (
     <group>
@@ -1179,25 +1212,27 @@ function Fachada({ largura, hora }: { largura: number; hora: number }) {
         <boxGeometry args={[largura, 1, 0.12]} />
         <meshStandardMaterial map={tijolo} roughness={0.9} />
       </mesh>
-      <mesh position={[largura / 2, 2.15, 0]}>
-        <boxGeometry args={[largura, 2.3, 0.04]} />
-        <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.9 * (1 - l)} transparent opacity={0.22} roughness={0.2} />
-      </mesh>
-      <mesh position={[largura / 2, 1.85, 0.1]}>
-        <planeGeometry args={[largura * 0.96, 2.15]} />
-        <meshStandardMaterial
-          color="#eeeeea"
-          alphaMap={furos}
+      <mesh position={[largura / 2, 2.35, -0.04]}>
+        <planeGeometry args={[largura * 0.98, 2.7]} />
+        <meshBasicMaterial
+          color="#ffbf70"
           transparent
-          metalness={0.15}
-          roughness={0.55}
-          side={THREE.DoubleSide}
+          opacity={0.18 + 0.72 * (1 - l)}
+          toneMapped={false}
+          depthWrite={false}
         />
       </mesh>
-      {volumes.map((v) => (
-        <mesh key={v.id} position={[v.x, v.y, 0.08 + v.d / 2]} castShadow receiveShadow>
+      {volumes.map((v, i) => (
+        <mesh key={v.id} position={[v.x, baseY + v.h / 2, 0.22 + v.d / 2]} castShadow customDepthMaterial={peles[i].depth}>
           <boxGeometry args={[v.w, v.h, v.d]} />
-          <meshStandardMaterial color="#d9cbb8" roughness={0.72} />
+          <meshStandardMaterial
+            color="#f3efe6"
+            alphaMap={peles[i].alpha}
+            alphaTest={0.5}
+            roughness={0.62}
+            metalness={0.04}
+            side={THREE.DoubleSide}
+          />
         </mesh>
       ))}
     </group>
