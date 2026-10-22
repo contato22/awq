@@ -10,7 +10,12 @@ import {
   type Agente, type Atividade, type Estado, type Humor, type Mundo,
 } from "@/lib/office-iso";
 import { ANDARES, andarDaEmpresa, casaNoPonto, centroDaDiretoria, centroDaReuniao, centroDoEstudio, centroDoPredio, desenharMundo, layoutPredios, predioNoPonto, WH, WW, type AndarId, type Empresa, type EstadoReuniao } from "@/lib/office-world";
-import { RetratoAgente } from "./RetratoAgente";
+import dynamic from "next/dynamic";
+
+const RetratoAgente = dynamic(
+  () => import("./RetratoAgente").then((m) => m.RetratoAgente),
+  { ssr: false },
+);
 
 /**
  * O Office como mundo jogável: um mapa do grupo com um prédio por cliente, e dentro de

@@ -63,22 +63,22 @@ async function fotografar(semente: string): Promise<string> {
   const centro = caixa.getCenter(new THREE.Vector3());
   const tamanho = caixa.getSize(new THREE.Vector3());
   const maior = Math.max(tamanho.x, tamanho.y, 0.18);
-  const fov = 26;
-  const dist = (maior / 2) / Math.tan((fov * Math.PI) / 360) * 1.28;
+  const fov = 22;
+  const dist = (maior / 2) / Math.tan((fov * Math.PI) / 360) * 1.04;
 
   const palco = new THREE.Scene();
   palco.add(cabeca);
-  palco.add(new THREE.AmbientLight("#ffffff", 0.75));
-  const chave = new THREE.DirectionalLight("#fff6ea", 1.35);
-  chave.position.set(0.55, 1.6, 2.2);
+  palco.add(new THREE.AmbientLight("#fff1e4", 0.38));
+  const chave = new THREE.DirectionalLight("#fff6ea", 0.72);
+  chave.position.set(0.4, 1.2, 1.8);
   palco.add(chave);
-  const preenchimento = new THREE.DirectionalLight("#d7ecea", 0.5);
-  preenchimento.position.set(-1.1, 0.6, 1.4);
+  const preenchimento = new THREE.DirectionalLight("#d7ecea", 0.22);
+  preenchimento.position.set(-1.1, 0.4, 1.2);
   palco.add(preenchimento);
 
   const camera = new THREE.PerspectiveCamera(fov, 1, 0.02, 30);
-  camera.position.set(centro.x + maior * 0.08, centro.y, centro.z + dist);
-  camera.lookAt(centro);
+  camera.position.set(centro.x + maior * 0.04, centro.y + tamanho.y * 0.06, centro.z + dist);
+  camera.lookAt(centro.x, centro.y + tamanho.y * 0.12, centro.z);
 
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(1);
@@ -93,12 +93,12 @@ async function fotografar(semente: string): Promise<string> {
   return url;
 }
 
-function Silhueta({ pele, cabelo }: { pele: string; cabelo: string }) {
+function Silhueta({ pele, cabelo, corpo }: { pele: string; cabelo: string; corpo: string }) {
   return (
     <div className="relative h-full w-full" aria-hidden>
       <div className="absolute left-1/2 top-1.5 h-10 w-10 -translate-x-1/2 rounded-full" style={{ background: pele }} />
       <div className="absolute left-1/2 top-1.5 h-4 w-10 -translate-x-1/2 rounded-t-full" style={{ background: cabelo }} />
-      <div className="absolute inset-x-2.5 bottom-1 h-6 rounded-t-2xl" style={{ background: pele }} />
+      <div className="absolute inset-x-2.5 bottom-1 h-6 rounded-t-2xl" style={{ background: corpo }} />
     </div>
   );
 }
@@ -135,7 +135,7 @@ export function RetratoAgente({ semente, nome, papel }: { semente: string; nome:
         style={{ background: "linear-gradient(135deg, #9fd3d0 0%, #7fb3d5 100%)" }}
       >
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
-          {foto ? <img src={foto} alt="" className="h-full w-full object-contain" /> : <Silhueta pele={a.pele} cabelo={a.cabelo} />}
+          {foto ? <img src={foto} alt="" className="h-full w-full object-contain" /> : <Silhueta pele={a.pele} cabelo={a.cabelo} corpo={a.corpo} />}
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-slate-900">{nome}</div>
