@@ -7,7 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import Link from "next/link";
 import {
   Building2, DollarSign, TrendingUp, ArrowUpRight,
-  Film, CheckCircle2, AlertTriangle, CheckCircle,
+  Film, CheckCircle2, AlertTriangle, CheckCircle, Clapperboard,
   BarChart3, Database, CloudOff, Users,
   Briefcase, Target, Wallet, FileText,
 } from "lucide-react";
@@ -118,6 +118,7 @@ export default function CazaVisionPage() {
             { label: "PPM",            href: "/awq/ppm",                  icon: Briefcase,  color: "text-brand-600", bg: "bg-brand-50"  },
             { label: "CRM",            href: "/caza-vision/crm",           icon: Target,     color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Projetos",       href: "/caza-vision/imoveis",       icon: Film,       color: "text-brand-600",  bg: "bg-brand-50"   },
+            { label: "Estúdio",        href: "/caza-vision/studio",        icon: Clapperboard, color: "text-amber-700", bg: "bg-amber-50" },
             { label: "Clientes",       href: "/caza-vision/clientes",      icon: Users,      color: "text-cyan-700",   bg: "bg-cyan-50"    },
             { label: "Financeiro",     href: "/caza-vision/financial",     icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Contas",         href: "/caza-vision/contas",        icon: Wallet,     color: "text-amber-700",  bg: "bg-amber-50"   },

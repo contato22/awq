@@ -1317,6 +1317,13 @@ export default function OfficeGame3D(props: Props) {
     return () => clearInterval(id);
   }, [vel]);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("estudio") !== "1") return;
+    setAndar("caza");
+    setFocoCasa("estudio");
+    setVista("estudio");
+  }, []);
+
   const empresasDoAndar = useMemo(() => empresas.filter((e) => andarDaEmpresa(e) === andar), [empresas, andar]);
   const predios = useMemo(() => layoutPredios(empresasDoAndar), [empresasDoAndar]);
   const empresaAtual = empresas.find((e) => e.bu === buAtual);

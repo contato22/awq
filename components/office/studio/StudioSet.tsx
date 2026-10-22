@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -343,6 +344,9 @@ export function EstudioViewport() {
       </button>
       {paineis && <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />}
       {paineis && <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />}
+      <Link href="/caza-vision/studio" className="absolute bottom-4 right-3 z-10 pointer-events-auto text-xs font-semibold text-white bg-black/75 rounded-lg px-2.5 py-1.5">
+        Diretor e Produção
+      </Link>
       {paineis && (
       <PainelDeMontagem
         montando={montando}
