@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
@@ -11,6 +11,9 @@ import {
 import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
 import { andarDaEmpresa, ANDARES, layoutPredios, SALA_ESTUDIO, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
 import { aparenciaDe } from "@/lib/office-aparencia";
+import type { PoseCorpo } from "./CorpoQuaternius";
+
+const CorpoQuaternius = lazy(() => import("./CorpoQuaternius").then((m) => ({ default: m.CorpoQuaternius })));
 const EstudioViewport = lazy(() => import("./studio/StudioSet").then((m) => ({ default: m.EstudioViewport })));
 import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
@@ -113,34 +116,6 @@ function horaTravada(): boolean {
   return qaHoraLiberada() && !!window.localStorage.getItem("office-hora");
 }
 
-// ── Cabelo por papel: mesma ideia de silhueta reconhecível do mundo 2D (cabeloDoPapel em
-// lib/office-world.ts), só que em geometria 3D em vez de pixels. ──────────────────────────
-
-function Cabelo({ papel, cor }: { papel: Agente; cor: string }) {
-  const mat = <meshStandardMaterial color={cor} roughness={0.85} />;
-  switch (papel) {
-    case "criativo": // topete desalinhado, mais alto de um lado
-      return (
-        <group>
-          <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
-          <mesh position={[0.08, 1.34, -0.02]} rotation-z={0.3} castShadow><coneGeometry args={[0.07, 0.16, 8]} />{mat}</mesh>
-        </group>
-      );
-    case "midia": // preso atrás, volume alto
-      return (
-        <group>
-          <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />{mat}</mesh>
-          <mesh position={[0, 1.08, -0.18]} castShadow><sphereGeometry args={[0.09, 10, 10]} />{mat}</mesh>
-        </group>
-      );
-    case "ref": // curto e discreto, repartido de lado
-      return <mesh position={[0, 1.18, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.42]} />{mat}</mesh>;
-    case "cs":
-    default: // repartido ao meio, clássico
-      return <mesh position={[0, 1.2, 0]} castShadow><sphereGeometry args={[0.2, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.52]} />{mat}</mesh>;
-  }
-}
-
 // ── Navegação: grade de células por sala (todas as salas têm o mesmo layout de mesas, então
 // a grade de obstáculos é calculada uma única vez) e busca em largura (BFS) para desviar das
 // mesas/cadeiras ao caminhar — não é mais um único ponto pré-validado fixo. ───────────────────
@@ -240,6 +215,26 @@ function destinoAleatorio(): [number, number] {
 
 type FaseAndar = "no-lugar" | "indo" | "fora" | "voltando";
 
+/** Enquanto o GLB (até ~2 MB) não chega, ou se o arquivo falhar, a sala continua de pé. */
+function Capsula() {
+  return (
+    <mesh position={[0, 0.62, 0]} castShadow>
+      <capsuleGeometry args={[0.22, 0.72, 6, 10]} />
+      <meshStandardMaterial color="#c4a484" roughness={0.72} />
+    </mesh>
+  );
+}
+
+class LimiteCorpo extends Component<{ children: ReactNode }, { erro: boolean }> {
+  state = { erro: false };
+  static getDerivedStateFromError() {
+    return { erro: true };
+  }
+  render() {
+    return this.state.erro ? <Capsula /> : this.props.children;
+  }
+}
+
 function Personagem({
   papel, estado, selecionado, onClick, basePos, semente, ancorado = false, olhar = Math.PI,
 }: {
@@ -257,82 +252,41 @@ function Personagem({
   );
   const grupo = useRef<THREE.Group>(null);
   const corpoRef = useRef<THREE.Group>(null);
-  const bracoE = useRef<THREE.Mesh>(null);
-  const bracoD = useRef<THREE.Mesh>(null);
-  const pernaE = useRef<THREE.Mesh>(null);
-  const pernaD = useRef<THREE.Mesh>(null);
+  const poseRef = useRef<PoseCorpo>("sentado");
   const t0 = useRef(Math.random() * 10);
 
   const posAtual = useRef(new THREE.Vector3(basePos[0], 0, basePos[1]));
   const fase = useRef<FaseAndar>("no-lugar");
-  const temporizador = useRef(2 + Math.random() * 8); // tempo sentado antes do 1º passeio
+  const temporizador = useRef(2 + Math.random() * 8);
   const caminho = useRef<[number, number][]>([]);
   const indiceCaminho = useRef(0);
-
-  const pararPernas = () => {
-    if (pernaE.current) pernaE.current.rotation.x = 0;
-    if (pernaD.current) pernaD.current.rotation.x = 0;
-  };
-  // pose sentado (joelho dobrado) — usada sempre que o personagem está na própria mesa
-  const sentarPernas = () => {
-    if (pernaE.current) pernaE.current.rotation.x = -1.05;
-    if (pernaD.current) pernaD.current.rotation.x = -1.05;
-  };
 
   useFrame((_, dtBruto) => {
     const dt = Math.min(dtBruto, 0.05);
     t0.current += dt;
     if (!grupo.current || !corpoRef.current) return;
 
-    if (ancorado) {
-      fase.current = "no-lugar";
-      caminho.current = [];
-      posAtual.current.set(basePos[0], 0, basePos[1]);
-      grupo.current.position.copy(posAtual.current);
-      grupo.current.rotation.y = olhar;
-      sentarPernas();
-      if (estado === "working") {
-        const osc = Math.sin(t0.current * 7);
-        if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
-        if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
-        corpoRef.current.rotation.x = 0.06;
-        corpoRef.current.position.y = 0.55;
-      } else {
-        if (bracoE.current) bracoE.current.rotation.x = 0;
-        if (bracoD.current) bracoD.current.rotation.x = 0;
-        corpoRef.current.rotation.x = 0;
-        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
-      }
-      return;
-    }
+    const respirar = () => {
+      corpoRef.current!.rotation.x = estado === "working" ? 0.06 : 0;
+      corpoRef.current!.position.y = estado === "working" ? 0 : Math.sin(t0.current * 1.4) * 0.006;
+    };
 
-    if (estado !== "idle") {
-      // trabalhando/entregue/com erro: sentado no lugar, de frente pro monitor
+    if (ancorado || estado !== "idle") {
+      poseRef.current = "sentado";
       fase.current = "no-lugar";
       caminho.current = [];
       posAtual.current.set(basePos[0], 0, basePos[1]);
       grupo.current.position.copy(posAtual.current);
-      grupo.current.rotation.y = OLHAR_CAMERA;
-      sentarPernas();
-      if (estado === "working") {
-        const osc = Math.sin(t0.current * 7);
-        if (bracoE.current) bracoE.current.rotation.x = -0.9 + osc * 0.12;
-        if (bracoD.current) bracoD.current.rotation.x = -0.9 - osc * 0.12;
-        corpoRef.current.rotation.x = 0.06;
-        corpoRef.current.position.y = 0.55;
-      } else {
-        if (bracoE.current) bracoE.current.rotation.x = 0;
-        if (bracoD.current) bracoD.current.rotation.x = 0;
-        corpoRef.current.rotation.x = 0;
-        corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006;
-      }
+      grupo.current.rotation.y = ancorado ? olhar : OLHAR_CAMERA;
+      respirar();
       return;
     }
 
     // ocioso: no-lugar (respirando) → indo (passeio) → fora (pausa) → voltando → no-lugar...
     if (fase.current === "no-lugar" || fase.current === "fora") {
-      corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
-      if (fase.current === "no-lugar") { grupo.current.rotation.y = OLHAR_CAMERA; sentarPernas(); } else pararPernas();
+      poseRef.current = fase.current === "no-lugar" ? "sentado" : "idle";
+      if (fase.current === "no-lugar") grupo.current.rotation.y = OLHAR_CAMERA;
+      respirar();
       temporizador.current -= dt;
       if (temporizador.current <= 0) {
         const destino = fase.current === "no-lugar" ? destinoAleatorio() : basePos;
@@ -343,37 +297,30 @@ function Personagem({
           indiceCaminho.current = 0;
           fase.current = fase.current === "no-lugar" ? "indo" : "voltando";
         } else {
-          temporizador.current = 2 + Math.random() * 3; // sem rota agora: tenta de novo depois
+          temporizador.current = 2 + Math.random() * 3;
         }
       }
     } else {
-      // "indo" ou "voltando": segue o caminho (lista de centros de célula) calculado por BFS
       const alvoXZ = caminho.current[indiceCaminho.current];
       if (!alvoXZ) {
         const chegouEmCasa = fase.current === "voltando";
         fase.current = chegouEmCasa ? "no-lugar" : "fora";
         temporizador.current = chegouEmCasa ? 6 + Math.random() * 10 : 2.5 + Math.random() * 3;
-        pararPernas();
-        if (bracoE.current) bracoE.current.rotation.x = 0;
-        if (bracoD.current) bracoD.current.rotation.x = 0;
         if (chegouEmCasa) grupo.current.rotation.y = OLHAR_CAMERA;
+        corpoRef.current.position.y = 0;
       } else {
         const alvo = new THREE.Vector3(alvoXZ[0], 0, alvoXZ[1]);
         const delta = alvo.clone().sub(posAtual.current);
         const dist = delta.length();
-        const velocidade = 0.85;
         if (dist < 0.04) {
           indiceCaminho.current++;
         } else {
           delta.normalize();
-          posAtual.current.addScaledVector(delta, Math.min(velocidade * dt, dist));
+          posAtual.current.addScaledVector(delta, Math.min(0.85 * dt, dist));
+          poseRef.current = "walk";
           grupo.current.rotation.y = Math.atan2(delta.x, delta.z);
-          const osc = Math.sin(t0.current * 9);
-          if (pernaE.current) pernaE.current.rotation.x = osc * 0.5;
-          if (pernaD.current) pernaD.current.rotation.x = -osc * 0.5;
-          if (bracoE.current) bracoE.current.rotation.x = -osc * 0.4;
-          if (bracoD.current) bracoD.current.rotation.x = osc * 0.4;
-          corpoRef.current.position.y = 0.55 + Math.abs(Math.sin(t0.current * 9)) * 0.015;
+          corpoRef.current.position.y = Math.abs(Math.sin(t0.current * 9)) * 0.02;
+          corpoRef.current.rotation.x = 0;
         }
         grupo.current.position.copy(posAtual.current);
       }
@@ -406,78 +353,18 @@ function Personagem({
           </sprite>
         </>
       )}
-      <group scale={[L.altura, L.altura, L.altura]}>
-        {/* pernas */}
-        <mesh ref={pernaE} position={[-0.1, 0.27, 0]} castShadow>
-          <capsuleGeometry args={[0.065, 0.3, 4, 8]} />
-          <meshStandardMaterial color={L.calca} roughness={0.8} />
-        </mesh>
-        <mesh ref={pernaD} position={[0.1, 0.27, 0]} castShadow>
-          <capsuleGeometry args={[0.065, 0.3, 4, 8]} />
-          <meshStandardMaterial color={L.calca} roughness={0.8} />
-        </mesh>
-        {/* sapatos */}
-        <mesh position={[-0.1, 0.045, 0.045]} castShadow>
-          <boxGeometry args={[0.09, 0.07, 0.17]} />
-          <meshStandardMaterial color="#1c1917" roughness={0.5} />
-        </mesh>
-        <mesh position={[0.1, 0.045, 0.045]} castShadow>
-          <boxGeometry args={[0.09, 0.07, 0.17]} />
-          <meshStandardMaterial color="#1c1917" roughness={0.5} />
-        </mesh>
-        {/* tronco + cabeça (o grupo que "respira"/inclina) */}
-        <group ref={corpoRef} position={[0, 0.55, 0]}>
-          {selecionado && (
-            <RoundedBox args={[0.34, 0.42, 0.23]} radius={0.06} position={[0, 0, 0]}>
-              <meshBasicMaterial color="#fbbf24" side={THREE.BackSide} />
-            </RoundedBox>
-          )}
-          <RoundedBox args={[0.3, 0.38, 0.19]} radius={0.05} position={[0, 0, 0]} castShadow>
-            <meshStandardMaterial color={L.corpo} roughness={0.75} />
-          </RoundedBox>
-          {L.jaqueta && (
-            <group>
-              {/* paletó aberto: as costas e as laterais deixam a camisa aparecer no meio */}
-              <mesh position={[0, 0.02, -0.07]} castShadow>
-                <boxGeometry args={[0.32, 0.36, 0.05]} />
-                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
-              </mesh>
-              <mesh position={[-0.125, 0.01, 0.02]} castShadow>
-                <boxGeometry args={[0.07, 0.36, 0.16]} />
-                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
-              </mesh>
-              <mesh position={[0.125, 0.01, 0.02]} castShadow>
-                <boxGeometry args={[0.07, 0.36, 0.16]} />
-                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
-              </mesh>
-            </group>
-          )}
-          {/* braços — a jaqueta, quando existe, cobre a manga */}
-          <mesh ref={bracoE} position={[-0.19, 0.05, 0]} castShadow>
-            <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
-            <meshStandardMaterial color={L.jaqueta ?? L.corpo} roughness={0.75} />
+      <group ref={corpoRef} scale={[L.altura, L.altura, L.altura]}>
+        <Suspense fallback={<Capsula />}>
+          <LimiteCorpo>
+            <CorpoQuaternius semente={semente} poseRef={poseRef} />
+          </LimiteCorpo>
+        </Suspense>
+        {corIndicador && (
+          <mesh position={[0, 1.22, 0]}>
+            <sphereGeometry args={[0.045, 8, 8]} />
+            <meshStandardMaterial color={corIndicador} emissive={corIndicador} emissiveIntensity={estado === "working" ? 1.4 : 0.8} />
           </mesh>
-          <mesh ref={bracoD} position={[0.19, 0.05, 0]} castShadow>
-            <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
-            <meshStandardMaterial color={L.jaqueta ?? L.corpo} roughness={0.75} />
-          </mesh>
-          {/* pescoço + cabeça */}
-          <mesh position={[0, 0.25, 0]} castShadow>
-            <cylinderGeometry args={[0.055, 0.06, 0.08, 10]} />
-            <meshStandardMaterial color={L.pele} roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 0.42, 0]} castShadow>
-            <sphereGeometry args={[0.145, 16, 16]} />
-            <meshStandardMaterial color={L.pele} roughness={0.6} />
-          </mesh>
-          <group position={[0, 0.42, 0]}><Cabelo papel={papel} cor={L.cabelo} /></group>
-          {corIndicador && (
-            <mesh position={[0, 0.72, 0]}>
-              <sphereGeometry args={[0.045, 8, 8]} />
-              <meshStandardMaterial color={corIndicador} emissive={corIndicador} emissiveIntensity={estado === "working" ? 1.4 : 0.8} />
-            </mesh>
-          )}
-        </group>
+        )}
       </group>
     </group>
   );
@@ -737,7 +624,10 @@ function Sala({
           na sala (pathfinding por BFS na grade de obstáculos), não só um offset local fixo */}
       {PAPEIS.map((a) => {
         const [dx, dy] = MESAS[a];
-        const basePos: [number, number] = [dx * UNIT * 0.5, dy * UNIT * 0.5 + 0.3];
+        const basePos: [number, number] = [
+          dx * UNIT * 0.5 - Math.sin(OLHAR_CAMERA) * 0.18,
+          dy * UNIT * 0.5 + 0.3 - Math.cos(OLHAR_CAMERA) * 0.18,
+        ];
         return (
           <Personagem
             key={a}
