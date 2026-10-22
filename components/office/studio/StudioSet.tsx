@@ -290,7 +290,6 @@ export function EstudioViewport() {
         <Suspense fallback={<div className="absolute inset-0 bg-[#f4f1ea]" />}>
           <Canvas
             shadows={{ type: THREE.PCFSoftShadowMap }}
-            gl={{ preserveDrawingBuffer: true }}
             camera={{ position: [0, 1.7, 9], fov: 36 }}
             dpr={[1, 1.5]}
           >

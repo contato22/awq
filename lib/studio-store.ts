@@ -21,7 +21,12 @@ export interface ShotEstudio {
 const CHAVE = "awq.caza.studio.shots";
 
 let memoria: ShotEstudio[] | null = null;
+let avisoCota: string | null = null;
 const ouvintes = new Set<() => void>();
+
+export function avisoDaCota(): string | null {
+  return avisoCota;
+}
 
 export function persistenciaDoEstudioLigada(): boolean {
   const v = process.env.NEXT_PUBLIC_CAZA_STUDIO_PERSIST || process.env.CAZA_STUDIO_PERSIST;
@@ -47,8 +52,13 @@ function carregar(): ShotEstudio[] {
 
 function gravar(lista: ShotEstudio[]) {
   memoria = lista;
+  avisoCota = null;
   if (persistenciaDoEstudioLigada() && typeof localStorage !== "undefined") {
-    try { localStorage.setItem(CHAVE, JSON.stringify(lista)); } catch { /* cota: segue na sessão */ }
+    try {
+      localStorage.setItem(CHAVE, JSON.stringify(lista));
+    } catch {
+      avisoCota = "O navegador não gravou os planos: a cota do armazenamento encheu. Eles continuam só nesta sessão.";
+    }
   }
   ouvintes.forEach((fn) => fn());
 }
@@ -89,6 +99,7 @@ export function assinarEstudio(fn: () => void): () => void {
 /** Só para teste: esquece a sessão e a chave local. */
 export function resetEstudioParaTeste() {
   memoria = null;
+  avisoCota = null;
   if (typeof localStorage !== "undefined") {
     try { localStorage.removeItem(CHAVE); } catch { /* sem storage */ }
   }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  avisoDaCota,
   listarShots,
   moverShot,
   persistenciaDoEstudioLigada,
@@ -53,4 +54,20 @@ test("a flag desligada não escreve no navegador e a ligada relê e reordena", (
   assert.deepEqual(listarShots().map((s) => s.nome), ["B", "A"]);
   delete process.env.CAZA_STUDIO_PERSIST;
   resetEstudioParaTeste();
+});
+
+test("a cota cheia avisa e mantém o plano na sessão", () => {
+  process.env.CAZA_STUDIO_PERSIST = "1";
+  store.clear();
+  resetEstudioParaTeste();
+  const original = store.set.bind(store);
+  store.set = () => { throw new Error("quota"); };
+  const shot = salvarShot({ ...base, nome: "Cheio" });
+  assert.equal(shot.nome, "Cheio");
+  assert.equal(listarShots().length, 1);
+  assert.match(avisoDaCota() ?? "", /cota/);
+  store.set = original;
+  delete process.env.CAZA_STUDIO_PERSIST;
+  resetEstudioParaTeste();
+  assert.equal(avisoDaCota(), null);
 });
