@@ -413,7 +413,7 @@ function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimen
   );
 }
 
-const MOLDURA_JANELA = "#f4efe6";
+const MOLDURA_JANELA = "#2c3338";
 
 /** Cada malha clona o tijolo e repete pela própria medida — a textura compartilhada esticava. */
 function mapaTijolo(largura: number, altura: number) {
@@ -435,8 +435,9 @@ function MalhaTijolo({ args, position }: { args: [number, number, number]; posit
   );
 }
 
-/** Parede externa da sala: tijolo aparente e janelões do piso ao teto, com caixilho claro. */
-function ParedeExterna({ comprimento }: { comprimento: number }) {
+/** Parede externa da sala: tijolo aparente e janelões do piso ao teto.
+ *  O céu fica atrás do vidro; o caixilho escuro impede que o vão leia como uma placa branca. */
+function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: number }) {
   const n = Math.max(1, Math.round(comprimento / 3.2));
   const mod = comprimento / n;
   const janelaL = mod * 0.7;
@@ -444,6 +445,7 @@ function ParedeExterna({ comprimento }: { comprimento: number }) {
   const janelaTopo = 2.2;
   const topo = 2.35;
   const janelaH = janelaTopo - janelaBase;
+  const ceuJanela = ceu(hora).topo;
   return (
     <group>
       <MalhaTijolo args={[comprimento, janelaBase, 0.12]} position={[comprimento / 2, janelaBase / 2, 0]} />
@@ -460,19 +462,32 @@ function ParedeExterna({ comprimento }: { comprimento: number }) {
         const meio = (janelaBase + janelaTopo) / 2;
         return (
           <group key={`j${i}`}>
-            <mesh position={[cx, meio, 0.03]} castShadow>
-              <boxGeometry args={[janelaL + 0.12, janelaH + 0.12, 0.07]} />
-              <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
-            </mesh>
-            <mesh position={[cx, meio, 0.06]}>
+            <mesh position={[cx, meio, 0.07]}>
               <planeGeometry args={[janelaL, janelaH]} />
-              <meshPhysicalMaterial color="#d7e6f4" transparent opacity={0.32} roughness={0.08} metalness={0.04} />
+              <meshBasicMaterial color={ceuJanela} toneMapped={false} />
             </mesh>
-            <mesh position={[cx, meio, 0.07]} castShadow>
+            <mesh position={[cx, meio, 0.075]}>
+              <planeGeometry args={[janelaL - 0.08, janelaH - 0.08]} />
+              <meshBasicMaterial color="#f7fbff" transparent opacity={0.14} depthWrite={false} toneMapped={false} />
+            </mesh>
+            {(
+              [
+                [0, janelaH / 2, janelaL + 0.08, 0.06],
+                [0, -janelaH / 2, janelaL + 0.08, 0.06],
+                [-janelaL / 2, 0, 0.06, janelaH],
+                [janelaL / 2, 0, 0.06, janelaH],
+              ] as const
+            ).map(([ox, oy, lw, lh], k) => (
+              <mesh key={k} position={[cx + ox, meio + oy, 0.09]} castShadow>
+                <boxGeometry args={[lw, lh, 0.05]} />
+                <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
+              </mesh>
+            ))}
+            <mesh position={[cx, meio, 0.09]} castShadow>
               <boxGeometry args={[0.045, janelaH, 0.04]} />
               <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
             </mesh>
-            <mesh position={[cx, meio, 0.07]}>
+            <mesh position={[cx, meio, 0.09]}>
               <boxGeometry args={[janelaL, 0.04, 0.04]} />
               <meshStandardMaterial color={MOLDURA_JANELA} roughness={0.42} />
             </mesh>
@@ -575,7 +590,7 @@ function Planta({ posicao, escala = 1 }: { posicao: [number, number]; escala?: n
 // ── Sala de uma squad (piso + 2 paredes de fundo + 4 mesas) ────────────────────────────
 
 function Sala({
-  predio, estados, atividade, selecionado, ativo, detalhado, onEntrar, onSelecionar,
+  predio, estados, atividade, selecionado, ativo, detalhado, hora, onEntrar, onSelecionar,
 }: {
   predio: PredioW;
   estados: Record<Agente, Estado>;
@@ -586,6 +601,7 @@ function Sala({
    * peças decorativas mais caras (estante, plantas, tapete) — continuam reconhecíveis (piso,
    * paredes, mesas, personagens), só sem o acabamento fino que só compensa de perto. */
   detalhado: boolean;
+  hora: number;
   onEntrar: () => void;
   onSelecionar: (a: Agente) => void;
 }) {
@@ -624,7 +640,7 @@ function Sala({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeExterna comprimento={w} />
+        <ParedeExterna comprimento={w} hora={hora} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} brilho={!ativo} />
@@ -837,11 +853,12 @@ type CasaId = "diretoria" | "reunioes" | "estudio";
 /** Sala do Miguel ou sala de reuniões — o mesmo slot da planta 2D, com o acabamento do Modo 3D.
  * O passeio com pathfinding continua só nas salas de squad; aqui todo mundo fica sentado. */
 function SalaDaCasa({
-  tipo, detalhado, reuniao, onEntrar,
+  tipo, detalhado, reuniao, hora, onEntrar,
 }: {
   tipo: "diretoria" | "reunioes";
   detalhado: boolean;
   reuniao?: EstadoReuniao[];
+  hora: number;
   onEntrar: () => void;
 }) {
   const origem = tipo === "diretoria" ? SALAS_CASA.diretoria : SALAS_CASA.reunioes;
@@ -879,7 +896,7 @@ function SalaDaCasa({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeExterna comprimento={w} />
+        <ParedeExterna comprimento={w} hora={hora} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={accent} brilho={!detalhado} />
@@ -1263,11 +1280,12 @@ function Cena({
           selecionado={selecionado}
           ativo={vista === "sala" && p.empresa.bu === buAtual}
           detalhado={vista === "sala" && p.empresa.bu === buAtual}
+          hora={hora}
           onEntrar={() => onEntrar(p.empresa.bu)}
           onSelecionar={onSelecionar}
         />
       ))}
-      <SalaDaCasa tipo="diretoria" detalhado={vista === "casa" && focoCasa === "diretoria"} onEntrar={() => onFocarCasa("diretoria")} />
+      <SalaDaCasa tipo="diretoria" detalhado={vista === "casa" && focoCasa === "diretoria"} hora={hora} onEntrar={() => onFocarCasa("diretoria")} />
       {andar === "caza" ? (
         <SlotDoEstudio detalhado={vista === "casa" && focoCasa === "estudio"} onEntrar={() => onFocarCasa("estudio")} />
       ) : (
@@ -1275,6 +1293,7 @@ function Cena({
           tipo="reunioes"
           detalhado={vista === "casa" && focoCasa === "reunioes"}
           reuniao={reuniao}
+          hora={hora}
           onEntrar={() => onFocarCasa("reunioes")}
         />
       )}
