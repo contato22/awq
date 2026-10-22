@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
 import { andarDaEmpresa, ANDARES, layoutPredios, SALA_ESTUDIO, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
+import { EstudioViewport } from "./studio/StudioSet";
 import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
 
@@ -1069,7 +1070,7 @@ function FpsProbe({ onUpdate }: { onUpdate: (fps: number) => void }) {
   return null;
 }
 
-/** Placa do slot vazio do Estúdio no 3º andar. O set 3D chega nos PRs seguintes. */
+/** Placa do slot do Estúdio no 3º andar. O clique abre o set. */
 function texturaPlacaEstudio(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 640;
@@ -1083,7 +1084,7 @@ function texturaPlacaEstudio(): THREE.CanvasTexture {
   g.font = "bold 64px sans-serif";
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.fillText("Estúdio · em breve", 340, 110);
+  g.fillText("Estúdio", 340, 110);
   const t = new THREE.CanvasTexture(c);
   t.needsUpdate = true;
   return t;
@@ -1095,6 +1096,7 @@ function SlotDoEstudio({ detalhado, onEntrar }: { detalhado: boolean; onEntrar: 
   const ox = slot.x * UNIT, oz = slot.y * UNIT;
   const w = lado * UNIT, d = lado * UNIT;
   const placa = useMemo(() => texturaPlacaEstudio(), []);
+  useEffect(() => () => placa.dispose(), [placa]);
   return (
     <group position={[ox, 0, oz]}>
       <mesh
@@ -1199,7 +1201,7 @@ function Cena({
  * do mundo 2D, mas como uma cena 3D própria em vez de um redesenho em canvas 2D. */
 function Minimapa({
   predios, buAtual, andarAtual, vista, focoCasa,
-}: { predios: PredioW[]; buAtual: string; andarAtual: AndarId; vista: "mundo" | "sala" | "casa"; focoCasa: CasaId }) {
+}: { predios: PredioW[]; buAtual: string; andarAtual: AndarId; vista: "mundo" | "sala" | "casa" | "estudio"; focoCasa: CasaId }) {
   const chaoW = 20 * UNIT, chaoD = 14 * UNIT;
   const centro: [number, number, number] = [chaoW / 2 - UNIT, 0, chaoD / 2 - UNIT];
   const placa = ANDARES.find((a) => a.id === andarAtual);
@@ -1253,7 +1255,7 @@ export default function OfficeGame3D(props: Props) {
   } = props;
 
   const [andar, setAndar] = useState<AndarId>("jacqes");
-  const [vista, setVista] = useState<"mundo" | "sala" | "casa">("mundo");
+  const [vista, setVista] = useState<"mundo" | "sala" | "casa" | "estudio">("mundo");
   const [focoCasa, setFocoCasa] = useState<CasaId>("diretoria");
   const [vel, setVel] = useState(1);
   const [hora, setHora] = useState(horaBrasilia());
@@ -1279,11 +1281,16 @@ export default function OfficeGame3D(props: Props) {
   };
   const sair = () => setVista("mundo");
   const focarCasa = (sala: CasaId) => {
-    if (sala === "estudio") setAndar("caza");
+    if (sala === "estudio") {
+      setAndar("caza");
+      setFocoCasa("estudio");
+      setVista("estudio");
+      onPainel(false);
+      return;
+    }
     setFocoCasa(sala);
     setVista("casa");
     if (sala === "reunioes") onPainel(true, "reuniao");
-    else if (sala === "estudio") onPainel(false);
   };
 
   const naReuniao = painelAberto && tab === "reuniao";
@@ -1320,8 +1327,7 @@ export default function OfficeGame3D(props: Props) {
     }
     if (i.tipo === "sala" && i.sala === "estudio") {
       setAndar("caza");
-      setFocoCasa("estudio");
-      setVista("casa");
+      setVista("estudio");
       onPainel(false);
       return;
     }
@@ -1347,7 +1353,11 @@ export default function OfficeGame3D(props: Props) {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0a101f]">
-      <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
+      {vista === "estudio" ? (
+        <Suspense fallback={null}>
+          <EstudioViewport />
+        </Suspense>
+      ) : <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
         <Suspense fallback={null}>
           <Cena
             predios={predios}
@@ -1368,9 +1378,11 @@ export default function OfficeGame3D(props: Props) {
             onFps={setFps}
           />
         </Suspense>
-      </Canvas>
+      </Canvas>}
 
-      <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} vista={vista} focoCasa={focoCasa} />
+      {vista !== "estudio" && (
+        <Minimapa predios={predios} buAtual={buAtual} andarAtual={andar} vista={vista} focoCasa={focoCasa} />
+      )}
 
       <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
         <span className="rounded-md bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5">
@@ -1394,15 +1406,28 @@ export default function OfficeGame3D(props: Props) {
           {[...ANDARES].reverse().map((a) => (
             <button key={a.id} onClick={() => {
               setAndar(a.id);
+              if (vista === "estudio" || (a.id === "caza" && focoCasa === "reunioes")) setVista("mundo");
               if (a.id !== "caza" && focoCasa === "estudio") { setFocoCasa("diretoria"); setVista("mundo"); }
             }} aria-pressed={andar === a.id}
               className={`rounded-md px-2 py-1 ${andar === a.id ? "bg-white text-gray-900 font-semibold" : "hover:bg-white/10"}`}>
               {a.numero}º · {a.nome}
             </button>
           ))}
+          {andar === "caza" && (
+            <button onClick={() => setVista("estudio")} aria-pressed={vista === "estudio"}
+              className={`rounded-md px-2 py-1 ${vista === "estudio" ? "bg-amber-300 text-amber-950 font-semibold" : "hover:bg-white/10"}`}>
+              Estúdio
+            </button>
+          )}
         </div>
         <nav className="pointer-events-auto flex items-center gap-1 rounded-lg bg-black/60 text-white text-xs px-2.5 py-1.5 mt-6">
           <button className={`hover:underline ${vista === "mundo" ? "font-semibold" : ""}`} onClick={() => vista !== "mundo" && sair()}>Escritório AWQ</button>
+          {vista === "estudio" && (
+            <>
+              <ChevronRight size={12} className="text-white/50" />
+              <span className="font-semibold">Estúdio</span>
+            </>
+          )}
           {vista === "casa" && (
             <>
               <ChevronRight size={12} className="text-white/50" />
@@ -1460,7 +1485,7 @@ export default function OfficeGame3D(props: Props) {
       </div>
 
       <div className="absolute left-3 top-16 flex flex-col gap-1.5">
-        <button onClick={() => (vista === "sala" ? sair() : null)} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${vista === "mundo" ? "bg-brand-600 text-white border-brand-500" : "bg-black/60 text-white border-white/10 hover:bg-black/80"}`}>
+        <button onClick={() => (vista === "sala" || vista === "estudio" ? sair() : null)} aria-label={vista === "estudio" ? "Sair do estúdio" : "Visão do andar"} className={`w-10 h-10 rounded-xl flex items-center justify-center border ${vista === "mundo" ? "bg-brand-600 text-white border-brand-500" : "bg-black/60 text-white border-white/10 hover:bg-black/80"}`}>
           <Globe size={18} />
         </button>
         {RAIL.filter((r) => r.tab !== "relatorio" || temRelatorio).map(({ tab: t, rotulo, Icone }) => (
