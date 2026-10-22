@@ -26,22 +26,22 @@ export const pcApi = {
   getLeads: () => req<{ leads: Lead[] }>("/api/patricia-canto/leads").then((d) => d.leads),
   createLead: (lead: Lead) => req("/api/patricia-canto/leads", { method: "POST", body: JSON.stringify(lead) }),
   updateLead: (lead: Lead) =>
-    req(`/api/patricia-canto/leads/${lead.id}`, { method: "PATCH", body: JSON.stringify(lead) }),
-  deleteLead: (id: string) => req(`/api/patricia-canto/leads/${id}`, { method: "DELETE" }),
+    req(`/api/patricia-canto/leads/${encodeURIComponent(lead.id)}`, { method: "PATCH", body: JSON.stringify(lead) }),
+  deleteLead: (id: string) => req(`/api/patricia-canto/leads/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   getCases: () => req<{ cases: CaseItem[] }>("/api/patricia-canto/cases").then((d) => d.cases),
   createCase: (item: CaseItem) => req("/api/patricia-canto/cases", { method: "POST", body: JSON.stringify(item) }),
   updateCase: (item: CaseItem) =>
-    req(`/api/patricia-canto/cases/${item.id}`, { method: "PATCH", body: JSON.stringify(item) }),
-  deleteCase: (id: string) => req(`/api/patricia-canto/cases/${id}`, { method: "DELETE" }),
+    req(`/api/patricia-canto/cases/${encodeURIComponent(item.id)}`, { method: "PATCH", body: JSON.stringify(item) }),
+  deleteCase: (id: string) => req(`/api/patricia-canto/cases/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   getLancamentos: () =>
     req<{ lancamentos: Lancamento[] }>("/api/patricia-canto/lancamentos").then((d) => d.lancamentos),
   createLancamento: (item: Lancamento) =>
     req("/api/patricia-canto/lancamentos", { method: "POST", body: JSON.stringify(item) }),
   updateLancamento: (item: Lancamento) =>
-    req(`/api/patricia-canto/lancamentos/${item.id}`, { method: "PATCH", body: JSON.stringify(item) }),
-  deleteLancamento: (id: string) => req(`/api/patricia-canto/lancamentos/${id}`, { method: "DELETE" }),
+    req(`/api/patricia-canto/lancamentos/${encodeURIComponent(item.id)}`, { method: "PATCH", body: JSON.stringify(item) }),
+  deleteLancamento: (id: string) => req(`/api/patricia-canto/lancamentos/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   getComunicacoes: () =>
     req<{ comunicacoes: ComunicacaoItem[] }>("/api/patricia-canto/comunicacoes").then((d) => d.comunicacoes),
@@ -70,8 +70,8 @@ export const pcApi = {
   createBusinessUnit: (unit: BusinessUnit) =>
     req("/api/patricia-canto/business-units", { method: "POST", body: JSON.stringify(unit) }),
   updateBusinessUnit: (unit: BusinessUnit) =>
-    req(`/api/patricia-canto/business-units/${unit.id}`, { method: "PATCH", body: JSON.stringify(unit) }),
-  deleteBusinessUnit: (id: string) => req(`/api/patricia-canto/business-units/${id}`, { method: "DELETE" }),
+    req(`/api/patricia-canto/business-units/${encodeURIComponent(unit.id)}`, { method: "PATCH", body: JSON.stringify(unit) }),
+  deleteBusinessUnit: (id: string) => req(`/api/patricia-canto/business-units/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   logout: () => req("/api/patricia-canto/auth/logout", { method: "POST" }),
 };
