@@ -357,7 +357,6 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
       const resp = Math.sin(relogio.current * 1.4);
       const digita = Math.sin(relogio.current * 7) * 0.1;
       root.position.y = 0;
-      root.updateWorldMatrix(true, true);
       if (quedaCorpo.current == null && mapa.Hips) {
         corpo.position.y = corpoBindY.current;
         root.updateWorldMatrix(true, true);
@@ -412,7 +411,10 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
           pe.getWorldPosition(_pe);
           dobrarPerna(_quadril, _pe, _frente, compCoxa, compCanela, _joelho);
           apontar(coxa, _v.subVectors(_joelho, _quadril), tor[coxa.name], _frente);
-          root.updateWorldMatrix(true, true);
+          // O torso já girou. Atualiza essa cadeia, não o rig inteiro nem as malhas.
+          mapa.Abdomen?.updateWorldMatrix(false, true);
+          mapa.Chest?.updateWorldMatrix(false, true);
+          coxa.updateWorldMatrix(false, true);
           canela.getWorldPosition(_quadril);
           apontar(canela, _v.subVectors(_pe, _quadril), tor[canela.name], _frente);
           apontar(pe, _frente, tor[pe.name], _baixo);
@@ -420,12 +422,16 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
         const comp = pernas.current;
         sentarPerna(coxaE, canelaE, peE, comp?.coxaL ?? 0, comp?.canelaL ?? 0);
         sentarPerna(coxaD, canelaD, peD, comp?.coxaR ?? 0, comp?.canelaR ?? 0);
-        root.updateWorldMatrix(true, true);
         _v.copy(_frente).multiplyScalar(0.34).addScaledVector(_baixo, 0.9).addScaledVector(_lateral, 0.2);
-        if (mapa.UpperArmL) apontar(mapa.UpperArmL, _v, tor.UpperArmL, _frente);
+        if (mapa.UpperArmL) {
+          apontar(mapa.UpperArmL, _v, tor.UpperArmL, _frente);
+          mapa.UpperArmL.updateWorldMatrix(false, true);
+        }
         _v.copy(_frente).multiplyScalar(0.34).addScaledVector(_baixo, 0.9).addScaledVector(_lateral, -0.2);
-        if (mapa.UpperArmR) apontar(mapa.UpperArmR, _v, tor.UpperArmR, _frente);
-        root.updateWorldMatrix(true, true);
+        if (mapa.UpperArmR) {
+          apontar(mapa.UpperArmR, _v, tor.UpperArmR, _frente);
+          mapa.UpperArmR.updateWorldMatrix(false, true);
+        }
         _v.copy(_frente).multiplyScalar(0.42 + digita).addScaledVector(_baixo, 0.9 - digita);
         if (mapa.LowerArmL) apontar(mapa.LowerArmL, _v, tor.LowerArmL, _frente);
         if (mapa.LowerArmR) apontar(mapa.LowerArmR, _v, tor.LowerArmR, _frente);
