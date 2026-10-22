@@ -710,16 +710,28 @@ function EstanteBaixa({ posicao, rotacao = 0 }: { posicao: [number, number]; rot
         </mesh>
       ))}
       {lombadas.map((cor, i) => (
-        <mesh key={`b-${i}`} position={[-0.52 + i * 0.15, 0.4, 0.02]} castShadow>
-          <boxGeometry args={[0.11, 0.2, 0.16]} />
-          <meshStandardMaterial color={cor} roughness={0.55} />
-        </mesh>
+        <group key={`b-${i}`} position={[-0.52 + i * 0.15, 0.4, 0.1]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.12, 0.22, 0.2]} />
+            <meshStandardMaterial color={cor} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0, 0.101]}>
+            <boxGeometry args={[0.1, 0.18, 0.004]} />
+            <meshStandardMaterial color={cor} emissive={cor} emissiveIntensity={0.25} roughness={0.4} />
+          </mesh>
+        </group>
       ))}
       {lombadas.map((cor, i) => (
-        <mesh key={`a-${i}`} position={[-0.52 + i * 0.15, 0.64, 0.02]} castShadow>
-          <boxGeometry args={[0.11, 0.18, 0.16]} />
-          <meshStandardMaterial color={cor} roughness={0.55} />
-        </mesh>
+        <group key={`a-${i}`} position={[-0.52 + i * 0.15, 0.64, 0.1]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.12, 0.2, 0.2]} />
+            <meshStandardMaterial color={cor} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0, 0.101]}>
+            <boxGeometry args={[0.1, 0.16, 0.004]} />
+            <meshStandardMaterial color={cor} emissive={cor} emissiveIntensity={0.25} roughness={0.4} />
+          </mesh>
+        </group>
       ))}
     </group>
   );
