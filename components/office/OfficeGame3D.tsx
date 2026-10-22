@@ -290,7 +290,7 @@ function Personagem({
       caminho.current = [];
       posAtual.current.set(basePos[0], 0, basePos[1]);
       grupo.current.position.copy(posAtual.current);
-      grupo.current.rotation.y = Math.PI;
+      grupo.current.rotation.y = OLHAR_CAMERA;
       sentarPernas();
       if (estado === "working") {
         const osc = Math.sin(t0.current * 7);
@@ -310,7 +310,7 @@ function Personagem({
     // ocioso: no-lugar (respirando) → indo (passeio) → fora (pausa) → voltando → no-lugar...
     if (fase.current === "no-lugar" || fase.current === "fora") {
       corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
-      if (fase.current === "no-lugar") { grupo.current.rotation.y = Math.PI; sentarPernas(); } else pararPernas();
+      if (fase.current === "no-lugar") { grupo.current.rotation.y = OLHAR_CAMERA; sentarPernas(); } else pararPernas();
       temporizador.current -= dt;
       if (temporizador.current <= 0) {
         const destino = fase.current === "no-lugar" ? destinoAleatorio() : basePos;
@@ -334,7 +334,7 @@ function Personagem({
         pararPernas();
         if (bracoE.current) bracoE.current.rotation.x = 0;
         if (bracoD.current) bracoD.current.rotation.x = 0;
-        if (chegouEmCasa) grupo.current.rotation.y = Math.PI;
+        if (chegouEmCasa) grupo.current.rotation.y = OLHAR_CAMERA;
       } else {
         const alvo = new THREE.Vector3(alvoXZ[0], 0, alvoXZ[1]);
         const delta = alvo.clone().sub(posAtual.current);
@@ -678,8 +678,11 @@ function Sala({
               <cylinderGeometry args={[0.028, 0.028, 0.06, 10]} />
               <meshStandardMaterial color={tema.paredeD} roughness={0.5} />
             </mesh>
-            {/* cadeira: assento + encosto + pernas finas */}
-            <group position={[0, 0, 0.4]}>
+            {/* cadeira atrás de quem olha para a câmera do close */}
+            <group
+              position={[-Math.sin(OLHAR_CAMERA) * 0.18, 0, 0.3 - Math.cos(OLHAR_CAMERA) * 0.18]}
+              rotation-y={OLHAR_CAMERA}
+            >
               <RoundedBox args={[0.34, 0.05, 0.32]} radius={0.02} position={[0, 0.26, 0]} castShadow>
                 <meshStandardMaterial color="#374151" roughness={0.7} />
               </RoundedBox>
@@ -929,7 +932,13 @@ export interface CameraApi { zoomBy: (fator: number) => void }
 // Ângulo de visão fixo (um "olhar isométrico" clássico, como o mundo 2D): só a distância e
 // o ponto mirado mudam. Reposicionar direto (sem mexer com o estado esférico interno do
 // OrbitControls a cada frame) evita a câmera degenerar para um ângulo raso/errático.
-const DIRECAO_CAM = new THREE.Vector3(0.62, 0.72, 0.58).normalize();
+// O close da sala usa um pitch mais baixo e uma distância maior: o alvo antigo (y=0.6, dist 9.5)
+// cortava a cabeça no topo e deixava o piso com ~80% do quadro.
+const DIRECAO_CAM = new THREE.Vector3(0.9, 0.48, 0.82).normalize();
+/** Yaw de quem está sentado na squad, de frente para a câmera do close. */
+const OLHAR_CAMERA = Math.atan2(DIRECAO_CAM.x, DIRECAO_CAM.z);
+const DIST_PERTO = 20;
+const Y_ALVO_PERTO = 1.3;
 
 function CameraRig({
   vista, alvo, apiRef,
@@ -946,7 +955,7 @@ function CameraRig({
   };
 
   const alvoKey = alvo.join(",");
-  useEffect(() => { aplicar(vista === "mundo" ? 50 : 9.5); }, [vista, alvoKey]);
+  useEffect(() => { aplicar(vista === "mundo" ? 50 : DIST_PERTO); }, [vista, alvoKey]);
 
   useEffect(() => {
     apiRef.current = {
@@ -1293,11 +1302,12 @@ export default function OfficeGame3D(props: Props) {
   const predioAtual = predios.find((p) => p.empresa.bu === buAtual);
   const slotCasa = focoCasa === "estudio" ? SALA_ESTUDIO.slot : SALAS_CASA[focoCasa];
   const ladoCasa = focoCasa === "estudio" ? SALA_ESTUDIO.lado : SALAS_CASA.lado;
+  const yAlvo = vista === "mundo" ? 0.4 : Y_ALVO_PERTO;
   const alvoPredio: [number, number, number] | null = predioAtual
-    ? [(predioAtual.x + predioAtual.w / 2) * UNIT, 0.6, (predioAtual.y + predioAtual.h / 2) * UNIT]
+    ? [(predioAtual.x + predioAtual.w / 2) * UNIT, yAlvo, (predioAtual.y + predioAtual.h / 2) * UNIT]
     : null;
   const alvo: [number, number, number] = vista === "casa"
-    ? [(slotCasa.x + ladoCasa / 2) * UNIT, 0.6, (slotCasa.y + ladoCasa / 2) * UNIT]
+    ? [(slotCasa.x + ladoCasa / 2) * UNIT, yAlvo, (slotCasa.y + ladoCasa / 2) * UNIT]
     : (alvoPredio ?? [10 * UNIT, 0, 7 * UNIT]);
 
   const resultados = useMemo(() => {
