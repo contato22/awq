@@ -415,6 +415,46 @@ function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimen
 
 const MOLDURA_JANELA = "#2c3338";
 
+/** Degradê do céu com um risco de reflexo. O vão deixa de ser uma chapa ciano opaca. */
+function VidroCeu({ largura, altura, topo, base }: { largura: number; altura: number; topo: string; base: string }) {
+  const map = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = 16;
+    c.height = 128;
+    const g = c.getContext("2d")!;
+    const grad = g.createLinearGradient(0, 0, 0, 128);
+    grad.addColorStop(0, topo);
+    grad.addColorStop(1, base);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 16, 128);
+    g.strokeStyle = "rgba(255,255,255,0.5)";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(1, 16);
+    g.lineTo(15, 58);
+    g.stroke();
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.needsUpdate = true;
+    return t;
+  }, [topo, base]);
+  useEffect(() => () => map.dispose(), [map]);
+  return (
+    <mesh renderOrder={2}>
+      <planeGeometry args={[largura, altura]} />
+      <meshPhysicalMaterial
+        map={map}
+        transparent
+        opacity={0.62}
+        roughness={0.08}
+        metalness={0.35}
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
 /** Cada malha clona o tijolo e repete pela própria medida — a textura compartilhada esticava. */
 function mapaTijolo(largura: number, altura: number) {
   const t = texturaTijolo().clone();
@@ -445,7 +485,7 @@ function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: numbe
   const janelaTopo = 2.2;
   const topo = 2.35;
   const janelaH = janelaTopo - janelaBase;
-  const ceuJanela = ceu(hora).topo;
+  const ceuJanela = ceu(hora);
   return (
     <group>
       <MalhaTijolo args={[comprimento, janelaBase, 0.12]} position={[comprimento / 2, janelaBase / 2, 0]} />
@@ -462,10 +502,9 @@ function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: numbe
         const meio = (janelaBase + janelaTopo) / 2;
         return (
           <group key={`j${i}`}>
-            <mesh position={[cx, meio, 0.07]} renderOrder={2}>
-              <planeGeometry args={[janelaL, janelaH]} />
-              <meshBasicMaterial color={ceuJanela} toneMapped={false} />
-            </mesh>
+            <group position={[cx, meio, 0.07]}>
+              <VidroCeu largura={janelaL} altura={janelaH} topo={ceuJanela.topo} base={ceuJanela.base} />
+            </group>
             {(
               [
                 [0, janelaH / 2, janelaL + 0.08, 0.06],
@@ -636,7 +675,11 @@ function Sala({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeExterna comprimento={w} hora={hora} />
+        {predio.y <= 1 ? (
+          <ParedeExterna comprimento={w} hora={hora} />
+        ) : (
+          <ParedeDetalhada comprimento={w} corAccent={tema.paredeD} brilho={!ativo} />
+        )}
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} brilho={!ativo} />
@@ -892,7 +935,11 @@ function SalaDaCasa({
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeExterna comprimento={w} hora={hora} />
+        {origem.y <= 1 ? (
+          <ParedeExterna comprimento={w} hora={hora} />
+        ) : (
+          <ParedeDetalhada comprimento={w} corAccent={accent} brilho={!detalhado} />
+        )}
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
         <ParedeDetalhada comprimento={d} corAccent={accent} brilho={!detalhado} />
