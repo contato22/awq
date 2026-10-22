@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -9,6 +9,8 @@ import { LUZES_INICIAIS, type AjusteLuz, type LuzId } from "@/lib/studio-lights"
 import { CAMADA_CICLORAMA, CAMADA_GIZMO } from "./camadas";
 import { CorpoDaCamera, OlharPelaCamera, PainelDaCamera } from "./VirtualCamera";
 import { LuzesDoEstudio, PainelDasLuzes } from "./StudioLights";
+import { FormularioDeCaptura, GanchoDeCaptura, type PedidoCaptura } from "./ShotCapture";
+import type { ShotEstudio } from "@/lib/studio-store";
 
 /**
  * Cenário do Estúdio da Caza Vision, no espírito do Cine Tracer:
@@ -272,9 +274,15 @@ export function EstudioViewport() {
   const [luzes, setLuzes] = useState(LUZES_INICIAIS);
   const [luzSel, setLuzSel] = useState<LuzId>("key");
   const fov = fovNoQuadro(lenteMm, sensor, aspecto).vertical;
+  const [pedido, setPedido] = useState<PedidoCaptura | null>(null);
+  const [ultimo, setUltimo] = useState<ShotEstudio | null>(null);
   const mudarLuz = (id: LuzId, parcial: Partial<AjusteLuz>) => {
     setLuzes((atual) => ({ ...atual, [id]: { ...atual[id], ...parcial } }));
   };
+  const aoCapturar = useCallback((shot: ShotEstudio) => {
+    setUltimo(shot);
+    setPedido(null);
+  }, []);
 
   return (
     <div className="absolute inset-0 bg-[#f4f1ea]">
@@ -297,6 +305,7 @@ export function EstudioViewport() {
             <StudioSet />
             <CorpoDaCamera visivel={!olhando} />
             <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
+            <GanchoDeCaptura pedido={pedido} onFeito={aoCapturar} />
             <OrbitControls
               makeDefault
               enabled={!olhando}
@@ -322,6 +331,22 @@ export function EstudioViewport() {
         onAspecto={setAspecto}
       />
       <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />
+      <FormularioDeCaptura
+        lenteMm={lenteMm}
+        sensor={sensor}
+        aspecto={aspecto}
+        fovVertical={fov}
+        ultimo={ultimo}
+        onCapturar={(nome, nota) => setPedido({
+          n: Date.now(),
+          nome,
+          nota,
+          lenteMm,
+          sensor,
+          aspecto,
+          fovVertical: fov,
+        })}
+      />
     </div>
   );
 }
