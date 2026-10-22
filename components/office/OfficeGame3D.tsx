@@ -442,15 +442,7 @@ function VidroCeu({ largura, altura, topo, base }: { largura: number; altura: nu
   return (
     <mesh renderOrder={2}>
       <planeGeometry args={[largura, altura]} />
-      <meshPhysicalMaterial
-        map={map}
-        transparent
-        opacity={0.62}
-        roughness={0.08}
-        metalness={0.35}
-        toneMapped={false}
-        depthWrite={false}
-      />
+      <meshBasicMaterial map={map} transparent opacity={0.82} toneMapped={false} depthWrite={false} />
     </mesh>
   );
 }
@@ -678,7 +670,7 @@ function Sala({
         {predio.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
         ) : (
-          <ParedeDetalhada comprimento={w} corAccent={tema.paredeD} brilho={!ativo} />
+          <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} brilho={!ativo} />
         )}
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
