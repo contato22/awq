@@ -624,7 +624,10 @@ function Sala({
           na sala (pathfinding por BFS na grade de obstáculos), não só um offset local fixo */}
       {PAPEIS.map((a) => {
         const [dx, dy] = MESAS[a];
-        const basePos: [number, number] = [dx * UNIT * 0.5, dy * UNIT * 0.5 + 0.3];
+        const basePos: [number, number] = [
+          dx * UNIT * 0.5 - Math.sin(OLHAR_CAMERA) * 0.18,
+          dy * UNIT * 0.5 + 0.3 - Math.cos(OLHAR_CAMERA) * 0.18,
+        ];
         return (
           <Personagem
             key={a}
