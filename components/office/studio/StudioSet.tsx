@@ -1,11 +1,14 @@
 "use client";
 
-import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { fovNoQuadro, type AspectoQuadro, type SensorId } from "@/lib/studio-optics";
+import { LUZES_INICIAIS, type AjusteLuz, type LuzId } from "@/lib/studio-lights";
+import { CAMADA_CICLORAMA, CAMADA_GIZMO } from "./camadas";
 import { CorpoDaCamera, OlharPelaCamera, PainelDaCamera } from "./VirtualCamera";
+import { LuzesDoEstudio, PainelDasLuzes } from "./StudioLights";
 
 /**
  * Cenário do Estúdio da Caza Vision, no espírito do Cine Tracer:
@@ -134,12 +137,41 @@ function geometriaCiclorama(): THREE.BufferGeometry {
 
 function Ciclorama() {
   const geo = useMemo(() => geometriaCiclorama(), []);
+  const malha = useRef<THREE.Mesh>(null);
   useEffect(() => () => geo.dispose(), [geo]);
+  useLayoutEffect(() => {
+    malha.current?.layers.enable(CAMADA_CICLORAMA);
+  }, []);
   return (
-    <mesh geometry={geo} receiveShadow>
+    <mesh ref={malha} geometry={geo} receiveShadow>
       <meshStandardMaterial color={COR_CICLO} roughness={0.9} metalness={0} side={THREE.DoubleSide} />
     </mesh>
   );
+}
+
+/** Ilumina só o ciclorama. O pool de key/fill/back não chega na curva e ela ficava cinza. */
+function LuzDoCiclorama() {
+  const hemi = useRef<THREE.HemisphereLight>(null);
+  const sol = useRef<THREE.DirectionalLight>(null);
+  useLayoutEffect(() => {
+    hemi.current?.layers.set(CAMADA_CICLORAMA);
+    sol.current?.layers.set(CAMADA_CICLORAMA);
+  }, []);
+  return (
+    <>
+      <hemisphereLight ref={hemi} args={["#fbf7f1", "#e4ddd2", 1.25]} />
+      <directionalLight ref={sol} position={[1.5, 8, 9]} intensity={0.65} color="#fff6ec" />
+    </>
+  );
+}
+
+function CameraDoEstudio() {
+  const camera = useThree((s) => s.camera);
+  useLayoutEffect(() => {
+    camera.layers.enable(CAMADA_CICLORAMA);
+    camera.layers.enable(CAMADA_GIZMO);
+  }, [camera]);
+  return null;
 }
 
 /** Treliça no teto. Não projeta sombra: a sombra dura da grade comia o ciclorama. */
@@ -237,7 +269,12 @@ export function EstudioViewport() {
   const [lenteMm, setLenteMm] = useState(50);
   const [sensor, setSensor] = useState<SensorId>("super35");
   const [aspecto, setAspecto] = useState<AspectoQuadro>("16:9");
+  const [luzes, setLuzes] = useState(LUZES_INICIAIS);
+  const [luzSel, setLuzSel] = useState<LuzId>("key");
   const fov = fovNoQuadro(lenteMm, sensor, aspecto).vertical;
+  const mudarLuz = (id: LuzId, parcial: Partial<AjusteLuz>) => {
+    setLuzes((atual) => ({ ...atual, [id]: { ...atual[id], ...parcial } }));
+  };
 
   return (
     <div className="absolute inset-0 bg-[#f4f1ea]">
@@ -249,24 +286,14 @@ export function EstudioViewport() {
             dpr={[1, 1.5]}
           >
             <Exposicao />
+            <CameraDoEstudio />
             <color attach="background" args={[COR_CICLO]} />
             <fog attach="fog" args={[COR_CICLO, 24, 42]} />
-            <hemisphereLight args={["#f7f4ee", "#e4ddd2", 0.8]} />
-            <ambientLight intensity={0.22} />
-            <directionalLight position={[0, 3.4, 7]} intensity={2.4} color="#fff8f2" />
-            <spotLight
-              position={[0.4, 4.6, 2.4]}
-              angle={0.5}
-              penumbra={0.55}
-              intensity={40}
-              color="#fff6e8"
-              castShadow
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-              shadow-radius={8}
-              shadow-bias={-0.00015}
-              shadow-normalBias={0.04}
-            />
+            <hemisphereLight args={["#f7f4ee", "#e4ddd2", 0.22]} />
+            <ambientLight intensity={0.06} />
+            <directionalLight position={[0, 3.4, 7]} intensity={0.35} color="#fff8f2" />
+            <LuzDoCiclorama />
+            <LuzesDoEstudio ajustes={luzes} podeOrbitar={!olhando} gizmo={!olhando} selecionada={luzSel} onSelect={setLuzSel} />
             <StudioSet />
             <CorpoDaCamera visivel={!olhando} />
             <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
@@ -294,6 +321,7 @@ export function EstudioViewport() {
         aspecto={aspecto}
         onAspecto={setAspecto}
       />
+      <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />
     </div>
   );
 }
