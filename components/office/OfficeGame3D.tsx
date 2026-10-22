@@ -91,6 +91,27 @@ function horaBrasilia(): number {
   return h + m / 60;
 }
 
+/** A trava de QA só vale no dev ou com `?qa=1`. Em produção o relógio ignora o localStorage. */
+function qaHoraLiberada(): boolean {
+  if (typeof window === "undefined") return false;
+  if (process.env.NODE_ENV === "development") return true;
+  return new URLSearchParams(window.location.search).get("qa") === "1";
+}
+
+/** `localStorage.office-hora` (0–24) trava o relógio para a captura de QA. Sem a chave, vale Brasília. */
+function horaInicial(): number {
+  if (typeof window === "undefined") return 12;
+  if (!qaHoraLiberada()) return horaBrasilia();
+  const fixa = window.localStorage.getItem("office-hora");
+  if (fixa == null || fixa === "") return horaBrasilia();
+  const n = Number(fixa);
+  return Number.isFinite(n) ? ((n % 24) + 24) % 24 : horaBrasilia();
+}
+
+function horaTravada(): boolean {
+  return qaHoraLiberada() && !!window.localStorage.getItem("office-hora");
+}
+
 // ── Cabelo por papel: mesma ideia de silhueta reconhecível do mundo 2D (cabeloDoPapel em
 // lib/office-world.ts), só que em geometria 3D em vez de pixels. ──────────────────────────
 
@@ -467,7 +488,7 @@ function Personagem({
 
 /** Parede construída ao longo do eixo local +x (de 0 a `comprimento`); quem usa decide a
  * orientação via rotação do grupo pai — mantém a sala em cutaway isométrico (sem teto). */
-function ParedeDetalhada({ comprimento, corAccent }: { comprimento: number; corAccent: string }) {
+function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimento: number; corAccent: string; brilho?: boolean }) {
   return (
     <group>
       <mesh position={[comprimento / 2, 0.07, 0]} castShadow receiveShadow>
@@ -480,7 +501,16 @@ function ParedeDetalhada({ comprimento, corAccent }: { comprimento: number; corA
       </mesh>
       <mesh position={[comprimento / 2, 1.66, 0]}>
         <boxGeometry args={[comprimento, 1.1, 0.025]} />
-        <meshPhysicalMaterial color="#bcdcff" transparent opacity={0.2} roughness={0.15} transmission={0.3} />
+        <meshPhysicalMaterial
+          color={brilho ? "#ffbf70" : "#bcdcff"}
+          emissive={brilho ? "#ff9a3c" : "#000000"}
+          emissiveIntensity={brilho ? 0.85 : 0}
+          transparent
+          opacity={brilho ? 0.55 : 0.2}
+          roughness={0.15}
+          transmission={brilho ? 0.12 : 0.3}
+          toneMapped={!brilho}
+        />
       </mesh>
       {[1.3, 2.05].map((y, i) => (
         <mesh key={i} position={[comprimento / 2, y, 0.012]} castShadow>
@@ -627,11 +657,14 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
+      {ativo && (
+        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
+      )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} />
+        <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} brilho={!ativo} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
-        <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} />
+        <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} brilho={!ativo} />
       </group>
       <Pilar posicao={PILAR_POS} />
       {detalhado && (
@@ -804,11 +837,14 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
+      {detalhado && (
+        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
+      )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={accent} />
+        <ParedeDetalhada comprimento={w} corAccent={accent} brilho={!detalhado} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
-        <ParedeDetalhada comprimento={d} corAccent={accent} />
+        <ParedeDetalhada comprimento={d} corAccent={accent} brilho={!detalhado} />
       </group>
       <Pilar posicao={PILAR_POS} />
       {tipo === "diretoria" ? (
@@ -985,27 +1021,37 @@ function CameraRig({
 function Iluminacao({ hora }: { hora: number }) {
   const l = luzDoDia(hora);
   const ceuAtual = ceu(hora);
+  const sol = useRef<THREE.DirectionalLight>(null);
+  const alvoSol = useRef<THREE.Object3D>(null);
+  useEffect(() => {
+    if (sol.current && alvoSol.current) sol.current.target = alvoSol.current;
+  }, []);
   return (
     <>
       <color attach="background" args={[ceuAtual.base]} />
-      <hemisphereLight args={[ceuAtual.topo, "#4b5567", 0.55 + l * 0.35]} />
-      <ambientLight intensity={0.4 + l * 0.25} />
+      <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.08 + l * 0.18]} />
+      {/* De dia (luzDoDia = 1) fica em 0.38, acima de 0.35. À noite volta para 0.08. */}
+      <ambientLight intensity={0.08 + l * 0.30} />
+      {/* Preenchimento frio do céu: de noite fica no piso, de dia sobe com a luz. */}
+      <directionalLight position={[-16, 9, 14]} color="#9fc0ff" intensity={0.15 + l * 0.2} />
+      {/* Sol baixo, cor #ffcf8a, entrando pela fachada. Intensidade segue luzDoDia (0 à noite). */}
       <directionalLight
-        position={[12, 18, 8]}
-        intensity={0.4 + l * 0.9}
-        color={l > 0.3 ? "#fff6e0" : "#b9c6ff"}
+        ref={sol}
+        position={[20, 5.4, -16]}
+        intensity={l * 1.3}
+        color="#ffcf8a"
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-near={1}
-        shadow-camera-far={90}
-        shadow-camera-left={-10}
-        shadow-camera-right={55}
-        shadow-camera-top={45}
-        shadow-camera-bottom={-10}
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.035}
+        shadow-camera-near={2}
+        shadow-camera-far={80}
+        shadow-camera-left={-(20 * UNIT) / 2}
+        shadow-camera-right={(20 * UNIT) / 2}
+        shadow-camera-top={(14 * UNIT) / 2}
+        shadow-camera-bottom={-(14 * UNIT) / 2}
       />
-      {/* luz de preenchimento fixa do lado oposto: nenhuma face do personagem fica 100% preta
-          à noite, mesmo vista de um ângulo contrário à luz direcional principal */}
-      <directionalLight position={[-10, 10, -6]} intensity={0.45} color="#9fc0ff" />
+      <object3D ref={alvoSol} position={[20, 1.1, 14]} />
     </>
   );
 }
@@ -1017,6 +1063,8 @@ function ConfigRenderer() {
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = 1.15;
+    gl.shadowMap.enabled = true;
+    gl.shadowMap.type = THREE.PCFSoftShadowMap;
   }, [gl]);
   return null;
 }
@@ -1257,14 +1305,14 @@ export default function OfficeGame3D(props: Props) {
   const [vista, setVista] = useState<"mundo" | "sala" | "casa" | "estudio">("mundo");
   const [focoCasa, setFocoCasa] = useState<CasaId>("diretoria");
   const [vel, setVel] = useState(1);
-  const [hora, setHora] = useState(horaBrasilia());
+  const [hora, setHora] = useState(horaInicial);
   const camApiRef = useRef<CameraApi | null>(null);
   const [termo, setTermo] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [fps, setFps] = useState<number | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setHora((h) => vel === 0 ? h : (h + (vel * 0.01)) % 24), 1000);
+    const id = setInterval(() => setHora((h) => vel === 0 || horaTravada() ? h : (h + vel * 0.01) % 24), 1000);
     return () => clearInterval(id);
   }, [vel]);
 
@@ -1357,7 +1405,7 @@ export default function OfficeGame3D(props: Props) {
         <Suspense fallback={null}>
           <EstudioViewport />
         </Suspense>
-      ) : <Canvas shadows={{ type: THREE.PCFShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
+      ) : <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: [6, 10, 14], fov: 42 }} dpr={[1, 1.5]}>
         <Suspense fallback={null}>
           <Cena
             predios={predios}
