@@ -6,20 +6,24 @@ import * as THREE from "three";
 import {
   SENSORES,
   fovNoQuadro,
+  fovNoVisor,
   type AspectoQuadro,
   type SensorId,
 } from "@/lib/studio-optics";
 
 export const LENTES_MM = [24, 35, 50, 85] as const;
 
-const ALVO: [number, number, number] = [0, 1.15, -0.4];
-const POSICAO: [number, number, number] = [0, 1.35, 3.5];
+export const ALVO_CAMERA: [number, number, number] = [0, 1.15, -0.4];
+/** Recuada o bastante para a 50 mm mostrar a cabeça no quadro. */
+export const POSICAO_CAMERA: [number, number, number] = [0, 1.45, 8];
+/** Fora do eixo, para o corpo não tapar o ator visto da câmera do estúdio. */
+const POSICAO_CORPO: [number, number, number] = [1.7, 1.05, 4.4];
 
 /** Corpo da câmera no estúdio, escondido quando se olha por ela. */
 export function CorpoDaCamera({ visivel }: { visivel: boolean }) {
   if (!visivel) return null;
   return (
-    <group position={POSICAO}>
+    <group position={POSICAO_CORPO} userData={{ ocultarNaCaptura: true }}>
       <mesh castShadow>
         <boxGeometry args={[0.32, 0.2, 0.36]} />
         <meshStandardMaterial color="#1c1917" roughness={0.4} metalness={0.25} />
@@ -32,8 +36,19 @@ export function CorpoDaCamera({ visivel }: { visivel: boolean }) {
   );
 }
 
-/** Enquadra o manequim com o FOV vertical da lente e do quadro. */
-export function OlharPelaCamera({ ativo, fov }: { ativo: boolean; fov: number }) {
+export function quadroNaTela(aspecto: AspectoQuadro, largura: number, altura: number) {
+  const razao = aspecto === "16:9" ? 16 / 9 : 2.39;
+  const tela = largura / Math.max(1, altura);
+  if (tela > razao) {
+    const w = altura * razao;
+    return { x: (largura - w) / 2, y: 0, w, h: altura };
+  }
+  const h = largura / razao;
+  return { x: 0, y: (altura - h) / 2, w: largura, h };
+}
+
+/** Enquadra o manequim com o FOV vertical da lente dentro do quadro, não da tela. */
+export function OlharPelaCamera({ ativo, fov, aspecto }: { ativo: boolean; fov: number; aspecto: AspectoQuadro }) {
   const { camera, size, controls } = useThree();
   const salvo = useRef<{ fov: number; position: THREE.Vector3; quaternion: THREE.Quaternion } | null>(null);
 
@@ -54,26 +69,16 @@ export function OlharPelaCamera({ ativo, fov }: { ativo: boolean; fov: number })
     if (!salvo.current) {
       salvo.current = { fov: cam.fov, position: cam.position.clone(), quaternion: cam.quaternion.clone() };
     }
-    cam.fov = fov;
+    const quadro = quadroNaTela(aspecto, size.width, size.height);
+    cam.fov = fovNoVisor(fov, size.height, quadro.h);
     cam.aspect = size.width / Math.max(1, size.height);
-    cam.position.set(...POSICAO);
+    cam.position.set(...POSICAO_CAMERA);
     cam.up.set(0, 1, 0);
-    cam.lookAt(...ALVO);
+    cam.lookAt(...ALVO_CAMERA);
     cam.updateProjectionMatrix();
-  }, [ativo, fov, camera, size.width, size.height, controls]);
+  }, [ativo, fov, aspecto, camera, size.width, size.height, controls]);
 
   return null;
-}
-
-function retangulo(aspecto: AspectoQuadro, largura: number, altura: number) {
-  const razao = aspecto === "16:9" ? 16 / 9 : 2.39;
-  const tela = largura / Math.max(1, altura);
-  if (tela > razao) {
-    const w = altura * razao;
-    return { x: (largura - w) / 2, y: 0, w, h: altura };
-  }
-  const h = largura / razao;
-  return { x: 0, y: (altura - h) / 2, w: largura, h };
 }
 
 export function PainelDaCamera({
@@ -107,7 +112,7 @@ export function PainelDaCamera({
     return () => ro.disconnect();
   }, []);
 
-  const q = retangulo(aspecto, tam.w, tam.h);
+  const q = quadroNaTela(aspecto, tam.w, tam.h);
   const fov = fovNoQuadro(lenteMm, sensor, aspecto);
   const barra = "absolute bg-black pointer-events-none";
 
@@ -134,8 +139,8 @@ export function PainelDaCamera({
             ))}
           </svg>
           <p
-            className="absolute text-[11px] text-white/90 pointer-events-none"
-            style={{ left: q.x + 12, top: q.y + 10 }}
+            className="absolute text-[11px] text-white pointer-events-none rounded-md bg-black/80 px-2 py-1"
+            style={{ left: q.x + 12, top: Math.min(q.y + q.h - 32, Math.max(q.y + 8, 56)) }}
           >
             {lenteMm} mm · {SENSORES[sensor].nome} · {aspecto} · {fov.vertical.toFixed(1)}° vertical
           </p>
@@ -148,10 +153,10 @@ export function PainelDaCamera({
             aria-label="Distância focal"
             value={lenteMm}
             onChange={(e) => onLente(Number(e.target.value))}
-            className="bg-white/10 rounded-md px-1.5 py-1"
+            className="bg-white/10 rounded-md px-1.5 py-1 text-white"
           >
             {LENTES_MM.map((mm) => (
-              <option key={mm} value={mm}>{mm} mm</option>
+              <option key={mm} value={mm} className="bg-white text-gray-900" style={{ color: "#111827", backgroundColor: "#ffffff" }}>{mm} mm</option>
             ))}
           </select>
         </label>
@@ -161,10 +166,10 @@ export function PainelDaCamera({
             aria-label="Sensor"
             value={sensor}
             onChange={(e) => onSensor(e.target.value as SensorId)}
-            className="bg-white/10 rounded-md px-1.5 py-1"
+            className="bg-white/10 rounded-md px-1.5 py-1 text-white"
           >
             {(Object.keys(SENSORES) as SensorId[]).map((id) => (
-              <option key={id} value={id}>{SENSORES[id].nome}</option>
+              <option key={id} value={id} className="bg-white text-gray-900" style={{ color: "#111827", backgroundColor: "#ffffff" }}>{SENSORES[id].nome}</option>
             ))}
           </select>
         </label>

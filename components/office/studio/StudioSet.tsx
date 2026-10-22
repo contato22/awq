@@ -269,7 +269,7 @@ export function EstudioViewport() {
             />
             <StudioSet />
             <CorpoDaCamera visivel={!olhando} />
-            <OlharPelaCamera ativo={olhando} fov={fov} />
+            <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
             <OrbitControls
               makeDefault
               enabled={!olhando}

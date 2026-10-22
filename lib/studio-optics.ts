@@ -58,6 +58,17 @@ export function gateNoAspecto(sensor: SensorId, aspecto: AspectoQuadro): { largu
   return { larguraMm: s.alturaMm * razao, alturaMm: s.alturaMm };
 }
 
+/**
+ * O FOV da lente vale para a altura do quadro. A tela é mais alta, então
+ * fov = 2·atan(tan(fov/2)·H/q.h), com os ângulos em radianos dentro do atan.
+ */
+export function fovNoVisor(fovQuadroGraus: number, alturaTela: number, alturaQuadro: number): number {
+  const qh = Math.max(1, alturaQuadro);
+  const tela = Math.max(qh, alturaTela);
+  const rad = (fovQuadroGraus * Math.PI) / 180;
+  return (2 * Math.atan(Math.tan(rad / 2) * (tela / qh)) * 180) / Math.PI;
+}
+
 export function fovNoQuadro(lenteMm: number, sensor: SensorId, aspecto: AspectoQuadro): CampoDeVisao {
   const g = gateNoAspecto(sensor, aspecto);
   return {
