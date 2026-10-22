@@ -20,6 +20,7 @@ import OfficeGame, { type MetricaAgente, type PainelTab } from "./OfficeGame";
 // Carregado sob demanda: Three.js só entra no bundle de quem liga o "Modo 3D (beta)".
 const OfficeGame3D = dynamic(() => import("./OfficeGame3D"), { ssr: false });
 import { ANDARES, type Empresa } from "@/lib/office-world";
+import StoryboardPanel from "./studio/StoryboardPanel";
 import {
   aplicarSaida, ativacaoDevida, atualizarTarefa, capacidadeDosAgentes, decidirAprovacao, estadoInicial, lerEstadoCS, limiteDoDia, parseSaida,
   promptDaTarefa, promptDoHead, registrarEvento, registrarFalhaAtivacao, tarefasParaEntregar, type AgenteInfo, type ConfigHead, type EstadoHead,
@@ -798,6 +799,20 @@ export default function OfficeSimulator() {
   const [headEntregando, setHeadEntregando] = useState(false);
   const [headErro, setHeadErro] = useState<string | null>(null);
   const headBusyRef = useRef(false);
+  const abaAtiva = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const el = abaAtiva.current;
+    const faixa = el?.parentElement;
+    if (!el || !faixa) return;
+    // O botão de fechar fica por cima da ponta direita da faixa.
+    const folga = 48;
+    const esquerda = el.offsetLeft;
+    const direita = esquerda + el.offsetWidth;
+    const vistaE = faixa.scrollLeft;
+    const vistaD = vistaE + faixa.clientWidth - folga;
+    if (direita > vistaD) faixa.scrollLeft = direita - (faixa.clientWidth - folga);
+    else if (esquerda < vistaE) faixa.scrollLeft = Math.max(0, esquerda - 8);
+  }, [tab, painelAberto]);
   const entregandoRef = useRef(false);
 
   const gravarHead = (next: EstadoHead) => {
@@ -1127,6 +1142,7 @@ export default function OfficeSimulator() {
     };
   });
   empresasRef.current = empresas;
+
   const Mundo = modo3D ? OfficeGame3D : OfficeGame;
 
   return (
@@ -1212,10 +1228,10 @@ export default function OfficeSimulator() {
       >
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
-        <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
-          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["head", "Head de CS"], ["eventos", "Eventos"], ["missoes", "Missões"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"]] as const).map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
+        <div className="flex gap-1 border-b border-gray-100 pl-3 pr-14 pt-3 pb-1 overflow-x-auto shrink-0 min-w-0 w-full">
+          {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["head", "Head de CS"], ["eventos", "Eventos"], ["missoes", "Missões"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"], ["storyboard", "Storyboard"]] as const).map(([k, l]) => (
+            <button key={k} ref={tab === k ? abaAtiva : undefined} onClick={() => { setTab(k); }}
+              className={`px-2.5 py-2 text-sm rounded-t-lg whitespace-nowrap shrink-0 ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
             </button>
           ))}
@@ -1818,6 +1834,8 @@ export default function OfficeSimulator() {
               </div>
             </div>
           )}
+
+          {tab === "storyboard" && <StoryboardPanel />}
 
           {tab === "registros" && (
             <div className="space-y-3">
