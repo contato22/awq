@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -19,6 +19,7 @@ function Alca({ cor, ativo, onClick }: { cor: string; ativo: boolean; onClick: (
   return (
     <mesh
       position={[0, -0.18, 0]}
+      userData={{ ocultarNaCaptura: true }}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
       <sphereGeometry args={[0.09, 16, 12]} />
@@ -31,12 +32,16 @@ export function LuzesDoEstudio({
   ajustes,
   podeOrbitar,
   gizmo,
+  selecionada,
+  onSelect,
 }: {
   ajustes: Record<LuzId, AjusteLuz>;
   podeOrbitar: boolean;
   gizmo: boolean;
+  selecionada: LuzId;
+  onSelect: (id: LuzId) => void;
 }) {
-  const [sel, setSel] = useState<LuzId>("key");
+  const sel = selecionada;
   const [pronto, setPronto] = useState(false);
   const keyG = useRef<THREE.Group>(null);
   const fillG = useRef<THREE.Group>(null);
@@ -80,7 +85,7 @@ export function LuzesDoEstudio({
           shadow-bias={-0.00015}
           shadow-normalBias={0.04}
         />
-        <Alca cor={cor("key")} ativo={sel === "key"} onClick={() => setSel("key")} />
+        <Alca cor={cor("key")} ativo={sel === "key"} onClick={() => onSelect("key")} />
       </group>
       <group ref={fillG} position={POS.fill}>
         <rectAreaLight
@@ -93,7 +98,7 @@ export function LuzesDoEstudio({
           <planeGeometry args={[1.8, 1.1]} />
           <meshStandardMaterial color={cor("fill")} emissive={cor("fill")} emissiveIntensity={0.6} side={THREE.DoubleSide} />
         </mesh>
-        <Alca cor={cor("fill")} ativo={sel === "fill"} onClick={() => setSel("fill")} />
+        <Alca cor={cor("fill")} ativo={sel === "fill"} onClick={() => onSelect("fill")} />
       </group>
       <group ref={backG} position={POS.back}>
         <spotLight
@@ -103,7 +108,7 @@ export function LuzesDoEstudio({
           intensity={ajustes.back.intensidade}
           color={cor("back")}
         />
-        <Alca cor={cor("back")} ativo={sel === "back"} onClick={() => setSel("back")} />
+        <Alca cor={cor("back")} ativo={sel === "back"} onClick={() => onSelect("back")} />
       </group>
       {gizmo && objeto && (
         <TransformControls
@@ -119,37 +124,87 @@ export function LuzesDoEstudio({
 
 export function PainelDasLuzes({
   ajustes,
+  selecionada,
+  onSelect,
   onChange,
 }: {
   ajustes: Record<LuzId, AjusteLuz>;
+  selecionada: LuzId;
+  onSelect: (id: LuzId) => void;
   onChange: (id: LuzId, parcial: Partial<AjusteLuz>) => void;
 }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest("input, textarea, select, [contenteditable='true']")) return;
+      const porTecla: Record<string, LuzId> = { "1": "key", "2": "fill", "3": "back" };
+      if (porTecla[e.key]) {
+        onSelect(porTecla[e.key]);
+        return;
+      }
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const i = ORDEM.indexOf(selecionada);
+      const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+      onSelect(ORDEM[(i + delta + ORDEM.length) % ORDEM.length]);
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onSelect, selecionada]);
+
   return (
     <div className="absolute top-24 right-3 pointer-events-auto w-52 rounded-2xl bg-black/75 text-white text-[11px] p-3 space-y-2">
       <p className="font-semibold text-xs">Luzes · key / fill / back</p>
-      {ORDEM.map((id) => {
+      {ORDEM.map((id, indice) => {
         const meta = LUZES_INICIAIS[id];
         const a = ajustes[id];
+        const ativa = selecionada === id;
         return (
-          <label key={id} className="block">
-            <span className="flex justify-between">
-              <span>{meta.nome} · {meta.tipo === "area" ? "soft" : "spot"}</span>
-              <span>{a.kelvin} K</span>
-            </span>
-            <input
-              aria-label={`Temperatura da ${meta.nome}`}
-              type="range"
-              min={2700}
-              max={9000}
-              step={100}
-              value={a.kelvin}
-              onChange={(e) => onChange(id, { kelvin: Number(e.target.value) })}
-              className="w-full"
-            />
-          </label>
+          <div key={id} className={`rounded-lg p-1.5 ${ativa ? "bg-white/15" : ""}`}>
+            <button
+              type="button"
+              aria-pressed={ativa}
+              onClick={() => onSelect(id)}
+              className="w-full text-left"
+            >
+              <span className="flex justify-between">
+                <span>{indice + 1} · {meta.nome} · {meta.tipo === "area" ? "soft" : "spot"}</span>
+                <span>{a.kelvin} K</span>
+              </span>
+            </button>
+            <label className="block">
+              <span className="sr-only">Temperatura da {meta.nome}</span>
+              <input
+                aria-label={`Temperatura da ${meta.nome}`}
+                type="range"
+                min={2700}
+                max={9000}
+                step={100}
+                value={a.kelvin}
+                onChange={(e) => onChange(id, { kelvin: Number(e.target.value) })}
+                className="w-full"
+              />
+            </label>
+            <label className="block">
+              <span className="flex justify-between text-white/70">
+                <span>Intensidade</span>
+                <span>{a.intensidade}</span>
+              </span>
+              <input
+                aria-label={`Intensidade da ${meta.nome}`}
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={a.intensidade}
+                onChange={(e) => onChange(id, { intensidade: Number(e.target.value) })}
+                className="w-full"
+              />
+            </label>
+          </div>
         );
       })}
-      <p className="text-white/60">Arraste o gizmo para mover a luz selecionada.</p>
+      <p className="text-white/60">1, 2 e 3 escolhem a luz. Arraste o gizmo para movê-la.</p>
     </div>
   );
 }

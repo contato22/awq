@@ -1,5 +1,5 @@
 /**
- * Cor de luz do Estúdio. Kelvin → RGB linear 0..1 (aproximação de Tanner Helland),
+ * Cor de luz do Estúdio. Kelvin → sRGB 0..1 (aproximação de Tanner Helland),
  * suficiente para key / fill / back sem tabela medida de fabricante.
  */
 
@@ -20,7 +20,7 @@ function canal(n: number): number {
   return Math.max(0, Math.min(255, n)) / 255;
 }
 
-/** RGB 0..1 para uma temperatura entre 1000 K e 40000 K. */
+/** sRGB 0..1 para uma temperatura entre 1000 K e 40000 K. */
 export function kelvinParaRgb(kelvin: number): [number, number, number] {
   const k = Number.isFinite(kelvin) ? kelvin : 6500;
   const temp = Math.min(40000, Math.max(1000, k)) / 100;
