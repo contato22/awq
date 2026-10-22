@@ -15,7 +15,7 @@ import type { PoseCorpo } from "./CorpoQuaternius";
 
 const CorpoQuaternius = lazy(() => import("./CorpoQuaternius").then((m) => ({ default: m.CorpoQuaternius })));
 const EstudioViewport = lazy(() => import("./studio/StudioSet").then((m) => ({ default: m.EstudioViewport })));
-import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
+import { texturaMadeira, texturaPerfurada, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
 
 /**
@@ -477,7 +477,10 @@ function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: numbe
   const janelaTopo = 2.2;
   const topo = 2.35;
   const janelaH = janelaTopo - janelaBase;
-  const ceuJanela = ceu(hora);
+  const luz = luzDoDia(hora);
+  const entardecer = luz < 0.55;
+  const ceuAtual = ceu(hora);
+  const ceuJanela = entardecer ? { topo: "#ffbf70", base: "#e07a32" } : ceuAtual;
   return (
     <group>
       <MalhaTijolo args={[comprimento, janelaBase, 0.12]} position={[comprimento / 2, janelaBase / 2, 0]} />
@@ -624,11 +627,11 @@ function Sala({
   atividade: Record<Agente, Atividade>;
   selecionado: Agente;
   ativo: boolean;
+  hora: number;
   /** LOD simples: salas fora da sala ativa (visão do andar com 4 salas na tela) poupam as
    * peças decorativas mais caras (estante, plantas, tapete) — continuam reconhecíveis (piso,
    * paredes, mesas, personagens), só sem o acabamento fino que só compensa de perto. */
   detalhado: boolean;
-  hora: number;
   onEntrar: () => void;
   onSelecionar: (a: Agente) => void;
 }) {
@@ -663,9 +666,14 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
-      {ativo && (
-        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
-      )}
+      {/* Uma luz só, sempre montada: cor e intensidade trocam sem recompilar o shader. */}
+      <pointLight
+        position={[w / 2, 2.2, d / 2]}
+        color={ativo ? "#ffc48a" : "#ffb060"}
+        intensity={ativo ? 6 : luzDoDia(hora) < 0.55 ? 4 : 0}
+        distance={ativo ? 14 : 12}
+        decay={2}
+      />
       <group position={[0, 0, 0.02]}>
         {predio.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -923,9 +931,13 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
-      {detalhado && (
-        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
-      )}
+      <pointLight
+        position={[w / 2, 2.2, d / 2]}
+        color={detalhado ? "#ffc48a" : "#ffb060"}
+        intensity={detalhado ? 6 : luzDoDia(hora) < 0.55 ? 4 : 0}
+        distance={detalhado ? 14 : 12}
+        decay={2}
+      />
       <group position={[0, 0, 0.02]}>
         {origem.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -1110,9 +1122,64 @@ function CameraRig({
   );
 }
 
+/** Entre 18h e 20h o céu vira um degradê de entardecer (topo azul, base âmbar) e volta. */
+function ceuEntardecer(hora: number): { topo: string; base: string } {
+  const atual = ceu(hora);
+  if (hora <= 18 || hora >= 20) return atual;
+  const t = hora < 19 ? hora - 18 : 20 - hora;
+  const topo = new THREE.Color(atual.topo).lerp(new THREE.Color("#1f4f8a"), t);
+  const base = new THREE.Color(atual.base).lerp(new THREE.Color("#e8923a"), t);
+  return { topo: `#${topo.getHexString()}`, base: `#${base.getHexString()}` };
+}
+
+function texturaDegrade(topo: string, base: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 8;
+  c.height = 256;
+  const g = c.getContext("2d")!;
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  // O plano preenche o quadro: o topo segura a cor do céu e o degradê chega no horizonte, não no rodapé.
+  grad.addColorStop(0, topo);
+  grad.addColorStop(0.12, topo);
+  grad.addColorStop(0.48, base);
+  grad.addColorStop(1, base);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 8, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.needsUpdate = true;
+  return t;
+}
+
+/** Degradê atrás da cidade, preso à câmera e maior que o quadro, para a órbita não revelar a borda. */
+function FundoCeu({ hora }: { hora: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const ceuAtual = ceuEntardecer(hora);
+  const tex = useMemo(() => texturaDegrade(ceuAtual.topo, ceuAtual.base), [ceuAtual.topo, ceuAtual.base]);
+  useEffect(() => () => tex.dispose(), [tex]);
+  useFrame(({ camera }) => {
+    const mesh = ref.current;
+    if (!mesh || !(camera instanceof THREE.PerspectiveCamera)) return;
+    const dist = 500;
+    const vFov = (camera.fov * Math.PI) / 180;
+    const altura = 2 * Math.tan(vFov / 2) * dist * 1.5;
+    const largura = altura * camera.aspect * 1.5;
+    mesh.scale.set(largura, altura, 1);
+    mesh.position.copy(camera.position);
+    mesh.quaternion.copy(camera.quaternion);
+    mesh.translateZ(-dist);
+  });
+  return (
+    <mesh ref={ref} renderOrder={-1} frustumCulled={false}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial map={tex} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
 function Iluminacao({ hora }: { hora: number }) {
   const l = luzDoDia(hora);
-  const ceuAtual = ceu(hora);
+  const ceuAtual = ceuEntardecer(hora);
   const sol = useRef<THREE.DirectionalLight>(null);
   const alvoSol = useRef<THREE.Object3D>(null);
   useEffect(() => {
@@ -1120,13 +1187,13 @@ function Iluminacao({ hora }: { hora: number }) {
   }, []);
   return (
     <>
-      <color attach="background" args={[ceuAtual.base]} />
+      <FundoCeu hora={hora} />
       <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.08 + l * 0.18]} />
       {/* De dia (luzDoDia = 1) fica em 0.38, acima de 0.35. À noite volta para 0.08. */}
       <ambientLight intensity={0.08 + l * 0.30} />
       {/* Preenchimento frio do céu: de noite fica no piso, de dia sobe com a luz. */}
       <directionalLight position={[-16, 9, 14]} color="#9fc0ff" intensity={0.15 + l * 0.2} />
-      {/* Sol baixo, cor #ffcf8a, entrando pela fachada. Intensidade segue luzDoDia (0 à noite). */}
+      {/* Sol baixo, cor #ffcf8a. O azul #1f4f8a só vale entre 18h e 20h. */}
       <directionalLight
         ref={sol}
         position={[20, 5.4, -16]}
@@ -1161,34 +1228,92 @@ function ConfigRenderer() {
   return null;
 }
 
-/** Fachada do prédio: faixa de tijolo + vidraça alta com travessas, ao longo de uma borda do
- * andar — dá a luz quente entrando pela janela pedida, visível na visão geral do mundo. */
+/** Um tile da máscara tem 16 furos. O UV de cada face repete para o furo ficar em 0,25 m. */
+const PASSO_FURO = 0.25;
+const FUROS_NO_TILE = 16;
+
+function geometriaComFuros(w: number, h: number, d: number) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const uv = geo.getAttribute("uv") as THREE.BufferAttribute;
+  const faces: [number, number][] = [
+    [d, h], [d, h], [w, d], [w, d], [w, h], [w, h],
+  ];
+  for (let f = 0; f < faces.length; f++) {
+    const su = faces[f][0] / (PASSO_FURO * FUROS_NO_TILE);
+    const sv = faces[f][1] / (PASSO_FURO * FUROS_NO_TILE);
+    for (let i = 0; i < 4; i++) {
+      const idx = f * 4 + i;
+      uv.setXY(idx, uv.getX(idx) * su, uv.getY(idx) * sv);
+    }
+  }
+  uv.needsUpdate = true;
+  return geo;
+}
+
+/** Fachada do prédio: faixa de tijolo e volumes perfurados na borda do andar. */
 function Fachada({ largura, hora }: { largura: number; hora: number }) {
-  const tijolo = useMemo(() => texturaTijolo(), []);
+  const tijolo = useMemo(() => mapaTijolo(largura, 1), [largura]);
+  useEffect(() => () => tijolo.dispose(), [tijolo]);
+  const volumes = useMemo(() => {
+    return [
+      { id: "esquerda", x: largura * 0.17, w: largura * 0.32, h: 1.8, d: 2.8 },
+      { id: "centro", x: largura * 0.5, w: largura * 0.3, h: 2.2, d: 3.4 },
+      { id: "direita", x: largura * 0.83, w: largura * 0.32, h: 1.65, d: 2.6 },
+    ].map((v) => {
+      const alpha = texturaPerfurada().clone();
+      alpha.wrapS = alpha.wrapT = THREE.RepeatWrapping;
+      alpha.repeat.set(1, 1);
+      alpha.needsUpdate = true;
+      const depth = new THREE.MeshDepthMaterial({
+        depthPacking: THREE.RGBADepthPacking,
+        alphaMap: alpha,
+        alphaTest: 0.5,
+      });
+      return { ...v, alpha, geo: geometriaComFuros(v.w, v.h, v.d), depth };
+    });
+  }, [largura]);
+  useEffect(() => () => {
+    for (const v of volumes) {
+      v.alpha.dispose();
+      v.geo.dispose();
+      v.depth.dispose();
+    }
+  }, [volumes]);
   const l = luzDoDia(hora);
-  const colunas = Math.max(1, Math.floor(largura / 2.6));
+  const entardecer = l < 0.55;
+  const baseY = 1.12;
   return (
     <group>
       <mesh position={[largura / 2, 0.5, 0]} castShadow receiveShadow>
         <boxGeometry args={[largura, 1, 0.12]} />
         <meshStandardMaterial map={tijolo} roughness={0.9} />
       </mesh>
-      <mesh position={[largura / 2, 2.3, 0]}>
-        <boxGeometry args={[largura, 2.6, 0.04]} />
-        <meshPhysicalMaterial color="#fff3d6" transparent opacity={0.12 + l * 0.12} roughness={0.05} transmission={0.55} />
-      </mesh>
-      {Array.from({ length: colunas + 1 }, (_, i) => (i * largura) / colunas).map((x, i) => (
-        <mesh key={i} position={[x, 2.3, 0.02]} castShadow>
-          <boxGeometry args={[0.05, 2.6, 0.06]} />
-          <meshStandardMaterial color="#2d2015" roughness={0.6} />
-        </mesh>
+      {volumes.map((v) => (
+        <group key={v.id}>
+          {entardecer && (
+            <mesh position={[v.x, baseY + v.h / 2, 0.22 + v.d - 0.06]}>
+              <planeGeometry args={[v.w * 0.96, v.h * 0.96]} />
+              <meshBasicMaterial
+                color="#ffbf70"
+                transparent
+                opacity={0.35 + 0.45 * (1 - l)}
+                toneMapped={false}
+                depthWrite={false}
+              />
+            </mesh>
+          )}
+          <mesh position={[v.x, baseY + v.h / 2, 0.22 + v.d / 2]} geometry={v.geo} castShadow customDepthMaterial={v.depth}>
+            <meshStandardMaterial
+              color="#f3efe6"
+              alphaMap={v.alpha}
+              alphaTest={0.5}
+              roughness={0.62}
+              metalness={0.04}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
       ))}
-      {l > 0.1 && (
-        <mesh position={[largura / 2, 1.9, 0.06]}>
-          <planeGeometry args={[largura * 0.92, 1.6]} />
-          <meshBasicMaterial color="#ffd9a0" transparent opacity={0.1 * l} depthWrite={false} />
-        </mesh>
-      )}
     </group>
   );
 }

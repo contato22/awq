@@ -108,6 +108,30 @@ export function texturaTapete(): THREE.CanvasTexture {
   return tex;
 }
 
+let _furos: THREE.CanvasTexture | null = null;
+/** Máscara da pele perfurada da fachada. Branco é opaco, preto é o furo (alphaMap). */
+export function texturaPerfurada(): THREE.CanvasTexture {
+  if (_furos) return _furos;
+  const TAM = 256;
+  const { canvas, ctx } = criarCanvas(TAM);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, TAM, TAM);
+  ctx.fillStyle = "#000000";
+  const passo = 16;
+  for (let y = passo / 2; y < TAM; y += passo) {
+    for (let x = passo / 2; x < TAM; x += passo) {
+      ctx.beginPath();
+      ctx.arc(x, y, 4.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(8, 4);
+  _furos = tex;
+  return tex;
+}
+
 let _sombra: THREE.CanvasTexture | null = null;
 /** Mancha de sombra de contato (gradiente radial) — fake AO barato sob personagens/móveis. */
 export function texturaSombraContato(): THREE.CanvasTexture {
