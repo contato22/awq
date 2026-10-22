@@ -11,6 +11,7 @@ import {
 import { ceu, luzDoDia, TEMAS, type Agente, type Atividade, type Estado } from "@/lib/office-iso";
 import { andarDaEmpresa, ANDARES, layoutPredios, SALA_ESTUDIO, SALAS_CASA, type AndarId, type Empresa, type EstadoReuniao, type PredioW } from "@/lib/office-world";
 import { EstudioViewport } from "./studio/StudioSet";
+import { aparenciaDe } from "@/lib/office-aparencia";
 import { texturaMadeira, texturaRotulo, texturaSombraContato, texturaTapete, texturaTijolo } from "@/lib/office-3d-texturas";
 import type { ItemBusca, MetricaAgente, PainelTab } from "./OfficeGame";
 
@@ -60,36 +61,8 @@ const ESTADO_TXT: Record<Estado, string> = { idle: "Ocioso", working: "Trabalhan
 
 const normBusca = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-// ── Diversidade de personagens: tons de pele, cabelo e roupa variam por semente (empresa +
-// papel), não só pelas 4 cores fixas do papel — paleta própria (não copiada de nenhum jogo). ──
-
-function hashSemente(txt: string): number {
-  let h = 0;
-  for (let i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) >>> 0;
-  return h;
-}
-const escolhe = <T,>(lista: T[], seed: number, sal: number) => lista[(seed + sal) % lista.length];
-
-const PELES = ["#f1c9a5", "#e0b08a", "#c98f5f", "#a9714a", "#8d5524", "#6b3d1f"];
-const CABELOS = ["#374151", "#6b4423", "#c2410c", "#2d3748", "#78350f", "#4b2e1a", "#d4a373", "#44403c"];
-const ROUPAS = ["#0487D9", "#0e7490", "#7c3aed", "#059669", "#be123c", "#ca8a04", "#334155", "#9333ea"];
-const CALCAS = ["#1e293b", "#334155", "#1e3a8a", "#78716c", "#44403c", "#0f172a"];
-
-interface AparenciaPersonagem { pele: string; cabelo: string; corpo: string; calca: string; altura: number }
-
-/** Deriva uma aparência estável (mesma empresa+papel = sempre a mesma pessoa) a partir da
- * semente — cobre a diversidade real de tons de pele, cabelo, roupa e porte pedida, sem
- * depender só da cor fixa de cada papel. */
-function aparenciaDe(semente: string): AparenciaPersonagem {
-  const h = hashSemente(semente);
-  return {
-    pele: escolhe(PELES, h, 0),
-    cabelo: escolhe(CABELOS, h, 7),
-    corpo: escolhe(ROUPAS, h, 13),
-    calca: escolhe(CALCAS, h, 19),
-    altura: 0.94 + ((h >> 3) % 10) / 100, // 0.94–1.03: variação sutil de porte
-  };
-}
+// Aparência (pele, cabelo, roupa terrosa, calça e jaqueta) vive em lib/office-aparencia.ts
+// e é estável por semente. Aqui só se desenha.
 
 const RAIL: { tab: PainelTab; rotulo: string; Icone: React.ElementType }[] = [
   { tab: "ciclo", rotulo: "Ciclo editorial", Icone: ClipboardList },
@@ -317,7 +290,7 @@ function Personagem({
       caminho.current = [];
       posAtual.current.set(basePos[0], 0, basePos[1]);
       grupo.current.position.copy(posAtual.current);
-      grupo.current.rotation.y = Math.PI;
+      grupo.current.rotation.y = OLHAR_CAMERA;
       sentarPernas();
       if (estado === "working") {
         const osc = Math.sin(t0.current * 7);
@@ -337,7 +310,7 @@ function Personagem({
     // ocioso: no-lugar (respirando) → indo (passeio) → fora (pausa) → voltando → no-lugar...
     if (fase.current === "no-lugar" || fase.current === "fora") {
       corpoRef.current.position.y = 0.55 + Math.sin(t0.current * 1.4) * 0.006; // respiração
-      if (fase.current === "no-lugar") { grupo.current.rotation.y = Math.PI; sentarPernas(); } else pararPernas();
+      if (fase.current === "no-lugar") { grupo.current.rotation.y = OLHAR_CAMERA; sentarPernas(); } else pararPernas();
       temporizador.current -= dt;
       if (temporizador.current <= 0) {
         const destino = fase.current === "no-lugar" ? destinoAleatorio() : basePos;
@@ -361,7 +334,7 @@ function Personagem({
         pararPernas();
         if (bracoE.current) bracoE.current.rotation.x = 0;
         if (bracoD.current) bracoD.current.rotation.x = 0;
-        if (chegouEmCasa) grupo.current.rotation.y = Math.PI;
+        if (chegouEmCasa) grupo.current.rotation.y = OLHAR_CAMERA;
       } else {
         const alvo = new THREE.Vector3(alvoXZ[0], 0, alvoXZ[1]);
         const delta = alvo.clone().sub(posAtual.current);
@@ -440,14 +413,31 @@ function Personagem({
           <RoundedBox args={[0.3, 0.38, 0.19]} radius={0.05} position={[0, 0, 0]} castShadow>
             <meshStandardMaterial color={L.corpo} roughness={0.75} />
           </RoundedBox>
-          {/* braços */}
+          {L.jaqueta && (
+            <group>
+              {/* paletó aberto: as costas e as laterais deixam a camisa aparecer no meio */}
+              <mesh position={[0, 0.02, -0.07]} castShadow>
+                <boxGeometry args={[0.32, 0.36, 0.05]} />
+                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
+              </mesh>
+              <mesh position={[-0.125, 0.01, 0.02]} castShadow>
+                <boxGeometry args={[0.07, 0.36, 0.16]} />
+                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
+              </mesh>
+              <mesh position={[0.125, 0.01, 0.02]} castShadow>
+                <boxGeometry args={[0.07, 0.36, 0.16]} />
+                <meshStandardMaterial color={L.jaqueta} roughness={0.8} />
+              </mesh>
+            </group>
+          )}
+          {/* braços — a jaqueta, quando existe, cobre a manga */}
           <mesh ref={bracoE} position={[-0.19, 0.05, 0]} castShadow>
             <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
-            <meshStandardMaterial color={L.corpo} roughness={0.75} />
+            <meshStandardMaterial color={L.jaqueta ?? L.corpo} roughness={0.75} />
           </mesh>
           <mesh ref={bracoD} position={[0.19, 0.05, 0]} castShadow>
             <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
-            <meshStandardMaterial color={L.corpo} roughness={0.75} />
+            <meshStandardMaterial color={L.jaqueta ?? L.corpo} roughness={0.75} />
           </mesh>
           {/* pescoço + cabeça */}
           <mesh position={[0, 0.25, 0]} castShadow>
@@ -688,8 +678,11 @@ function Sala({
               <cylinderGeometry args={[0.028, 0.028, 0.06, 10]} />
               <meshStandardMaterial color={tema.paredeD} roughness={0.5} />
             </mesh>
-            {/* cadeira: assento + encosto + pernas finas */}
-            <group position={[0, 0, 0.4]}>
+            {/* cadeira atrás de quem olha para a câmera do close */}
+            <group
+              position={[-Math.sin(OLHAR_CAMERA) * 0.18, 0, 0.3 - Math.cos(OLHAR_CAMERA) * 0.18]}
+              rotation-y={OLHAR_CAMERA}
+            >
               <RoundedBox args={[0.34, 0.05, 0.32]} radius={0.02} position={[0, 0.26, 0]} castShadow>
                 <meshStandardMaterial color="#374151" roughness={0.7} />
               </RoundedBox>
@@ -939,7 +932,13 @@ export interface CameraApi { zoomBy: (fator: number) => void }
 // Ângulo de visão fixo (um "olhar isométrico" clássico, como o mundo 2D): só a distância e
 // o ponto mirado mudam. Reposicionar direto (sem mexer com o estado esférico interno do
 // OrbitControls a cada frame) evita a câmera degenerar para um ângulo raso/errático.
-const DIRECAO_CAM = new THREE.Vector3(0.62, 0.72, 0.58).normalize();
+// O close da sala usa um pitch mais baixo e uma distância maior: o alvo antigo (y=0.6, dist 9.5)
+// cortava a cabeça no topo e deixava o piso com ~80% do quadro.
+const DIRECAO_CAM = new THREE.Vector3(0.9, 0.48, 0.82).normalize();
+/** Yaw de quem está sentado na squad, de frente para a câmera do close. */
+const OLHAR_CAMERA = Math.atan2(DIRECAO_CAM.x, DIRECAO_CAM.z);
+const DIST_PERTO = 20;
+const Y_ALVO_PERTO = 1.3;
 
 function CameraRig({
   vista, alvo, apiRef,
@@ -956,7 +955,7 @@ function CameraRig({
   };
 
   const alvoKey = alvo.join(",");
-  useEffect(() => { aplicar(vista === "mundo" ? 50 : 9.5); }, [vista, alvoKey]);
+  useEffect(() => { aplicar(vista === "mundo" ? 50 : DIST_PERTO); }, [vista, alvoKey]);
 
   useEffect(() => {
     apiRef.current = {
@@ -1303,11 +1302,12 @@ export default function OfficeGame3D(props: Props) {
   const predioAtual = predios.find((p) => p.empresa.bu === buAtual);
   const slotCasa = focoCasa === "estudio" ? SALA_ESTUDIO.slot : SALAS_CASA[focoCasa];
   const ladoCasa = focoCasa === "estudio" ? SALA_ESTUDIO.lado : SALAS_CASA.lado;
+  const yAlvo = vista === "mundo" ? 0.4 : Y_ALVO_PERTO;
   const alvoPredio: [number, number, number] | null = predioAtual
-    ? [(predioAtual.x + predioAtual.w / 2) * UNIT, 0.6, (predioAtual.y + predioAtual.h / 2) * UNIT]
+    ? [(predioAtual.x + predioAtual.w / 2) * UNIT, yAlvo, (predioAtual.y + predioAtual.h / 2) * UNIT]
     : null;
   const alvo: [number, number, number] = vista === "casa"
-    ? [(slotCasa.x + ladoCasa / 2) * UNIT, 0.6, (slotCasa.y + ladoCasa / 2) * UNIT]
+    ? [(slotCasa.x + ladoCasa / 2) * UNIT, yAlvo, (slotCasa.y + ladoCasa / 2) * UNIT]
     : (alvoPredio ?? [10 * UNIT, 0, 7 * UNIT]);
 
   const resultados = useMemo(() => {
