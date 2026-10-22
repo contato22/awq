@@ -40,11 +40,19 @@ const INTACTO = /eye|brow|earring|gold|teeth|mouth/i;
  * misturam esses eixos e abrem as pernas. A pose aponta o +Y de cada osso
  * (o eixo que segue o membro) para uma direção no espaço do personagem,
  * compondo o quaternion do pai — vale igual para os dois GLBs.
- * Os pés ficam no Root, separados da perna: só recebem a rotação de repouso.
- * Transladar o osso do pé estica a malha. Quem desce até o assento é o osso
- * Body (quadril e pernas), uma vez calibrado.
+ * Os pés ficam no Root, separados da perna. O GLB nomeia `UpperLeg.L`, não
+ * `UpperLegL`: sem esse ponto a pose não acha o membro e a perna fica reta
+ * enquanto o quadril desce. Transladar o osso do pé estica a malha — o pé só
+ * gira, e a canela aponta para ele. Quem desce até o assento é o osso Body.
  */
 const POSE = ["Hips", "Abdomen", "Chest", "UpperLegL", "UpperLegR", "LowerLegL", "LowerLegR", "FootL", "FootR", "UpperArmL", "UpperArmR", "LowerArmL", "LowerArmR", "WristL", "WristR"];
+
+/** `UpperLegL` no código → `UpperLeg.L` no esqueleto Quaternius. */
+function nomeOsso(nome: string): string {
+  return /^(?:UpperLeg|LowerLeg|Foot|UpperArm|LowerArm|Wrist)[LR]$/.test(nome)
+    ? nome.replace(/([LR])$/, ".$1")
+    : nome;
+}
 /** Quadril no mundo, em cima do assento (topo ~0.29). A malha da pelve fica um pouco abaixo do osso. */
 const ALVO_QUADRIL = 0.38;
 
@@ -58,6 +66,29 @@ const _v = new THREE.Vector3();
 const _delta = new THREE.Quaternion();
 const _pai = new THREE.Quaternion();
 const _local = new THREE.Quaternion();
+const _quadril = new THREE.Vector3();
+const _pe = new THREE.Vector3();
+const _joelho = new THREE.Vector3();
+const _eixo = new THREE.Vector3();
+const _polo = new THREE.Vector3();
+
+/** Joelho para a frente, com o comprimento da coxa e da canela, sem mover o pé. */
+function dobrarPerna(quadril: THREE.Vector3, pe: THREE.Vector3, frente: THREE.Vector3, coxa: number, canela: number, destino: THREE.Vector3) {
+  _eixo.subVectors(pe, quadril);
+  const dist = _eixo.length();
+  if (dist < 1e-4 || coxa < 1e-4 || canela < 1e-4) {
+    destino.copy(quadril).addScaledVector(frente, coxa);
+    return;
+  }
+  const d = Math.min(Math.max(dist, Math.abs(coxa - canela) + 1e-3), coxa + canela - 1e-3);
+  _eixo.multiplyScalar(1 / dist);
+  const aoLongo = (coxa * coxa - canela * canela + d * d) / (2 * d);
+  const altura = Math.sqrt(Math.max(coxa * coxa - aoLongo * aoLongo, 0));
+  _polo.copy(frente).addScaledVector(_eixo, -frente.dot(_eixo));
+  if (_polo.lengthSq() < 1e-8) _polo.copy(frente);
+  _polo.normalize();
+  destino.copy(quadril).addScaledVector(_eixo, aoLongo).addScaledVector(_polo, altura);
+}
 
 /** Rotação no mundo que respeita o quaternion dos pais (o grupo está virado para a câmera). */
 function girarNoMundo(osso: THREE.Bone, eixo: THREE.Vector3, angulo: number) {
@@ -188,6 +219,7 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
   const ossos = useRef<Record<string, THREE.Bone> | null>(null);
   const corpoBindY = useRef(0);
   const quedaCorpo = useRef<number | null>(null);
+  const pernas = useRef<{ coxaL: number; canelaL: number; coxaR: number; canelaR: number } | null>(null);
   const jaSentado = useRef(false);
   const relogio = useRef(Math.random() * 10);
 
@@ -210,6 +242,7 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
     ossos.current = porOsso;
     corpoBindY.current = porOsso.Body?.position.y ?? 0;
     quedaCorpo.current = null;
+    pernas.current = null;
     const mix = new THREE.AnimationMixer(montado.clone);
     mixer.current = mix;
     const mapa: Record<string, THREE.AnimationAction> = {};
@@ -253,7 +286,7 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
       }
       corpo.position.y = corpoBindY.current - (quedaCorpo.current ?? 0) + resp * 0.01;
       for (const nome of POSE) {
-        const bone = mapa[nome];
+        const bone = mapa[nomeOsso(nome)];
         const q = bone && descanso.current.get(bone.name);
         if (bone && q) bone.quaternion.copy(q);
       }
@@ -268,22 +301,51 @@ export function CorpoQuaternius({ semente, poseRef }: { semente: string; poseRef
         _baixo.copy(_cima).negate();
         if (mapa.Abdomen) girarNoMundo(mapa.Abdomen, _lateral, -0.12 + resp * 0.04);
         if (mapa.Chest) girarNoMundo(mapa.Chest, _lateral, -0.06 + resp * 0.02);
-        _v.copy(_frente).multiplyScalar(0.97).addScaledVector(_baixo, 0.24);
-        if (mapa.UpperLegL) apontar(mapa.UpperLegL, _v);
-        if (mapa.UpperLegR) apontar(mapa.UpperLegR, _v);
-        root.updateWorldMatrix(true, true);
-        _v.copy(_baixo).multiplyScalar(0.97).addScaledVector(_frente, -0.22);
-        if (mapa.LowerLegL) apontar(mapa.LowerLegL, _v);
-        if (mapa.LowerLegR) apontar(mapa.LowerLegR, _v);
+        const coxaE = mapa[nomeOsso("UpperLegL")];
+        const coxaD = mapa[nomeOsso("UpperLegR")];
+        const canelaE = mapa[nomeOsso("LowerLegL")];
+        const canelaD = mapa[nomeOsso("LowerLegR")];
+        const peE = mapa[nomeOsso("FootL")];
+        const peD = mapa[nomeOsso("FootR")];
+        if (!pernas.current && coxaE && canelaE && peE && coxaD && canelaD && peD) {
+          const ySentado = corpo.position.y;
+          corpo.position.y = corpoBindY.current;
+          root.updateWorldMatrix(true, true);
+          const trecho = (a: THREE.Bone, b: THREE.Bone) => a.getWorldPosition(_quadril).distanceTo(b.getWorldPosition(_pe));
+          pernas.current = {
+            coxaL: trecho(coxaE, canelaE),
+            canelaL: trecho(canelaE, peE),
+            coxaR: trecho(coxaD, canelaD),
+            canelaR: trecho(canelaD, peD),
+          };
+          corpo.position.y = ySentado;
+          root.updateWorldMatrix(true, true);
+        }
+        const sentarPerna = (coxa: THREE.Bone | undefined, canela: THREE.Bone | undefined, pe: THREE.Bone | undefined, compCoxa: number, compCanela: number) => {
+          if (!coxa || !canela || !pe || compCoxa < 1e-4) return;
+          coxa.getWorldPosition(_quadril);
+          pe.getWorldPosition(_pe);
+          dobrarPerna(_quadril, _pe, _frente, compCoxa, compCanela, _joelho);
+          apontar(coxa, _v.subVectors(_joelho, _quadril));
+          root.updateWorldMatrix(true, true);
+          canela.getWorldPosition(_quadril);
+          apontar(canela, _v.subVectors(_pe, _quadril));
+          apontar(pe, _frente);
+        };
+        const comp = pernas.current;
+        sentarPerna(coxaE, canelaE, peE, comp?.coxaL ?? 0, comp?.canelaL ?? 0);
+        sentarPerna(coxaD, canelaD, peD, comp?.coxaR ?? 0, comp?.canelaR ?? 0);
         root.updateWorldMatrix(true, true);
         _v.copy(_frente).multiplyScalar(0.34).addScaledVector(_baixo, 0.9).addScaledVector(_lateral, 0.2);
-        if (mapa.UpperArmL) apontar(mapa.UpperArmL, _v);
+        if (mapa[nomeOsso("UpperArmL")]) apontar(mapa[nomeOsso("UpperArmL")], _v);
         _v.copy(_frente).multiplyScalar(0.34).addScaledVector(_baixo, 0.9).addScaledVector(_lateral, -0.2);
-        if (mapa.UpperArmR) apontar(mapa.UpperArmR, _v);
+        if (mapa[nomeOsso("UpperArmR")]) apontar(mapa[nomeOsso("UpperArmR")], _v);
         root.updateWorldMatrix(true, true);
         _v.copy(_frente).multiplyScalar(0.42 + digita).addScaledVector(_baixo, 0.9 - digita);
-        if (mapa.LowerArmL) apontar(mapa.LowerArmL, _v);
-        if (mapa.LowerArmR) apontar(mapa.LowerArmR, _v);
+        const bracoE = mapa[nomeOsso("LowerArmL")];
+        const bracoD = mapa[nomeOsso("LowerArmR")];
+        if (bracoE) apontar(bracoE, _v);
+        if (bracoD) apontar(bracoD, _v);
       }
       return;
     }
