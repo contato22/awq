@@ -27,3 +27,14 @@ test("o CSV escapa aspas e não embute o PNG", () => {
   assert.match(csv, /,85,/);
   assert.equal(csv.includes("base64"), false);
 });
+
+test("o CSV neutraliza fórmula no começo da célula", () => {
+  const csv = csvDoStoryboard([
+    shot({ nome: "=cmd|'/c calc'!A1", nota: "+soma" }),
+    shot({ nome: "-1", nota: "@risco" }),
+  ]);
+  assert.match(csv, /"'=cmd\|'\/c calc'!A1"/);
+  assert.match(csv, /"'\+soma"/);
+  assert.match(csv, /"'-1"/);
+  assert.match(csv, /"'@risco"/);
+});

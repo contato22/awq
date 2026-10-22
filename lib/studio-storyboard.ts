@@ -1,7 +1,8 @@
 import type { ShotEstudio } from "./studio-store";
 
 function celula(valor: string): string {
-  return `"${valor.replace(/"/g, '""')}"`;
+  const texto = /^[=+\-@]/.test(valor) ? `'${valor}` : valor;
+  return `"${texto.replace(/"/g, '""')}"`;
 }
 
 /** CSV dos planos, sem o PNG (o binário fica no storyboard impresso). */

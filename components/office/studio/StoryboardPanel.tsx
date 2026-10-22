@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, FileSpreadsheet, Printer } from "lucide-react";
+import { ArrowDown, ArrowUp, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
 import { SENSORES } from "@/lib/studio-optics";
 import { csvDoStoryboard } from "@/lib/studio-storyboard";
-import { assinarEstudio, listarShots, moverShot, type ShotEstudio } from "@/lib/studio-store";
+import { assinarEstudio, listarShots, moverShot, removerShot, type ShotEstudio } from "@/lib/studio-store";
 
 function escapar(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
@@ -20,7 +20,7 @@ function imprimir(shots: ShotEstudio[]) {
   if (!doc || !win) { iframe.remove(); return; }
   const blocos = shots.map((s, i) => `
     <figure>
-      <img src="${s.png}" alt="">
+      <img src="${s.png}" alt="${escapar(s.nome)}">
       <figcaption><strong>${i + 1}. ${escapar(s.nome)}</strong> · ${s.lenteMm} mm · ${escapar(SENSORES[s.sensor].nome)} · ${escapar(s.aspecto)}<br>${escapar(s.nota)}</figcaption>
     </figure>`).join("");
   doc.open();
@@ -80,7 +80,7 @@ export default function StoryboardPanel() {
         {shots.map((s, i) => (
           <li key={s.id} className="border border-gray-100 rounded-xl overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={s.png} alt="" className="w-full bg-gray-900" />
+            <img src={s.png} alt={`Miniatura de ${s.nome}`} className="w-full bg-gray-900" />
             <div className="p-3 flex items-start gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800">{i + 1}. {s.nome}</p>
@@ -92,6 +92,8 @@ export default function StoryboardPanel() {
                   className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center disabled:opacity-30"><ArrowUp size={14} /></button>
                 <button type="button" aria-label={`Descer ${s.nome}`} disabled={i === shots.length - 1} onClick={() => moverShot(s.id, 1)}
                   className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center disabled:opacity-30"><ArrowDown size={14} /></button>
+                <button type="button" aria-label={`Remover ${s.nome}`} onClick={() => removerShot(s.id)}
+                  className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-red-600"><Trash2 size={14} /></button>
               </div>
             </div>
           </li>

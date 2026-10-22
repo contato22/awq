@@ -799,6 +799,7 @@ export default function OfficeSimulator() {
   const [headEntregando, setHeadEntregando] = useState(false);
   const [headErro, setHeadErro] = useState<string | null>(null);
   const headBusyRef = useRef(false);
+  const abaAtiva = useRef<HTMLButtonElement>(null);
   const entregandoRef = useRef(false);
 
   const gravarHead = (next: EstadoHead) => {
@@ -1128,6 +1129,10 @@ export default function OfficeSimulator() {
     };
   });
   empresasRef.current = empresas;
+  useEffect(() => {
+    abaAtiva.current?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  }, [tab, painelAberto]);
+
   const Mundo = modo3D ? OfficeGame3D : OfficeGame;
 
   return (
@@ -1213,10 +1218,10 @@ export default function OfficeSimulator() {
       >
       {/* Painéis (gaveta sobre o mundo) */}
       <div className="h-full flex flex-col bg-white">
-        <div className="flex gap-1 border-b border-gray-100 pl-3 pr-12 pt-3 overflow-x-auto shrink-0">
+        <div className="flex gap-1 border-b border-gray-100 pl-3 pr-14 pt-3 pb-1 overflow-x-auto shrink-0 min-w-0 w-full">
           {([["ciclo", "Ciclo"], ["conversa", "Mensagens"], ["reuniao", "Reunião"], ["head", "Head de CS"], ["eventos", "Eventos"], ["missoes", "Missões"], ["relatorio", "Relatório da manhã"], ["analise", "Análise"], ["cenarios", "Cenários de estresse"], ["registros", "Registros"], ["storyboard", "Storyboard"]] as const).map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`px-3 py-2 text-sm rounded-t-lg whitespace-nowrap ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
+            <button key={k} ref={tab === k ? abaAtiva : undefined} onClick={() => { setTab(k); }}
+              className={`px-2.5 py-2 text-sm rounded-t-lg whitespace-nowrap shrink-0 ${tab === k ? "text-brand-700 font-semibold border-b-2 border-brand-500" : "text-gray-500"}`}>
               {l}
             </button>
           ))}
