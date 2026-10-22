@@ -1,0 +1,9 @@
+Universal Animation Library [Standard]
+Models by @Quaternius
+https://quaternius.com
+
+License: CC0 1.0 Universal (public domain)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The file UAL1_Standard.glb is the free tier (root motion off).
+Paid packs were not used.
