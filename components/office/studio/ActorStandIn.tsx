@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import { Html, useAnimations, useGLTF } from "@react-three/drei";
+import { SkeletonUtils } from "three-stdlib";
 import type { EstadoAtor, PoseAtorId } from "@/lib/studio-actor";
 import { NOME_ATOR_PADRAO, POSES_ATOR } from "@/lib/studio-actor";
 
@@ -12,31 +13,38 @@ useGLTF.preload(MODELO);
 /** Boneco CC0 do Quaternius (Universal Animation Library, tier gratuito). */
 export function AtorNoSet({ pose, nome }: { pose: PoseAtorId; nome: string }) {
   const { scene, animations } = useGLTF(MODELO);
-  const { actions } = useAnimations(animations, scene);
+  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  const { actions, mixer } = useAnimations(animations, clone);
   const rotulo = nome.trim() || NOME_ATOR_PADRAO;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const action = actions[pose];
     if (!action) return;
-    action.reset().fadeIn(0.15).play();
+    for (const nomeAcao of Object.keys(actions)) {
+      if (nomeAcao !== pose) actions[nomeAcao]?.stop();
+    }
+    action.enabled = true;
+    action.setEffectiveWeight(1);
+    action.reset().play();
+    mixer.update(0);
     return () => {
-      action.fadeOut(0.15);
+      action.stop();
     };
-  }, [actions, pose]);
+  }, [actions, mixer, pose]);
 
   useEffect(() => {
-    scene.traverse((obj) => {
+    clone.traverse((obj) => {
       const malha = obj as { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean };
       if (malha.isMesh) {
         malha.castShadow = true;
         malha.receiveShadow = true;
       }
     });
-  }, [scene]);
+  }, [clone]);
 
   return (
     <group position={[0, 0, -0.4]}>
-      <primitive object={scene} />
+      <primitive object={clone} />
       <Html position={[0.55, 1.95, 0]} center distanceFactor={8} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
         <div className="px-2 py-0.5 rounded-md bg-black/75 text-white text-xs whitespace-nowrap">{rotulo}</div>
       </Html>
