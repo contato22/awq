@@ -426,6 +426,7 @@ function mapaTijolo(largura: number, altura: number) {
 
 function MalhaTijolo({ args, position }: { args: [number, number, number]; position: [number, number, number] }) {
   const map = useMemo(() => mapaTijolo(args[0], args[1]), [args[0], args[1]]);
+  useEffect(() => () => map.dispose(), [map]);
   return (
     <mesh position={position} castShadow receiveShadow>
       <boxGeometry args={args} />
@@ -484,6 +485,7 @@ function ParedeExterna({ comprimento }: { comprimento: number }) {
 
 function Pilar({ posicao, altura = 2.3 }: { posicao: [number, number]; altura?: number }) {
   const tijolo = useMemo(() => mapaTijolo(Math.PI * 0.32, altura), [altura]);
+  useEffect(() => () => tijolo.dispose(), [tijolo]);
   return (
     <group position={[posicao[0], 0, posicao[1]]}>
       <mesh position={[0, altura / 2, 0]} castShadow receiveShadow>
@@ -597,6 +599,7 @@ function Sala({
     t.repeat.set(w / 2.4, d / 2.4);
     return t;
   }, [madeira, w, d]);
+  useEffect(() => () => pisoMap.dispose(), [pisoMap]);
   const tapeteMap = useMemo(() => texturaTapete(), []);
   return (
     <group position={[ox, 0, oz]}>
@@ -852,6 +855,7 @@ function SalaDaCasa({
     t.repeat.set(w / 2.4, d / 2.4);
     return t;
   }, [madeira, w, d]);
+  useEffect(() => () => pisoMap.dispose(), [pisoMap]);
   const tapeteMap = useMemo(() => texturaTapete(), []);
   const emReuniao = tipo === "reunioes" && !!reuniao && reuniao.length > 0;
   return (
@@ -1238,6 +1242,7 @@ function Cena({
     t.repeat.set(chaoW / 2.4, chaoD / 2.4);
     return t;
   }, [chaoW, chaoD]);
+  useEffect(() => () => pisoGeralMap.dispose(), [pisoGeralMap]);
   return (
     <>
       <ConfigRenderer />
