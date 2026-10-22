@@ -666,11 +666,9 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
-      {ativo ? (
-        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
-      ) : luzDoDia(hora) < 0.55 ? (
-        <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={4} distance={12} decay={2} />
-      ) : null}
+      {/* As luzes ficam montadas; só a intensidade muda, para o shader não recompilar. */}
+      <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={ativo ? 6 : 0} distance={14} decay={2} />
+      <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={!ativo && luzDoDia(hora) < 0.55 ? 4 : 0} distance={12} decay={2} />
       <group position={[0, 0, 0.02]}>
         {predio.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -928,11 +926,8 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
-      {detalhado ? (
-        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
-      ) : luzDoDia(hora) < 0.55 ? (
-        <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={4} distance={12} decay={2} />
-      ) : null}
+      <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={detalhado ? 6 : 0} distance={14} decay={2} />
+      <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={!detalhado && luzDoDia(hora) < 0.55 ? 4 : 0} distance={12} decay={2} />
       <group position={[0, 0, 0.02]}>
         {origem.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
