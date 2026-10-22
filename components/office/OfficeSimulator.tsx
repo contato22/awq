@@ -1168,7 +1168,7 @@ export default function OfficeSimulator() {
       {/* Alternância do renderizador: o mundo 2D (padrão) continua disponível durante a migração */}
       <button
         onClick={alternarModo3D}
-        className="absolute top-2 right-2 z-[70] rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-medium px-2.5 py-1.5"
+        className={`absolute z-[70] rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-medium px-2.5 py-1.5 ${painelAberto ? "top-14 left-16" : "top-14 right-3"}`}
         title={modo3D ? "Voltar para o mundo 2D" : "Experimentar o mundo em 3D (beta)"}
       >
         {modo3D ? "Mundo 2D" : "Modo 3D (beta)"}
