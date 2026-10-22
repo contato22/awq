@@ -472,7 +472,7 @@ function ParedeDetalhada({ comprimento, corAccent }: { comprimento: number; corA
     <group>
       <mesh position={[comprimento / 2, 0.07, 0]} castShadow receiveShadow>
         <boxGeometry args={[comprimento, 0.14, 0.06]} />
-        <meshStandardMaterial color="#5a3a1c" roughness={0.7} />
+        <meshStandardMaterial color="#b89a74" roughness={0.7} />
       </mesh>
       <mesh position={[comprimento / 2, 0.5, 0]} castShadow receiveShadow>
         <boxGeometry args={[comprimento, 0.72, 0.045]} />
@@ -485,7 +485,7 @@ function ParedeDetalhada({ comprimento, corAccent }: { comprimento: number; corA
       {[1.3, 2.05].map((y, i) => (
         <mesh key={i} position={[comprimento / 2, y, 0.012]} castShadow>
           <boxGeometry args={[comprimento, 0.035, 0.05]} />
-          <meshStandardMaterial color="#2d2015" roughness={0.6} />
+          <meshStandardMaterial color="#c9a978" roughness={0.6} />
         </mesh>
       ))}
     </group>
