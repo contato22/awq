@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
 import { SENSORES } from "@/lib/studio-optics";
 import { csvDoStoryboard } from "@/lib/studio-storyboard";
-import { assinarEstudio, listarShots, moverShot, removerShot, type ShotEstudio } from "@/lib/studio-store";
+import { assinarEstudio, listarShots, moverShot, persistenciaDoEstudioLigada, removerShot, type ShotEstudio } from "@/lib/studio-store";
 
 function escapar(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
@@ -74,7 +74,13 @@ export default function StoryboardPanel() {
           </button>
         </div>
       </div>
-      <p className="text-[11px] text-gray-500">Reordene os planos e exporte. O PDF abre a impressão do navegador. Sem a flag CAZA_STUDIO_PERSIST, a lista vive só nesta sessão.</p>
+      <p className="text-[11px] text-gray-500">
+        Reordene os planos e exporte. O PDF abre a impressão do navegador.
+        {" "}
+        {persistenciaDoEstudioLigada()
+          ? "Os planos ficam guardados neste navegador."
+          : "A lista vive só nesta sessão."}
+      </p>
       {shots.length === 0 && <p className="text-xs text-gray-400">Nenhum plano ainda. Capture no Estúdio.</p>}
       <ol className="space-y-3">
         {shots.map((s, i) => (
