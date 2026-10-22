@@ -91,9 +91,17 @@ function horaBrasilia(): number {
   return h + m / 60;
 }
 
+/** A trava de QA só vale no dev ou com `?qa=1`. Em produção o relógio ignora o localStorage. */
+function qaHoraLiberada(): boolean {
+  if (typeof window === "undefined") return false;
+  if (process.env.NODE_ENV === "development") return true;
+  return new URLSearchParams(window.location.search).get("qa") === "1";
+}
+
 /** `localStorage.office-hora` (0–24) trava o relógio para a captura de QA. Sem a chave, vale Brasília. */
 function horaInicial(): number {
   if (typeof window === "undefined") return 12;
+  if (!qaHoraLiberada()) return horaBrasilia();
   const fixa = window.localStorage.getItem("office-hora");
   if (fixa == null || fixa === "") return horaBrasilia();
   const n = Number(fixa);
@@ -101,7 +109,7 @@ function horaInicial(): number {
 }
 
 function horaTravada(): boolean {
-  return typeof window !== "undefined" && !!window.localStorage.getItem("office-hora");
+  return qaHoraLiberada() && !!window.localStorage.getItem("office-hora");
 }
 
 // ── Cabelo por papel: mesma ideia de silhueta reconhecível do mundo 2D (cabeloDoPapel em
@@ -480,7 +488,7 @@ function Personagem({
 
 /** Parede construída ao longo do eixo local +x (de 0 a `comprimento`); quem usa decide a
  * orientação via rotação do grupo pai — mantém a sala em cutaway isométrico (sem teto). */
-function ParedeDetalhada({ comprimento, corAccent }: { comprimento: number; corAccent: string }) {
+function ParedeDetalhada({ comprimento, corAccent, brilho = false }: { comprimento: number; corAccent: string; brilho?: boolean }) {
   return (
     <group>
       <mesh position={[comprimento / 2, 0.07, 0]} castShadow receiveShadow>
@@ -493,7 +501,16 @@ function ParedeDetalhada({ comprimento, corAccent }: { comprimento: number; corA
       </mesh>
       <mesh position={[comprimento / 2, 1.66, 0]}>
         <boxGeometry args={[comprimento, 1.1, 0.025]} />
-        <meshPhysicalMaterial color="#bcdcff" transparent opacity={0.2} roughness={0.15} transmission={0.3} />
+        <meshPhysicalMaterial
+          color={brilho ? "#ffbf70" : "#bcdcff"}
+          emissive={brilho ? "#ff9a3c" : "#000000"}
+          emissiveIntensity={brilho ? 0.85 : 0}
+          transparent
+          opacity={brilho ? 0.55 : 0.2}
+          roughness={0.15}
+          transmission={brilho ? 0.12 : 0.3}
+          toneMapped={!brilho}
+        />
       </mesh>
       {[1.3, 2.05].map((y, i) => (
         <mesh key={i} position={[comprimento / 2, y, 0.012]} castShadow>
@@ -640,19 +657,14 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
-      {ativo ? (
-        <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={12} distance={12} decay={2} />
-      ) : (
-        <mesh position={[w / 2, 1.35, 0.06]}>
-          <planeGeometry args={[Math.min(w * 0.42, 2.6), 0.85]} />
-          <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.9} />
-        </mesh>
+      {ativo && (
+        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} />
+        <ParedeDetalhada comprimento={w} corAccent={tema.paredeE} brilho={!ativo} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
-        <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} />
+        <ParedeDetalhada comprimento={d} corAccent={tema.paredeD} brilho={!ativo} />
       </group>
       <Pilar posicao={PILAR_POS} />
       {detalhado && (
@@ -825,19 +837,14 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
-      {detalhado ? (
-        <pointLight position={[w / 2, 1.75, d / 2]} color="#ffc48a" intensity={12} distance={12} decay={2} />
-      ) : (
-        <mesh position={[w / 2, 1.35, 0.06]}>
-          <planeGeometry args={[Math.min(w * 0.42, 2.6), 0.85]} />
-          <meshStandardMaterial color="#ffbf70" emissive="#ff9a3c" emissiveIntensity={0.9} />
-        </mesh>
+      {detalhado && (
+        <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
       )}
       <group position={[0, 0, 0.02]}>
-        <ParedeDetalhada comprimento={w} corAccent={accent} />
+        <ParedeDetalhada comprimento={w} corAccent={accent} brilho={!detalhado} />
       </group>
       <group position={[0.02, 0, 0]} rotation-y={-Math.PI / 2}>
-        <ParedeDetalhada comprimento={d} corAccent={accent} />
+        <ParedeDetalhada comprimento={d} corAccent={accent} brilho={!detalhado} />
       </group>
       <Pilar posicao={PILAR_POS} />
       {tipo === "diretoria" ? (
@@ -1023,7 +1030,8 @@ function Iluminacao({ hora }: { hora: number }) {
     <>
       <color attach="background" args={[ceuAtual.base]} />
       <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.08 + l * 0.18]} />
-      <ambientLight intensity={0.08 + l * 0.12} />
+      {/* De dia (luzDoDia = 1) fica em 0.38, acima de 0.35. À noite volta para 0.08. */}
+      <ambientLight intensity={0.08 + l * 0.30} />
       {/* Preenchimento frio do céu: de noite fica no piso, de dia sobe com a luz. */}
       <directionalLight position={[-16, 9, 14]} color="#9fc0ff" intensity={0.15 + l * 0.2} />
       {/* Sol baixo, cor #ffcf8a, entrando pela fachada. Intensidade segue luzDoDia (0 à noite). */}
