@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
 import * as THREE from "three";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { LUZES_INICIAIS, kelvinParaRgb, type AjusteLuz, type LuzId } from "@/lib/studio-lights";
+import { CAMADA_GIZMO } from "./camadas";
 
 const ORDEM: LuzId[] = ["key", "fill", "back"];
 const POS: Record<LuzId, [number, number, number]> = {
@@ -51,6 +52,13 @@ export function LuzesDoEstudio({
   const backL = useRef<THREE.SpotLight>(null);
   const alvo = useRef<THREE.Object3D>(null);
   const controls = useThree((s) => s.controls) as { enabled?: boolean } | null;
+  const marcarGizmo = useCallback((obj: THREE.Object3D | null) => {
+    if (!obj) return;
+    obj.traverse((n) => {
+      n.userData.ocultarNaCaptura = true;
+      n.layers.set(CAMADA_GIZMO);
+    });
+  }, []);
 
   useLayoutEffect(() => {
     RectAreaLightUniformsLib.init();
@@ -112,6 +120,7 @@ export function LuzesDoEstudio({
       </group>
       {gizmo && objeto && (
         <TransformControls
+          ref={marcarGizmo}
           object={objeto}
           mode="translate"
           onMouseDown={() => { if (controls) controls.enabled = false; }}
@@ -133,27 +142,28 @@ export function PainelDasLuzes({
   onSelect: (id: LuzId) => void;
   onChange: (id: LuzId, parcial: Partial<AjusteLuz>) => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const alvo = e.target as HTMLElement | null;
-      if (alvo?.closest("input, textarea, select, [contenteditable='true']")) return;
-      const porTecla: Record<string, LuzId> = { "1": "key", "2": "fill", "3": "back" };
-      if (porTecla[e.key]) {
-        onSelect(porTecla[e.key]);
-        return;
-      }
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-      const i = ORDEM.indexOf(selecionada);
-      const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
-      onSelect(ORDEM[(i + delta + ORDEM.length) % ORDEM.length]);
-      e.preventDefault();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onSelect, selecionada]);
+  const onTecla = (e: KeyboardEvent<HTMLDivElement>) => {
+    const alvo = e.target as HTMLElement | null;
+    if (alvo?.closest("input, textarea, select, [contenteditable='true']")) return;
+    const porTecla: Record<string, LuzId> = { "1": "key", "2": "fill", "3": "back" };
+    if (porTecla[e.key]) {
+      onSelect(porTecla[e.key]);
+      return;
+    }
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    const i = ORDEM.indexOf(selecionada);
+    const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    onSelect(ORDEM[(i + delta + ORDEM.length) % ORDEM.length]);
+    e.preventDefault();
+  };
 
   return (
-    <div className="absolute top-24 right-3 pointer-events-auto w-52 rounded-2xl bg-black/75 text-white text-[11px] p-3 space-y-2">
+    <div
+      tabIndex={0}
+      onKeyDown={onTecla}
+      aria-label="Luzes do estúdio"
+      className="absolute top-24 right-3 pointer-events-auto w-52 rounded-2xl bg-black/75 text-white text-[11px] p-3 space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+    >
       <p className="font-semibold text-xs">Luzes · key / fill / back</p>
       {ORDEM.map((id, indice) => {
         const meta = LUZES_INICIAIS[id];
