@@ -78,6 +78,8 @@ function perfilDoCove(): [number, number][] {
     const ang = (i / passosArco) * (Math.PI / 2);
     perfil.push([RAIO * Math.cos(ang), RAIO * Math.sin(ang)]);
   }
+  // Lábio horizontal: a borda do piso só encosta em faces planas, sem degrau de normal.
+  perfil.push([0, RAIO + 0.45]);
   return perfil;
 }
 
@@ -104,7 +106,7 @@ function geometriaCiclorama(): THREE.BufferGeometry {
   for (let j = 0; j < base.length - 1; j++) {
     for (let i = 0; i < n - 1; i++) {
       const a = j * n + i;
-      idx.push(a, a + n, a + 1, a + 1, a + n, a + n + 1);
+      idx.push(a, a + 1, a + n, a + n, a + 1, a + n + 1);
     }
   }
   const borda = Array.from({ length: base.length }, (_, j) => j * n + (n - 1));
