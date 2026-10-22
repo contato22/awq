@@ -561,7 +561,7 @@ function Sala({
       {detalhado && (
         <>
           <Estante posicao={ESTANTE_POS} />
-          <EstanteBaixa posicao={ESTANTE_BAIXA_POS} rotacao={Math.PI / 2} />
+          <EstanteBaixa posicao={ESTANTE_BAIXA_POS} rotacao={OLHAR_CAMERA} />
           {PLANTAS_POS.map((p, i) => <Planta key={i} posicao={p} />)}
         </>
       )}
@@ -678,24 +678,47 @@ function Poltrona({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao
   );
 }
 
-/** Estante baixa. Na squad fica entre as mesas; na diretoria e na reunião, na parede. */
+/** Estante baixa. Na squad fica entre as mesas; na diretoria e na reunião, na parede.
+ *  A caixa é escura para separar do piso de carvalho, e os livros olham para a câmera. */
 function EstanteBaixa({ posicao, rotacao = 0 }: { posicao: [number, number]; rotacao?: number }) {
-  const livros = ["#8d5a3c", "#c4a574", "#6b705c", "#a67c52", "#4a4036", "#d4c4a8", "#7d5a3c"];
+  const lombadas = ["#1f4e79", "#c23b4e", "#2f6f6a", "#e6d3a3", "#d4a017", "#6b3f69", "#1f4e79", "#c23b4e"];
+  const caixa = "#3f342b";
   return (
     <group position={[posicao[0], 0, posicao[1]]} rotation-y={rotacao}>
-      <RoundedBox args={[1.05, 0.5, 0.28]} radius={0.02} position={[0, 0.25, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color="#a8845c" roughness={0.75} />
-      </RoundedBox>
-      {[0.16, 0.36].map((y) => (
-        <mesh key={y} position={[0, y, 0.02]} castShadow>
-          <boxGeometry args={[0.98, 0.02, 0.24]} />
-          <meshStandardMaterial color={MADEIRA_MOVEL} roughness={0.7} />
+      <mesh position={[0, 0.39, -0.14]} castShadow receiveShadow>
+        <boxGeometry args={[1.35, 0.78, 0.04]} />
+        <meshStandardMaterial color={caixa} roughness={0.72} />
+      </mesh>
+      {([-0.66, 0.66] as const).map((x) => (
+        <mesh key={x} position={[x, 0.39, 0]} castShadow>
+          <boxGeometry args={[0.04, 0.78, 0.32]} />
+          <meshStandardMaterial color={caixa} roughness={0.72} />
         </mesh>
       ))}
-      {livros.map((cor, i) => (
-        <mesh key={cor} position={[-0.38 + i * 0.12, 0.46, 0.04]} castShadow>
-          <boxGeometry args={[0.08, 0.16, 0.16]} />
-          <meshStandardMaterial color={cor} roughness={0.8} />
+      <mesh position={[0, 0.04, 0]} receiveShadow>
+        <boxGeometry args={[1.32, 0.04, 0.32]} />
+        <meshStandardMaterial color={caixa} roughness={0.72} />
+      </mesh>
+      <mesh position={[0, 0.76, 0]} castShadow>
+        <boxGeometry args={[1.35, 0.04, 0.32]} />
+        <meshStandardMaterial color={caixa} roughness={0.72} />
+      </mesh>
+      {[0.28, 0.52].map((y) => (
+        <mesh key={y} position={[0, y, 0]} receiveShadow>
+          <boxGeometry args={[1.26, 0.025, 0.28]} />
+          <meshStandardMaterial color={MADEIRA_MOVEL} roughness={0.65} />
+        </mesh>
+      ))}
+      {lombadas.map((cor, i) => (
+        <mesh key={`b-${i}`} position={[-0.52 + i * 0.15, 0.4, 0.02]} castShadow>
+          <boxGeometry args={[0.11, 0.2, 0.16]} />
+          <meshStandardMaterial color={cor} roughness={0.55} />
+        </mesh>
+      ))}
+      {lombadas.map((cor, i) => (
+        <mesh key={`a-${i}`} position={[-0.52 + i * 0.15, 0.64, 0.02]} castShadow>
+          <boxGeometry args={[0.11, 0.18, 0.16]} />
+          <meshStandardMaterial color={cor} roughness={0.55} />
         </mesh>
       ))}
     </group>
