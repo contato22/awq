@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SENSORES, fovDaLente, fovGraus, fovVertical } from "./studio-optics";
+import { SENSORES, fovDaLente, fovGraus, fovNoQuadro, fovNoVisor, fovVertical, gateNoAspecto } from "./studio-optics";
 
 const perto = (a: number, b: number) => assert.ok(Math.abs(a - b) < 0.02, `${a} ≠ ${b}`);
 
@@ -36,6 +36,28 @@ test("lente mais curta abre o campo", () => {
   perto(curta, 53.13);
   perto(longa, 16.071);
   assert.ok(curta > longa);
+});
+
+test("16:9 e 2.39 cortam a altura do full frame", () => {
+  const g169 = gateNoAspecto("ff", "16:9");
+  const g239 = gateNoAspecto("ff", "2.39");
+  perto(g169.alturaMm, 20.25);
+  perto(g169.larguraMm, 36);
+  perto(g239.alturaMm, 15.063);
+  const q = fovNoQuadro(50, "ff", "16:9");
+  perto(q.vertical, 22.895);
+  perto(q.horizontal, 39.598);
+  assert.ok(fovNoQuadro(50, "ff", "2.39").vertical < q.vertical);
+});
+
+test("o visor abre o FOV para o quadro ocupar só a sua altura", () => {
+  const fov = 16;
+  const aberto = fovNoVisor(fov, 900, 810);
+  const rad = (fov * Math.PI) / 180;
+  const esperado = (2 * Math.atan(Math.tan(rad / 2) * (900 / 810)) * 180) / Math.PI;
+  perto(aberto, esperado);
+  assert.ok(aberto > fov);
+  perto(fovNoVisor(fov, 810, 810), fov);
 });
 
 test("lente ou sensor inválido não devolve um ângulo", () => {

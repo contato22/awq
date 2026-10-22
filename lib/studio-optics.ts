@@ -41,3 +41,38 @@ export function fovDaLente(lenteMm: number, sensor: SensorId): CampoDeVisao {
 export function fovVertical(lenteMm: number, sensor: SensorId): number {
   return fovDaLente(lenteMm, sensor).vertical;
 }
+
+export type AspectoQuadro = "16:9" | "2.39";
+
+const RAZAO: Record<AspectoQuadro, number> = { "16:9": 16 / 9, "2.39": 2.39 };
+
+/**
+ * Recorte do sensor para o quadro. 16:9 e 2.39 são mais largos que a altura
+ * útil desses sensores, então a largura manda e a altura é cortada.
+ */
+export function gateNoAspecto(sensor: SensorId, aspecto: AspectoQuadro): { larguraMm: number; alturaMm: number } {
+  const s = SENSORES[sensor];
+  const razao = RAZAO[aspecto];
+  const altura = s.larguraMm / razao;
+  if (altura <= s.alturaMm) return { larguraMm: s.larguraMm, alturaMm: altura };
+  return { larguraMm: s.alturaMm * razao, alturaMm: s.alturaMm };
+}
+
+/**
+ * O FOV da lente vale para a altura do quadro. A tela é mais alta, então
+ * fov = 2·atan(tan(fov/2)·H/q.h), com os ângulos em radianos dentro do atan.
+ */
+export function fovNoVisor(fovQuadroGraus: number, alturaTela: number, alturaQuadro: number): number {
+  const qh = Math.max(1, alturaQuadro);
+  const tela = Math.max(qh, alturaTela);
+  const rad = (fovQuadroGraus * Math.PI) / 180;
+  return (2 * Math.atan(Math.tan(rad / 2) * (tela / qh)) * 180) / Math.PI;
+}
+
+export function fovNoQuadro(lenteMm: number, sensor: SensorId, aspecto: AspectoQuadro): CampoDeVisao {
+  const g = gateNoAspecto(sensor, aspecto);
+  return {
+    horizontal: fovGraus(g.larguraMm, lenteMm),
+    vertical: fovGraus(g.alturaMm, lenteMm),
+  };
+}

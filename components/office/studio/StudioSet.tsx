@@ -1,9 +1,11 @@
 "use client";
 
-import { Component, Suspense, useEffect, useMemo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { fovNoQuadro, type AspectoQuadro, type SensorId } from "@/lib/studio-optics";
+import { CorpoDaCamera, OlharPelaCamera, PainelDaCamera } from "./VirtualCamera";
 
 /**
  * Cenário do Estúdio da Caza Vision, no espírito do Cine Tracer:
@@ -231,6 +233,12 @@ class LimiteDoEstudio extends Component<{ children: ReactNode }, { erro: boolean
 
 /** Vista cheia do estúdio. O Office só troca o canvas; o HUD do simulador continua por cima. */
 export function EstudioViewport() {
+  const [olhando, setOlhando] = useState(false);
+  const [lenteMm, setLenteMm] = useState(50);
+  const [sensor, setSensor] = useState<SensorId>("super35");
+  const [aspecto, setAspecto] = useState<AspectoQuadro>("16:9");
+  const fov = fovNoQuadro(lenteMm, sensor, aspecto).vertical;
+
   return (
     <div className="absolute inset-0 bg-[#f4f1ea]">
       <LimiteDoEstudio>
@@ -260,8 +268,11 @@ export function EstudioViewport() {
               shadow-normalBias={0.04}
             />
             <StudioSet />
+            <CorpoDaCamera visivel={!olhando} />
+            <OlharPelaCamera ativo={olhando} fov={fov} aspecto={aspecto} />
             <OrbitControls
               makeDefault
+              enabled={!olhando}
               target={[0, 1.2, -3]}
               minDistance={4}
               maxDistance={14}
@@ -273,6 +284,16 @@ export function EstudioViewport() {
           </Canvas>
         </Suspense>
       </LimiteDoEstudio>
+      <PainelDaCamera
+        ativo={olhando}
+        onAtivo={setOlhando}
+        lenteMm={lenteMm}
+        onLente={setLenteMm}
+        sensor={sensor}
+        onSensor={setSensor}
+        aspecto={aspecto}
+        onAspecto={setAspecto}
+      />
     </div>
   );
 }
