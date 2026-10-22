@@ -800,6 +800,19 @@ export default function OfficeSimulator() {
   const [headErro, setHeadErro] = useState<string | null>(null);
   const headBusyRef = useRef(false);
   const abaAtiva = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const el = abaAtiva.current;
+    const faixa = el?.parentElement;
+    if (!el || !faixa) return;
+    // O botão de fechar fica por cima da ponta direita da faixa.
+    const folga = 48;
+    const esquerda = el.offsetLeft;
+    const direita = esquerda + el.offsetWidth;
+    const vistaE = faixa.scrollLeft;
+    const vistaD = vistaE + faixa.clientWidth - folga;
+    if (direita > vistaD) faixa.scrollLeft = direita - (faixa.clientWidth - folga);
+    else if (esquerda < vistaE) faixa.scrollLeft = Math.max(0, esquerda - 8);
+  }, [tab, painelAberto]);
   const entregandoRef = useRef(false);
 
   const gravarHead = (next: EstadoHead) => {
@@ -1129,19 +1142,6 @@ export default function OfficeSimulator() {
     };
   });
   empresasRef.current = empresas;
-  useEffect(() => {
-    const el = abaAtiva.current;
-    const faixa = el?.parentElement;
-    if (!el || !faixa) return;
-    // O botão de fechar fica por cima da ponta direita da faixa.
-    const folga = 48;
-    const esquerda = el.offsetLeft;
-    const direita = esquerda + el.offsetWidth;
-    const vistaE = faixa.scrollLeft;
-    const vistaD = vistaE + faixa.clientWidth - folga;
-    if (direita > vistaD) faixa.scrollLeft = direita - (faixa.clientWidth - folga);
-    else if (esquerda < vistaE) faixa.scrollLeft = Math.max(0, esquerda - 8);
-  }, [tab, painelAberto]);
 
   const Mundo = modo3D ? OfficeGame3D : OfficeGame;
 
