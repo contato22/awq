@@ -272,7 +272,9 @@ export function montarCabeca(cena: THREE.Object3D, semente: string): THREE.Objec
   const clone = SkeletonUtils.clone(cena) as THREE.Object3D;
   const remover: THREE.Object3D[] = [];
   clone.traverse((o) => {
-    if (o.parent?.name === "CharacterArmature" && o.name !== nome) remover.push(o);
+    if (o.parent?.name !== "CharacterArmature") return;
+    if (o.name === nome || /Hair/i.test(o.name) || o.name === "Root") return;
+    if (/_(Head|Body|Legs|Feet)$/.test(o.name)) remover.push(o);
   });
   for (const o of remover) o.removeFromParent();
   aplicarTinta(clone, a);
