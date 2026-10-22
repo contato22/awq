@@ -249,7 +249,10 @@ export default function OfficeSimulator() {
   // Modo 3D (beta): renderizador alternativo em Three.js, mesma interface do mundo 2D.
   // Desligado por padrão; a escolha do usuário fica salva no navegador.
   const [modo3D, setModo3D] = useState(false);
-  useEffect(() => { setModo3D(localStorage.getItem("office-modo-3d") === "1"); }, []);
+  useEffect(() => {
+    const direto = new URLSearchParams(window.location.search).get("estudio") === "1";
+    setModo3D(direto || localStorage.getItem("office-modo-3d") === "1");
+  }, []);
   const alternarModo3D = () => setModo3D((v) => { const novo = !v; localStorage.setItem("office-modo-3d", novo ? "1" : "0"); return novo; });
   const [chat, setChat] = useState<Record<string, ChatMsg[]>>({});
   const [chatRole, setChatRole] = useState<PapelAgente>("cs");

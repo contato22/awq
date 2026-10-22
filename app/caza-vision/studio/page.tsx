@@ -79,7 +79,7 @@ export default function EstudioCazaPage() {
           {diretor.length === 0 && (
             <p className="text-xs text-gray-400">
               Nenhum plano.{" "}
-              <Link href="/agents/office" className="font-medium text-brand-700 underline">Abra o Estúdio no Office</Link>
+              <Link href="/agents/office?estudio=1" className="font-medium text-brand-700 underline">Abra o Estúdio</Link>
               {" "}e capture um plano.
             </p>
           )}
