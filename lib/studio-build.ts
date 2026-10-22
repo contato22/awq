@@ -23,6 +23,8 @@ export interface PropNoSet {
   tipo: PropId;
   x: number;
   z: number;
+  /** Radianos no eixo Y, em passos de 90°. */
+  rotacao: number;
 }
 
 const CHAVE = "awq.caza.studio.props";
@@ -55,7 +57,9 @@ function lerLocal(): PropNoSet[] {
     if (!cru) return [];
     const lista = JSON.parse(cru) as PropNoSet[];
     if (!Array.isArray(lista)) return [];
-    return lista.filter((p) => p && tipoValido(p.tipo) && Number.isFinite(p.x) && Number.isFinite(p.z));
+    return lista
+      .filter((p) => p && tipoValido(p.tipo) && Number.isFinite(p.x) && Number.isFinite(p.z))
+      .map((p) => ({ ...p, rotacao: Number.isFinite(p.rotacao) ? p.rotacao : 0 }));
   } catch {
     return [];
   }
@@ -77,18 +81,36 @@ export function listarProps(): PropNoSet[] {
   return [...carregar()];
 }
 
-/** Encaixa e recusa ponto fora do piso. */
+function mesmaCelula(a: { x: number; z: number }, b: { x: number; z: number }): boolean {
+  return a.x === b.x && a.z === b.z;
+}
+
+/** Encaixa, recusa ponto fora do piso e não empilha dois props na mesma célula. */
 export function colocarProp(tipo: PropId, x: number, z: number): PropNoSet | null {
   const ponto = encaixar(x, z);
   if (!cabeNoPiso(ponto.x, ponto.z)) return null;
+  if (carregar().some((p) => mesmaCelula(p, ponto))) return null;
   const prop: PropNoSet = {
     id: `prop-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     tipo,
     x: ponto.x,
     z: ponto.z,
+    rotacao: 0,
   };
   gravar([...carregar(), prop]);
   return prop;
+}
+
+export function girarProp(id: string): PropNoSet | null {
+  const lista = carregar();
+  const i = lista.findIndex((p) => p.id === id);
+  if (i < 0) return null;
+  const rotacao = ((lista[i].rotacao || 0) + Math.PI / 2) % (Math.PI * 2);
+  const proximo = { ...lista[i], rotacao };
+  const copia = lista.slice();
+  copia[i] = proximo;
+  gravar(copia);
+  return proximo;
 }
 
 export function removerProp(id: string) {
@@ -97,11 +119,13 @@ export function removerProp(id: string) {
 
 /** Próximo vão livre, já no passo da grade, para o botão Colocar. */
 export function proximoPonto(ocupados: { x: number; z: number }[]): { x: number; z: number } {
-  for (let i = 0; i < 10; i++) {
-    const ponto = encaixar(-2 + i, 1.5);
-    if (cabeNoPiso(ponto.x, ponto.z) && !ocupados.some((p) => p.x === ponto.x && p.z === ponto.z)) return ponto;
+  for (let z = PISO.zMin; z <= PISO.zMax + 1e-6; z += PASSO_ENCAIXE) {
+    for (let x = -PISO.x; x <= PISO.x + 1e-6; x += PASSO_ENCAIXE) {
+      const ponto = encaixar(x, z);
+      if (cabeNoPiso(ponto.x, ponto.z) && !ocupados.some((p) => mesmaCelula(p, ponto))) return ponto;
+    }
   }
-  return encaixar(1.5, 2.5);
+  return encaixar(0, 0);
 }
 
 export function resetBuildParaTeste() {

@@ -42,6 +42,7 @@ function PropInstancia({
   return (
     <group
       position={[prop.x, 0, prop.z]}
+      rotation-y={prop.rotacao || 0}
       onClick={(e) => {
         if (!montando) return;
         e.stopPropagation();
@@ -109,20 +110,39 @@ export function PisoDeEncaixe({ ativo, onColocar }: { ativo: boolean; onColocar:
 export function PainelDeMontagem({
   montando,
   tipo,
-  selecionado,
+  props,
+  selecionadoId,
   onMontando,
   onTipo,
+  onSelect,
   onColocar,
+  onGirar,
   onRemover,
 }: {
   montando: boolean;
   tipo: PropId;
-  selecionado: boolean;
+  props: PropNoSet[];
+  selecionadoId: string | null;
   onMontando: (v: boolean) => void;
   onTipo: (id: PropId) => void;
+  onSelect: (id: string) => void;
   onColocar: () => void;
+  onGirar: () => void;
   onRemover: () => void;
 }) {
+  useEffect(() => {
+    if (!montando || !selecionadoId) return;
+    const onKey = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      e.preventDefault();
+      onRemover();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [montando, onRemover, selecionadoId]);
+
   return (
     <div className="absolute bottom-40 right-3 pointer-events-auto w-52 rounded-2xl bg-black/75 text-white text-[11px] p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -154,10 +174,30 @@ export function PainelDeMontagem({
           <button type="button" onClick={onColocar} className="w-full px-2 py-1.5 rounded-md bg-white text-gray-900 font-semibold">
             Colocar
           </button>
-          <button type="button" onClick={onRemover} disabled={!selecionado} className="w-full px-2 py-1 rounded-md bg-white/10 disabled:opacity-40">
-            Tirar
-          </button>
-          <p className="text-white/60">Kenney CC0 · encaixe de 0,5 m. Clique no piso também coloca.</p>
+          {props.length > 0 && (
+            <div role="group" aria-label="Props no set" className="flex flex-col gap-1 max-h-24 overflow-y-auto">
+              {props.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={selecionadoId === p.id}
+                  onClick={() => onSelect(p.id)}
+                  className={`px-2 py-1 rounded-md text-left ${selecionadoId === p.id ? "bg-amber-300 text-amber-950 font-semibold" : "bg-white/10"}`}
+                >
+                  {i + 1}. {propPorId(p.tipo)?.nome ?? p.tipo}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-1">
+            <button type="button" onClick={onGirar} disabled={!selecionadoId} className="px-2 py-1 rounded-md bg-white/10 disabled:opacity-40">
+              Girar
+            </button>
+            <button type="button" onClick={onRemover} disabled={!selecionadoId} aria-keyshortcuts="Delete" className="px-2 py-1 rounded-md bg-white/10 disabled:opacity-40">
+              Tirar
+            </button>
+          </div>
+          <p className="text-white/60">Kenney CC0 · encaixe de 0,5 m. Delete tira o prop escolhido.</p>
         </>
       )}
     </div>

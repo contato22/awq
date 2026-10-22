@@ -12,7 +12,7 @@ import { LuzesDoEstudio, PainelDasLuzes } from "./StudioLights";
 import { FormularioDeCaptura, GanchoDeCaptura, type PedidoCaptura } from "./ShotCapture";
 import { AtorNoSet, PainelDoAtor } from "./ActorStandIn";
 import { PainelDeMontagem, PisoDeEncaixe, PropsNoSet } from "./BuildMode";
-import { colocarProp, listarProps, proximoPonto, removerProp, type PropId, type PropNoSet } from "@/lib/studio-build";
+import { colocarProp, girarProp, listarProps, proximoPonto, removerProp, type PropId, type PropNoSet } from "@/lib/studio-build";
 import { definirAtor, estadoDoAtor, NOME_ATOR_PADRAO, POSE_ATOR_PADRAO, type EstadoAtor } from "@/lib/studio-actor";
 import type { ShotEstudio } from "@/lib/studio-store";
 
@@ -266,6 +266,7 @@ export function EstudioViewport() {
   const [tipoProp, setTipoProp] = useState<PropId>("cadeira");
   const [propsSet, setPropsSet] = useState<PropNoSet[]>([]);
   const [propSel, setPropSel] = useState<string | null>(null);
+  const [paineis, setPaineis] = useState(true);
   useEffect(() => {
     setAtor(estadoDoAtor());
     setPropsSet(listarProps());
@@ -332,17 +333,32 @@ export function EstudioViewport() {
         aspecto={aspecto}
         onAspecto={setAspecto}
       />
-      <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />
-      <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />
+      <button
+        type="button"
+        aria-pressed={paineis}
+        onClick={() => setPaineis((v) => !v)}
+        className="absolute top-14 left-16 z-10 pointer-events-auto rounded-lg bg-black/75 text-white text-[11px] font-semibold px-2.5 py-1.5"
+      >
+        {paineis ? "Recolher painéis" : "Painéis"}
+      </button>
+      {paineis && <PainelDasLuzes ajustes={luzes} selecionada={luzSel} onSelect={setLuzSel} onChange={mudarLuz} />}
+      {paineis && <PainelDoAtor estado={ator} onChange={(parcial) => setAtor(definirAtor(parcial))} />}
+      {paineis && (
       <PainelDeMontagem
         montando={montando}
         tipo={tipoProp}
-        selecionado={propSel !== null}
+        props={propsSet}
+        selecionadoId={propSel}
         onMontando={setMontando}
         onTipo={setTipoProp}
+        onSelect={setPropSel}
         onColocar={() => {
           const ponto = proximoPonto(propsSet);
           if (colocarProp(tipoProp, ponto.x, ponto.z)) setPropsSet(listarProps());
+        }}
+        onGirar={() => {
+          if (!propSel || !girarProp(propSel)) return;
+          setPropsSet(listarProps());
         }}
         onRemover={() => {
           if (!propSel) return;
@@ -351,7 +367,8 @@ export function EstudioViewport() {
           setPropsSet(listarProps());
         }}
       />
-      <FormularioDeCaptura
+      )}
+      {paineis && <FormularioDeCaptura
         lenteMm={lenteMm}
         sensor={sensor}
         aspecto={aspecto}
@@ -366,7 +383,7 @@ export function EstudioViewport() {
           aspecto,
           fovVertical: fov,
         })}
-      />
+      />}
     </div>
   );
 }

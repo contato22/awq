@@ -4,6 +4,7 @@ import {
   cabeNoPiso,
   colocarProp,
   encaixar,
+  girarProp,
   listarProps,
   proximoPonto,
   removerProp,
@@ -37,6 +38,10 @@ test("o encaixe é de meio metro e a flag guarda os props", () => {
   assert.equal(mesa.z, 1.5);
   assert.equal(store.size, 0);
   assert.equal(listarProps().length, 1);
+  assert.equal(colocarProp("cadeira", mesa.x, mesa.z), null);
+  assert.equal(listarProps().length, 1);
+  assert.equal(girarProp(mesa.id)?.rotacao, Math.PI / 2);
+  assert.equal(listarProps()[0]?.rotacao, Math.PI / 2);
   const seguinte = proximoPonto(listarProps());
   assert.notDeepEqual(seguinte, { x: mesa.x, z: mesa.z });
   assert.equal(cabeNoPiso(seguinte.x, seguinte.z), true);
