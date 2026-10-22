@@ -1070,7 +1070,7 @@ function FpsProbe({ onUpdate }: { onUpdate: (fps: number) => void }) {
   return null;
 }
 
-/** Placa do slot vazio do Estúdio no 3º andar. O set 3D chega nos PRs seguintes. */
+/** Placa do slot do Estúdio no 3º andar. O clique abre o set. */
 function texturaPlacaEstudio(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 640;
@@ -1084,7 +1084,7 @@ function texturaPlacaEstudio(): THREE.CanvasTexture {
   g.font = "bold 64px sans-serif";
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.fillText("Estúdio · em breve", 340, 110);
+  g.fillText("Estúdio", 340, 110);
   const t = new THREE.CanvasTexture(c);
   t.needsUpdate = true;
   return t;
@@ -1096,6 +1096,7 @@ function SlotDoEstudio({ detalhado, onEntrar }: { detalhado: boolean; onEntrar: 
   const ox = slot.x * UNIT, oz = slot.y * UNIT;
   const w = lado * UNIT, d = lado * UNIT;
   const placa = useMemo(() => texturaPlacaEstudio(), []);
+  useEffect(() => () => placa.dispose(), [placa]);
   return (
     <group position={[ox, 0, oz]}>
       <mesh
@@ -1280,11 +1281,16 @@ export default function OfficeGame3D(props: Props) {
   };
   const sair = () => setVista("mundo");
   const focarCasa = (sala: CasaId) => {
-    if (sala === "estudio") setAndar("caza");
+    if (sala === "estudio") {
+      setAndar("caza");
+      setFocoCasa("estudio");
+      setVista("estudio");
+      onPainel(false);
+      return;
+    }
     setFocoCasa(sala);
     setVista("casa");
     if (sala === "reunioes") onPainel(true, "reuniao");
-    else if (sala === "estudio") onPainel(false);
   };
 
   const naReuniao = painelAberto && tab === "reuniao";
@@ -1400,7 +1406,8 @@ export default function OfficeGame3D(props: Props) {
           {[...ANDARES].reverse().map((a) => (
             <button key={a.id} onClick={() => {
               setAndar(a.id);
-              if (vista === "estudio") setVista("mundo");
+              if (vista === "estudio" || (a.id === "caza" && focoCasa === "reunioes")) setVista("mundo");
+              if (a.id !== "caza" && focoCasa === "estudio") { setFocoCasa("diretoria"); setVista("mundo"); }
             }} aria-pressed={andar === a.id}
               className={`rounded-md px-2 py-1 ${andar === a.id ? "bg-white text-gray-900 font-semibold" : "hover:bg-white/10"}`}>
               {a.numero}º · {a.nome}

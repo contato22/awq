@@ -2,13 +2,13 @@
 
 import { Component, Suspense, useEffect, useMemo, type ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Grid, OrbitControls } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 /**
  * Cenário do Estúdio da Caza Vision, no espírito do Cine Tracer:
- * ciclorama curvo (piso que sobe na parede e nas laterais, sem horizonte),
- * grade de luz no teto e piso em grade. Geometria procedural — nenhum asset pago.
+ * ciclorama curvo (a parede desce até a curva e encontra um único piso),
+ * grade de luz no teto. Geometria procedural — nenhum asset pago.
  */
 
 const ALTURA = 8;
@@ -62,21 +62,24 @@ function trajetoDaParede(): { x: number; z: number; nx: number; nz: number }[] {
   return pts;
 }
 
-/** Perfil do cove: do topo da parede, pela curva, até o piso. [altura, recuo para dentro]. */
+/**
+ * Perfil do cove: parede reta e quarto de círculo, parando no raio.
+ * Sem a faixa de 16 m: ela se repetia em cada parede e z-fightava no meio.
+ * [altura, recuo para dentro]. O último ponto fica 1 cm acima do piso.
+ */
 function perfilDoCove(): [number, number][] {
   const parede = ALTURA - RAIO;
-  const arco = (Math.PI * RAIO) / 2;
-  const chao = 16;
-  const total = parede + arco + chao;
-  const passos = 40;
+  const passosParede = 8;
+  const passosArco = 24;
   const perfil: [number, number][] = [];
-  for (let i = 0; i <= passos; i++) {
-    const s = (i / passos) * total;
-    if (s <= parede) perfil.push([ALTURA - s, 0]);
-    else if (s <= parede + arco) {
-      const ang = (s - parede) / RAIO;
-      perfil.push([RAIO * Math.cos(ang), RAIO * Math.sin(ang)]);
-    } else perfil.push([0, RAIO + (s - parede - arco)]);
+  for (let i = 0; i <= passosParede; i++) {
+    perfil.push([ALTURA - (i / passosParede) * parede, 0]);
+  }
+  for (let i = 1; i <= passosArco; i++) {
+    const ang = (i / passosArco) * (Math.PI / 2);
+    const y = RAIO * Math.cos(ang);
+    const recuo = Math.min(RAIO, RAIO * Math.sin(ang));
+    perfil.push([i === passosArco ? 0.01 : y, recuo]);
   }
   return perfil;
 }
@@ -193,21 +196,12 @@ export function StudioSet() {
   return (
     <group>
       <Ciclorama />
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 4.9]} receiveShadow>
+        <planeGeometry args={[22.2, 18.4]} />
+        <meshStandardMaterial color={COR_CICLO} roughness={0.95} metalness={0} />
+      </mesh>
       <GradeDeLuz />
       <Manequim />
-      <Grid
-        args={[40, 40]}
-        position={[0, -0.04, 0]}
-        cellSize={0.5}
-        cellThickness={0.7}
-        cellColor="#8b93a3"
-        sectionSize={2}
-        sectionThickness={1.2}
-        sectionColor="#c5ccd8"
-        fadeDistance={28}
-        fadeStrength={1.4}
-        infiniteGrid
-      />
     </group>
   );
 }
@@ -256,7 +250,8 @@ export function EstudioViewport() {
               shadow-mapSize-width={2048}
               shadow-mapSize-height={2048}
               shadow-radius={8}
-              shadow-bias={-0.0004}
+              shadow-bias={-0.00015}
+              shadow-normalBias={0.04}
             />
             <StudioSet />
             <OrbitControls
