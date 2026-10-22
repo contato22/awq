@@ -632,7 +632,6 @@ function Sala({
    * peças decorativas mais caras (estante, plantas, tapete) — continuam reconhecíveis (piso,
    * paredes, mesas, personagens), só sem o acabamento fino que só compensa de perto. */
   detalhado: boolean;
-  hora: number;
   onEntrar: () => void;
   onSelecionar: (a: Agente) => void;
 }) {
@@ -1124,6 +1123,41 @@ function ceuEntardecer(hora: number): { topo: string; base: string } {
   return { topo: `#${topo.getHexString()}`, base: `#${base.getHexString()}` };
 }
 
+function texturaDegrade(topo: string, base: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 8;
+  c.height = 256;
+  const g = c.getContext("2d")!;
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, topo);
+  grad.addColorStop(0.45, topo);
+  grad.addColorStop(1, base);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 8, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.needsUpdate = true;
+  return t;
+}
+
+/** Painel atrás da cidade, de frente para a câmera, para o entardecer não ser um azul chapado. */
+function CeuPainel({ hora }: { hora: number }) {
+  const ceuAtual = ceuEntardecer(hora);
+  const tex = useMemo(() => texturaDegrade(ceuAtual.topo, ceuAtual.base), [ceuAtual.topo, ceuAtual.base]);
+  useEffect(() => () => tex.dispose(), [tex]);
+  const ref = useRef<THREE.Mesh>(null);
+  useEffect(() => {
+    const camera = new THREE.Vector3(22, 16, 16).addScaledVector(DIRECAO_CAM, 30);
+    ref.current?.lookAt(camera);
+  }, [tex]);
+  return (
+    <mesh ref={ref} position={[22 - DIRECAO_CAM.x * 90, 16, 16 - DIRECAO_CAM.z * 90]} renderOrder={-1}>
+      <planeGeometry args={[260, 120]} />
+      <meshBasicMaterial map={tex} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
 function Iluminacao({ hora }: { hora: number }) {
   const l = luzDoDia(hora);
   const ceuAtual = ceuEntardecer(hora);
@@ -1134,7 +1168,8 @@ function Iluminacao({ hora }: { hora: number }) {
   }, []);
   return (
     <>
-      <color attach="background" args={[ceuAtual.base]} />
+      <color attach="background" args={[ceuAtual.topo]} />
+      <CeuPainel hora={hora} />
       <hemisphereLight args={[ceuAtual.topo, "#c4a882", 0.08 + l * 0.18]} />
       {/* De dia (luzDoDia = 1) fica em 0.38, acima de 0.35. À noite volta para 0.08. */}
       <ambientLight intensity={0.08 + l * 0.30} />
