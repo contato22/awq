@@ -666,9 +666,11 @@ function Sala({
       )}
       {/* duas paredes de fundo, em camadas (rodapé + painel + vidro com travessas), cutaway —
           sem parede frontal nem teto, pra manter a leitura isométrica */}
-      {ativo && (
+      {ativo ? (
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
-      )}
+      ) : luzDoDia(hora) < 0.55 ? (
+        <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={4} distance={12} decay={2} />
+      ) : null}
       <group position={[0, 0, 0.02]}>
         {predio.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -926,9 +928,11 @@ function SalaDaCasa({
           <meshStandardMaterial map={tapeteMap} color={accent} roughness={0.95} transparent opacity={0.9} />
         </mesh>
       )}
-      {detalhado && (
+      {detalhado ? (
         <pointLight position={[w / 2, 2.2, d / 2]} color="#ffc48a" intensity={6} distance={14} decay={2} />
-      )}
+      ) : luzDoDia(hora) < 0.55 ? (
+        <pointLight position={[w / 2, 1.7, d / 2]} color="#ffb060" intensity={4} distance={12} decay={2} />
+      ) : null}
       <group position={[0, 0, 0.02]}>
         {origem.y <= 1 ? (
           <ParedeExterna comprimento={w} hora={hora} />
@@ -1210,65 +1214,91 @@ function ConfigRenderer() {
   return null;
 }
 
-/** Fachada do prédio: faixa de tijolo + vidraça alta com travessas, ao longo de uma borda do
- * andar — dá a luz quente entrando pela janela pedida, visível na visão geral do mundo. */
+/** Um tile da máscara tem 16 furos. O UV de cada face repete para o furo ficar em 0,25 m. */
+const PASSO_FURO = 0.25;
+const FUROS_NO_TILE = 16;
+
+function geometriaComFuros(w: number, h: number, d: number) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const uv = geo.getAttribute("uv") as THREE.BufferAttribute;
+  const faces: [number, number][] = [
+    [d, h], [d, h], [w, d], [w, d], [w, h], [w, h],
+  ];
+  for (let f = 0; f < faces.length; f++) {
+    const su = faces[f][0] / (PASSO_FURO * FUROS_NO_TILE);
+    const sv = faces[f][1] / (PASSO_FURO * FUROS_NO_TILE);
+    for (let i = 0; i < 4; i++) {
+      const idx = f * 4 + i;
+      uv.setXY(idx, uv.getX(idx) * su, uv.getY(idx) * sv);
+    }
+  }
+  uv.needsUpdate = true;
+  return geo;
+}
+
+/** Fachada do prédio: faixa de tijolo e volumes perfurados na borda do andar. */
 function Fachada({ largura, hora }: { largura: number; hora: number }) {
   const tijolo = useMemo(() => mapaTijolo(largura, 1), [largura]);
   useEffect(() => () => tijolo.dispose(), [tijolo]);
-  const peles = useMemo(() => {
-    return [2.8, 3.4, 2.6].map((profundidade) => {
+  const volumes = useMemo(() => {
+    return [
+      { id: "esquerda", x: largura * 0.17, w: largura * 0.32, h: 1.8, d: 2.8 },
+      { id: "centro", x: largura * 0.5, w: largura * 0.3, h: 2.2, d: 3.4 },
+      { id: "direita", x: largura * 0.83, w: largura * 0.32, h: 1.65, d: 2.6 },
+    ].map((v) => {
       const alpha = texturaPerfurada().clone();
       alpha.wrapS = alpha.wrapT = THREE.RepeatWrapping;
-      alpha.repeat.set(Math.max(profundidade, 2), 4);
+      alpha.repeat.set(1, 1);
+      alpha.needsUpdate = true;
       const depth = new THREE.MeshDepthMaterial({
         depthPacking: THREE.RGBADepthPacking,
         alphaMap: alpha,
         alphaTest: 0.5,
       });
-      return { alpha, depth };
+      return { ...v, alpha, geo: geometriaComFuros(v.w, v.h, v.d), depth };
     });
-  }, []);
+  }, [largura]);
   useEffect(() => () => {
-    for (const p of peles) {
-      p.alpha.dispose();
-      p.depth.dispose();
+    for (const v of volumes) {
+      v.alpha.dispose();
+      v.geo.dispose();
+      v.depth.dispose();
     }
-  }, [peles]);
+  }, [volumes]);
   const l = luzDoDia(hora);
+  const entardecer = l < 0.55;
   const baseY = 1.12;
-  const volumes = [
-    { id: "esquerda", x: largura * 0.17, w: largura * 0.32, h: 1.8, d: 2.8 },
-    { id: "centro", x: largura * 0.5, w: largura * 0.3, h: 2.2, d: 3.4 },
-    { id: "direita", x: largura * 0.83, w: largura * 0.32, h: 1.65, d: 2.6 },
-  ];
   return (
     <group>
       <mesh position={[largura / 2, 0.5, 0]} castShadow receiveShadow>
         <boxGeometry args={[largura, 1, 0.12]} />
         <meshStandardMaterial map={tijolo} roughness={0.9} />
       </mesh>
-      <mesh position={[largura / 2, 2.35, -0.04]}>
-        <planeGeometry args={[largura * 0.98, 2.7]} />
-        <meshBasicMaterial
-          color="#ffbf70"
-          transparent
-          opacity={0.18 + 0.72 * (1 - l)}
-          toneMapped={false}
-          depthWrite={false}
-        />
-      </mesh>
-      {volumes.map((v, i) => (
-        <mesh key={v.id} position={[v.x, baseY + v.h / 2, 0.22 + v.d / 2]} castShadow customDepthMaterial={peles[i].depth}>
-          <boxGeometry args={[v.w, v.h, v.d]} />
-          <meshStandardMaterial
-            color="#f3efe6"
-            alphaMap={peles[i].alpha}
-            alphaTest={0.5}
-            roughness={0.62}
-            metalness={0.04}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+      {volumes.map((v) => (
+        <group key={v.id}>
+          {entardecer && (
+            <mesh position={[v.x, baseY + v.h / 2, 0.22 + v.d - 0.06]}>
+              <planeGeometry args={[v.w * 0.96, v.h * 0.96]} />
+              <meshBasicMaterial
+                color="#ffbf70"
+                transparent
+                opacity={0.35 + 0.45 * (1 - l)}
+                toneMapped={false}
+                depthWrite={false}
+              />
+            </mesh>
+          )}
+          <mesh position={[v.x, baseY + v.h / 2, 0.22 + v.d / 2]} geometry={v.geo} castShadow customDepthMaterial={v.depth}>
+            <meshStandardMaterial
+              color="#f3efe6"
+              alphaMap={v.alpha}
+              alphaTest={0.5}
+              roughness={0.62}
+              metalness={0.04}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
       ))}
     </group>
   );
