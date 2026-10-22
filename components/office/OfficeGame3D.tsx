@@ -462,13 +462,9 @@ function ParedeExterna({ comprimento, hora }: { comprimento: number; hora: numbe
         const meio = (janelaBase + janelaTopo) / 2;
         return (
           <group key={`j${i}`}>
-            <mesh position={[cx, meio, 0.07]}>
+            <mesh position={[cx, meio, 0.07]} renderOrder={2}>
               <planeGeometry args={[janelaL, janelaH]} />
               <meshBasicMaterial color={ceuJanela} toneMapped={false} />
-            </mesh>
-            <mesh position={[cx, meio, 0.075]}>
-              <planeGeometry args={[janelaL - 0.08, janelaH - 0.08]} />
-              <meshBasicMaterial color="#f7fbff" transparent opacity={0.14} depthWrite={false} toneMapped={false} />
             </mesh>
             {(
               [
