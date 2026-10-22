@@ -66,9 +66,15 @@ export function estadoDoAtor(): EstadoAtor {
   return { ...carregar() };
 }
 
+/** Rótulo no set. O valor digitado guarda o espaço; a exibição é que corta as pontas. */
+export function nomeExibido(nome: string): string {
+  const limpo = nome.trim();
+  return limpo || NOME_ATOR_PADRAO;
+}
+
 export function definirAtor(parcial: Partial<EstadoAtor>): EstadoAtor {
   const atual = carregar();
-  const nome = parcial.nome === undefined ? atual.nome : parcial.nome.trim();
+  const nome = parcial.nome === undefined ? atual.nome : parcial.nome;
   const proximo: EstadoAtor = {
     nome,
     pose: parcial.pose && poseValida(parcial.pose) ? parcial.pose : atual.pose,

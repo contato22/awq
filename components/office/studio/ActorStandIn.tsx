@@ -4,18 +4,16 @@ import { useEffect, useLayoutEffect, useMemo } from "react";
 import { Html, useAnimations, useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
 import type { EstadoAtor, PoseAtorId } from "@/lib/studio-actor";
-import { NOME_ATOR_PADRAO, POSES_ATOR } from "@/lib/studio-actor";
+import { nomeExibido, POSES_ATOR } from "@/lib/studio-actor";
 
 const MODELO = "/models/studio/quaternius/UAL1_Standard.glb";
-
-useGLTF.preload(MODELO);
 
 /** Boneco CC0 do Quaternius (Universal Animation Library, tier gratuito). */
 export function AtorNoSet({ pose, nome }: { pose: PoseAtorId; nome: string }) {
   const { scene, animations } = useGLTF(MODELO);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { actions, mixer } = useAnimations(animations, clone);
-  const rotulo = nome.trim() || NOME_ATOR_PADRAO;
+  const rotulo = nomeExibido(nome);
 
   useLayoutEffect(() => {
     const action = actions[pose];
@@ -60,7 +58,7 @@ export function PainelDoAtor({
   onChange: (parcial: Partial<EstadoAtor>) => void;
 }) {
   return (
-    <div className="absolute top-24 left-3 pointer-events-auto w-52 rounded-2xl bg-black/75 text-white text-[11px] p-3 space-y-2">
+    <div className="absolute top-24 left-16 pointer-events-auto w-52 rounded-2xl bg-black/75 text-white text-[11px] p-3 space-y-2">
       <p className="font-semibold text-xs">Elenco</p>
       <label className="block space-y-1">
         Nome
@@ -68,6 +66,7 @@ export function PainelDoAtor({
           aria-label="Nome do ator"
           value={estado.nome}
           onChange={(e) => onChange({ nome: e.target.value })}
+          onBlur={(e) => onChange({ nome: e.target.value.trim() })}
           className="w-full bg-white/10 rounded-md px-2 py-1 text-white"
         />
       </label>
@@ -77,10 +76,10 @@ export function PainelDoAtor({
           aria-label="Pose do ator"
           value={estado.pose}
           onChange={(e) => onChange({ pose: e.target.value as PoseAtorId })}
-          className="w-full bg-white/10 rounded-md px-1.5 py-1"
+          className="w-full bg-white/10 rounded-md px-1.5 py-1 text-white"
         >
           {POSES_ATOR.map((p) => (
-            <option key={p.id} value={p.id}>{p.rotulo}</option>
+            <option key={p.id} value={p.id} className="bg-white text-gray-900" style={{ color: "#111827", backgroundColor: "#ffffff" }}>{p.rotulo}</option>
           ))}
         </select>
       </label>

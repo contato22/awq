@@ -6,6 +6,7 @@ import {
   POSES_ATOR,
   definirAtor,
   estadoDoAtor,
+  nomeExibido,
   poseValida,
   resetAtorParaTeste,
 } from "./studio-actor";
@@ -31,11 +32,15 @@ test("o elenco tem poses nomeadas e só persiste com a flag", () => {
   assert.equal(poseValida("Sword_Attack"), false);
 
   assert.deepEqual(estadoDoAtor(), { nome: NOME_ATOR_PADRAO, pose: POSE_ATOR_PADRAO });
-  definirAtor({ nome: "  Marina  ", pose: "Sitting_Idle_Loop" });
-  assert.deepEqual(estadoDoAtor(), { nome: "Marina", pose: "Sitting_Idle_Loop" });
+  definirAtor({ nome: "Marina Silva", pose: "Sitting_Idle_Loop" });
+  assert.deepEqual(estadoDoAtor(), { nome: "Marina Silva", pose: "Sitting_Idle_Loop" });
+  definirAtor({ nome: "Ana " });
+  assert.equal(estadoDoAtor().nome, "Ana ");
+  assert.equal(nomeExibido("Ana "), "Ana");
   definirAtor({ nome: "   ", pose: "Walk_Loop" });
-  assert.equal(estadoDoAtor().nome, "");
+  assert.equal(estadoDoAtor().nome, "   ");
   assert.equal(estadoDoAtor().pose, "Walk_Loop");
+  assert.equal(nomeExibido("   "), NOME_ATOR_PADRAO);
   assert.equal(store.size, 0);
 
   process.env.CAZA_STUDIO_PERSIST = "1";
