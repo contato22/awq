@@ -63,9 +63,8 @@ function trajetoDaParede(): { x: number; z: number; nx: number; nz: number }[] {
 }
 
 /**
- * Perfil do cove: parede reta e quarto de círculo, parando no raio.
- * Sem a faixa de 16 m: ela se repetia em cada parede e z-fightava no meio.
- * [altura, recuo para dentro]. O último ponto fica 1 cm acima do piso.
+ * Perfil do cove: parede reta e quarto de círculo que termina no plano do chão.
+ * [altura, recuo para dentro]. O último vértice é o mesmo da malha do piso.
  */
 function perfilDoCove(): [number, number][] {
   const parede = ALTURA - RAIO;
@@ -77,13 +76,19 @@ function perfilDoCove(): [number, number][] {
   }
   for (let i = 1; i <= passosArco; i++) {
     const ang = (i / passosArco) * (Math.PI / 2);
-    const y = RAIO * Math.cos(ang);
-    const recuo = Math.min(RAIO, RAIO * Math.sin(ang));
-    perfil.push([i === passosArco ? 0.01 : y, recuo]);
+    perfil.push([RAIO * Math.cos(ang), RAIO * Math.sin(ang)]);
   }
   return perfil;
 }
 
+function normalY(pos: number[], ia: number, ib: number, ic: number): number {
+  const ax = pos[ia * 3], az = pos[ia * 3 + 2];
+  const bx = pos[ib * 3], bz = pos[ib * 3 + 2];
+  const cx = pos[ic * 3], cz = pos[ic * 3 + 2];
+  return (bz - az) * (cx - ax) - (bx - ax) * (cz - az);
+}
+
+/** O arco continua até y=0 e o miolo é a mesma malha, com o mesmo material. */
 function geometriaCiclorama(): THREE.BufferGeometry {
   const base = trajetoDaParede();
   const perfil = perfilDoCove();
@@ -100,6 +105,20 @@ function geometriaCiclorama(): THREE.BufferGeometry {
     for (let i = 0; i < n - 1; i++) {
       const a = j * n + i;
       idx.push(a, a + n, a + 1, a + 1, a + n, a + n + 1);
+    }
+  }
+  const borda = Array.from({ length: base.length }, (_, j) => j * n + (n - 1));
+  const contorno = borda.map((vi) => new THREE.Vector2(pos[vi * 3], pos[vi * 3 + 2]));
+  const faces = THREE.ShapeUtils.triangulateShape(contorno, []);
+  if (faces.length > 0) {
+    const [fa, fb, fc] = faces[0];
+    const virar = normalY(pos, borda[fa], borda[fb], borda[fc]) < 0;
+    for (const [a, b, c] of faces) {
+      const ia = borda[a];
+      const ib = borda[b];
+      const ic = borda[c];
+      if (virar) idx.push(ia, ic, ib);
+      else idx.push(ia, ib, ic);
     }
   }
   const geo = new THREE.BufferGeometry();
@@ -185,10 +204,6 @@ export function StudioSet() {
   return (
     <group>
       <Ciclorama />
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 4.9]} receiveShadow>
-        <planeGeometry args={[22.2, 18.4]} />
-        <meshStandardMaterial color={COR_CICLO} roughness={0.95} metalness={0} />
-      </mesh>
       <GradeDeLuz />
       <Manequim />
     </group>
