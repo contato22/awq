@@ -1,11 +1,17 @@
 // ─── NextAuth options (extraído p/ uso com getServerSession em RSC) ───────────
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/lib/auth-users";
 import { verifyGuest } from "@/lib/live-shop/guests";
 import { verifyJacqesGuest } from "@/lib/jacqes/guests";
 import { clientIpFromHeaders, loginAttemptBlocked, recordLoginFailure } from "@/lib/rate-limit";
+
+// Login com Google só liga quando GOOGLE_CLIENT_ID/SECRET existem. Entra apenas quem já é
+// usuário da Plataforma (AUTH_USERS_JSON), com e-mail verificado e, se definido, do domínio
+// AUTH_GOOGLE_DOMAIN. MFA/passkey/Face ID ficam a cargo da conta Google.
+const googleEnabled = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -61,9 +67,29 @@ export const authOptions: NextAuthOptions = {
         return fail();
       },
     }),
+    ...(googleEnabled
+      ? [GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID as string, clientSecret: process.env.GOOGLE_CLIENT_SECRET as string })]
+      : []),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    signIn({ account, profile }) {
+      if (account?.provider !== "google") return true;
+      const p = profile as { email?: string; email_verified?: boolean; hd?: string } | undefined;
+      if (!p?.email || p.email_verified !== true) return false;
+      const dominio = process.env.AUTH_GOOGLE_DOMAIN;
+      if (dominio && p.hd !== dominio) return false;
+      return !!findUserByEmail(p.email);
+    },
+    jwt({ token, user, account }) {
+      if (account?.provider === "google") {
+        const u = findUserByEmail(token.email ?? "");
+        if (u) {
+          token.id = u.id;
+          token.role = u.role;
+          token.brandGrants = [];
+        }
+        return token;
+      }
       if (user) {
         token.id = (user as { id: string }).id;
         token.role = (user as { role: string }).role;

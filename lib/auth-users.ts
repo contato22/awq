@@ -10,73 +10,29 @@ export interface AuthUser {
   homeRoute: string;
 }
 
-export const USERS: AuthUser[] = [
-  {
-    id: "1",
-    name: "Alex Whitmore",
-    email: "alex@awqgroup.com",
-    passwordHash: "$2b$10$3DCcHvoCK2b5jFkXLX1hvuE0b98RPVQjR8fUYa4z7A..AwbjW5YFC",
-    role: "owner",
-    homeRoute: "/awq",
-  },
-  {
-    id: "2",
-    name: "Sam Chen",
-    email: "s.chen@jacqes.com",
-    passwordHash: "$2b$10$cPH8UGnkUGbDt84IeHvqTuLE.5ilSjFTjK8NZnHENQXEEMGLgD/M.",
-    role: "admin",
-    homeRoute: "/awq",
-  },
-  {
-    id: "3",
-    name: "Priya Nair",
-    email: "p.nair@jacqes.com",
-    passwordHash: "$2b$10$iDy4eveRpiC7Zdl0.wYL6eh976tMUW8ii1S9s.vWGbw7T5GkKfOS6",
-    role: "analyst",
-    homeRoute: "/jacqes",
-  },
-  {
-    id: "4",
-    name: "Danilo",
-    email: "danilo@jacqes.com",
-    passwordHash: "$2b$10$tb9af2CBLLhGzv4FzCiDKe9TKMAIDeiyrUPI9ornKfUCNsFh8cmfO",
-    role: "cs-ops",
-    homeRoute: "/jacqes/csops",  // canonical route — /csops redirects here
-  },
-  {
-    id: "5",
-    name: "Miguel",
-    email: "contato@awq.com.br",
-    passwordHash: "$2b$10$lFF4Ps8tL31kHLQuu9EbvOvDYWi/BH5oJaCepdi6hRwf7RUQh9T3S",
-    role: "owner",
-    homeRoute: "/awq",
-  },
-  {
-    id: "6",
-    name: "Daniel Chiappetta",
-    email: "danielcchiappetta@live.com",
-    passwordHash: "$2b$10$Y9gcPY4r6AbbIi5fz131GeSCmuu5nTiL7gZ4wTjJJQeb3KsdKsO92",
-    role: "caza",
-    homeRoute: "/caza-vision",
-  },
-  {
-    id: "7",
-    name: "Gabriel Cazadem",
-    email: "Kazadem2@gmail.com",
-    passwordHash: "$2b$10$Flk/HaeWLP9UkDxCIh5Qpu8T/PIRjrj6ocMnrw/CW84QdCTEB2E1.",
-    role: "enrd",
-    homeRoute: "/awq/ppm",
-  },
-  {
-    // Owner da BU JACQES — corresponde à conta Cora "JACQES" (entity JACQES em lib/cora-api.ts).
-    id: "8",
-    name: "Danilo Jaques Jacinto",
-    email: "awqmac@gmail.com",
-    passwordHash: "$2b$10$yND0CGXI9V34.YNNAQMZceFgQd75ORehzXwgz2WXRHlUPbXLC1yvy",
-    role: "jacqes",
-    homeRoute: "/jacqes",
-  },
-];
+const ROLES: Role[] = ["owner", "admin", "analyst", "cs-ops", "caza", "enrd", "jacqes", "live-shop", "live-guest", "jacqes-guest"];
+
+function isAuthUser(u: unknown): u is AuthUser {
+  const x = u as Partial<AuthUser> | null;
+  return !!x && typeof x.id === "string" && typeof x.name === "string" && typeof x.email === "string"
+    && typeof x.passwordHash === "string" && typeof x.homeRoute === "string" && ROLES.includes(x.role as Role);
+}
+
+// Os usuários da Plataforma (e-mail, hash bcrypt, papel) NÃO ficam no código: o repositório
+// é público/versionado. Vêm de AUTH_USERS_JSON (Vercel env). Gere com scripts/gerar-auth-users.mjs.
+// Sem a variável, ninguém da Plataforma entra (fail-closed); convidados seguem pelo banco.
+function loadUsers(): AuthUser[] {
+  const raw = process.env.AUTH_USERS_JSON;
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isAuthUser) : [];
+  } catch {
+    return [];
+  }
+}
+
+export const USERS: AuthUser[] = loadUsers();
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
 //
