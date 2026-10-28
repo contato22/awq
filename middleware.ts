@@ -1,38 +1,9 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
+import { isApiAllowedForRole } from "@/lib/api-scope";
 
 const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA", jacqes: "JACQES", "live-shop": "LIVE" };
-
-// API allow-list por role BU-scoped. Qualquer outra rota /api/* retorna 403.
-// Mantém Holding-only surfaces (bpm, epm, admin, ingest, supervisor, agents,
-// ma, security, setup, chat, internal, financial-link, erp) fora do alcance
-// dessas roles. Roles permissivas (owner/admin/analyst/cs-ops) não passam por
-// este filtro.
-const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
-  jacqes: [
-    /^\/api\/crm(\/|$)/,
-    /^\/api\/ppm(\/|$)/,
-    /^\/api\/jacqes(\/|$)/,
-    /^\/api\/cora\/(sync|audit|debug)(\/|$|$)/,
-  ],
-  caza: [
-    /^\/api\/crm(\/|$)/,
-    /^\/api\/caza(\/|$)/,
-  ],
-  "live-shop": [
-    /^\/api\/live-shop(\/|$)/,
-  ],
-  // Convidados: NENHUMA API (lista vazia → bloqueia todo /api/*).
-  "live-guest": [],
-  "jacqes-guest": [],
-  enrd: [
-    /^\/api\/crm(\/|$)/,
-    /^\/api\/ppm(\/|$)/,
-    /^\/api\/enrd(\/|$)/,
-    /^\/api\/conciliacao(\/|$)/,
-  ],
-};
 
 // ── Security headers (aplicados a todas as respostas server-side) ──────────
 function withSecurityHeaders(response: NextResponse): NextResponse {
@@ -62,8 +33,7 @@ export default withAuth(
     // by the API handler.
     if (pathname.startsWith("/api/")) {
       // BU-scoped roles só podem chamar APIs explicitamente liberadas.
-      const allow = BU_API_ALLOW_LIST[role];
-      if (allow && !allow.some((re) => re.test(pathname))) {
+      if (!isApiAllowedForRole(role, pathname)) {
         return NextResponse.json(
           { error: "Forbidden: API fora do escopo da BU" },
           { status: 403 },
