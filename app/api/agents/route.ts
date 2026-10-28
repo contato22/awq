@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     // Squads de social media aceitam uma tarefa livre (simulador /agents/office).
     // Agentes de BU continuam rodando só o prompt fixo, pois têm ferramentas de escrita.
-    const isSquad = agent.id.startsWith("social-");
+    const isSquad = agent.id.startsWith("social-") || agent.id === "fernando";
     const userPrompt =
       isSquad && typeof task === "string" && task.trim() ? task.slice(0, 24000) : agent.prompt;
 
