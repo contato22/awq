@@ -100,9 +100,10 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   analyst:  ["/"],             // full access — permissive by design (MVP)
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
   caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
-  enrd:     ["/crm", "/awq/ppm", "/awq/bpm"],   // ENRD: CRM + PPM + BPM (BI vive sob /crm)
+  enrd:     ["/crm", "/awq/ppm"],   // ENRD: CRM + PPM (BI vive sob /crm)
   // NOTA: /awq/bpm fora porque BPM ainda não tem coluna bu_code — liberar
-  // significa vazar workflows/tasks da Holding para Danilo.
+  // significa vazar workflows/tasks da Holding para Danilo. A API /api/bpm/* já
+  // era bloqueada para a função (lib/api-scope.ts); a página agora também.
   jacqes:   ["/jacqes", "/crm", "/csops", "/awq/ppm"], // JACQES BU + CRM + CS Ops + PPM compartilhado
   // Operador Live Shop — escopo SOMENTE /awq/live-shop (RLS isola bu='LIVE', §10).
   "live-shop": ["/awq/live-shop"],

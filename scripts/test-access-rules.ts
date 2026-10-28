@@ -28,7 +28,7 @@ api("jacqes", "/api/cora/debug", false); api("jacqes", "/api/epm/dre", false); a
 
 // ENRD: bloqueios dentro de /awq/ppm
 page("enrd", "/awq/ppm", true); page("enrd", "/awq/ppm/resources", false); page("enrd", "/awq/ppm/risks/1", false);
-page("enrd", "/awq/epm", false); page("enrd", "/jacqes", false);
+page("enrd", "/awq/bpm", false); page("enrd", "/awq/bpm/processes", false); page("enrd", "/awq/epm", false); page("enrd", "/jacqes", false);
 api("enrd", "/api/enrd/x", true); api("enrd", "/api/conciliacao/x", true);
 api("enrd", "/api/epm/dre", false); api("enrd", "/api/agents", false); api("enrd", "/api/chat", false);
 
