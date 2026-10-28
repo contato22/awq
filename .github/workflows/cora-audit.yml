@@ -3,14 +3,15 @@ name: Auditoria Cora vs Banco
 on:
   workflow_dispatch:
   schedule:
-    # Auditoria automática a cada 6 horas — verifica gap Cora vs Supabase e auto-sincroniza
-    - cron: "0 */6 * * *"
+    # Auditoria automática a cada 12 horas — verifica gap Cora vs Supabase e auto-sincroniza
+    # (era 6 h; reduzido para caber nos 2.000 min/mês de Actions em repositório privado)
+    - cron: "0 */12 * * *"
   push:
     branches:
       - main
     paths:
       # O próprio YAML não entra no filtro: um commit que só fixa a action
-      # não pode disparar o POST /api/cora/sync-probe. O cron segue de 6 em 6 horas.
+      # não pode disparar o POST /api/cora/sync-probe. O cron segue de 12 em 12 horas.
       - 'app/api/cora/audit-probe/**'
       - 'app/api/cora/sync-probe/**'
       - 'app/api/cora/cron-sync/**'

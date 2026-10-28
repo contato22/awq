@@ -3,10 +3,9 @@ name: Deploy to GitHub Pages
 # Vitrine estática. Os JSON em public/data/ já estão no repositório.
 # O Notion não é mais fonte: não há fetch, cron diário nem secrets NOTION_*.
 
+# Desligado como automático: o repositório vai ficar privado e o GitHub Pages privado é pago.
+# O app real roda na Vercel. Mantido só manual para reativar se o plano mudar.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
