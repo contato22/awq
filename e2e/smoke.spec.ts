@@ -212,7 +212,6 @@ const SENSITIVE_BEHIND_MIDDLEWARE = [
 const SENSITIVE_CLOSED = [
   { method: "GET" as const, path: "/api/setup/seed-btg-extract-jun2026" },
   { method: "GET" as const, path: "/api/setup/seed-itau-extract-jun2026" },
-  { method: "GET" as const, path: "/api/setup/seed-santander-extracts" },
   { method: "GET" as const, path: "/api/setup/backfill-snapshots" },
   { method: "GET" as const, path: "/api/cora/cron-sync" },
   { method: "GET" as const, path: "/api/cora/audit-probe" },

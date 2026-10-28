@@ -27,7 +27,6 @@ const EXACT_ROUTES = [
   "api/live-shop/webhook",
   "api/live-shop/cron",
   "api/office/head/tick",
-  "api/setup/seed-santander-extracts",
   "api/setup/seed-btg-extract-jun2026",
   "api/setup/seed-itau-extract-jun2026",
   "api/setup/backfill-snapshots",
