@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { signIn, getProviders } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Zap, Eye, EyeOff, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 
@@ -16,6 +16,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [googleOn, setGoogleOn] = useState(false);
+
+  useEffect(() => {
+    if (IS_STATIC) return;
+    getProviders().then((p) => setGoogleOn(!!p?.google)).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,6 +156,21 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {googleOn && (
+            <div className="mt-4">
+              <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
+                <span className="h-px flex-1 bg-gray-200" />ou<span className="h-px flex-1 bg-gray-200" />
+              </div>
+              <button
+                type="button"
+                onClick={() => signIn("google", { callbackUrl: "/awq" })}
+                className="w-full py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+              >
+                Entrar com Google
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
