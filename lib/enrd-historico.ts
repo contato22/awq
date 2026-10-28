@@ -85,6 +85,8 @@ function ehRealPosVenda(valor: number, status: string | null): boolean {
 }
 
 // ── Pós-venda/O&M executado: backfill CSV (filtrado por perímetro) × Cora ────
+const RECON_CONCURRENCY = 6;
+
 export async function getHistoricoOM(desde: string = "2025-09"): Promise<HistoricoOM> {
   const os = await getOS(); // [] se enrd_posvenda_os ainda não existir — nunca lança
   const porMes = new Map<string, { nOS: number; valor: number }>();
@@ -107,14 +109,20 @@ export async function getHistoricoOM(desde: string = "2025-09"): Promise<Histori
     porMes.set(mes, cur);
   }
 
+  // Cada mês é independente: consulta em paralelo (em lotes, para não saturar o
+  // banco) e mantém a ordem original. Antes era uma consulta por vez (~1 s cada).
+  const listaMeses = monthsSince(desde);
+  const recons: (Awaited<ReturnType<typeof getReconciliacaoMes>> | null)[] = [];
+  for (let i = 0; i < listaMeses.length; i += RECON_CONCURRENCY) {
+    const lote = await Promise.all(
+      listaMeses.slice(i, i + RECON_CONCURRENCY).map((mes) => getReconciliacaoMes(mes).catch(() => null)),
+    );
+    recons.push(...lote);
+  }
+
   const meses: MesOM[] = [];
-  for (const mes of monthsSince(desde)) {
-    let recon;
-    try {
-      recon = await getReconciliacaoMes(mes);
-    } catch {
-      recon = null;
-    }
+  for (const [idx, mes] of listaMeses.entries()) {
+    const recon = recons[idx];
     const temCoraReal = recon && recon.coraDisponivel && recon.nCoraTx > 0;
     const backfill = porMes.get(mes);
     if (temCoraReal) {
