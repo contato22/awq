@@ -5,8 +5,9 @@
 //
 // Autenticação:
 //   Vercel injeta Authorization: Bearer <CRON_SECRET>. Configure CRON_SECRET
-//   nas Vercel Environment Variables. Sem CRON_SECRET → livre (dev local).
+//   nas Vercel Environment Variables. Sem CRON_SECRET: bloqueado em produção, livre só em dev local.
 
+import { requireCronSecret } from "@/lib/cron-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { readEnerdyPortal, isEnerdyPortalConfigured } from "@/lib/enerdy-portal";
 import { persistSnapshot, writeSyncLog } from "@/lib/enrd-montagem-db";
@@ -16,14 +17,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  // ── Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET> ──────────────
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
-  }
+  // Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET>; falha fechada em produção.
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   if (!isEnerdyPortalConfigured()) {
     return NextResponse.json(

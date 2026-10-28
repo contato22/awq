@@ -9,6 +9,7 @@
 // quando o app estiver provisionado por Miguel (TIKTOK_APP_KEY/SECRET +
 // conexão OAuth). Sem credenciais, executa apenas o recompute local idempotente.
 
+import { requireCronSecret } from "@/lib/cron-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { isTikTokConfigured } from "@/lib/live-shop/tiktok-client";
 import { LIVE_DB_AVAILABLE, getLiveSessions } from "@/lib/live-shop/db";
@@ -19,13 +20,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
-  }
+  // Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET>; falha fechada em produção.
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   const steps: Record<string, unknown> = {};
 

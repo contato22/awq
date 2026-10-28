@@ -6,11 +6,12 @@
 // Autenticação:
 //   Vercel injeta automaticamente: Authorization: Bearer <CRON_SECRET>
 //   Configure CRON_SECRET nas Vercel Environment Variables.
-//   Sem CRON_SECRET configurado, qualquer chamada GET passa (desenvolvimento local).
+//   Sem CRON_SECRET: bloqueado em produção, livre só em dev local.
 //
 // Período sincronizado: últimos 8 dias (cobre gaps sem sobrecarregar a API Cora).
 // Para re-importar todo o histórico, use POST /api/cora/sync-probe com startDate explícito.
 
+import { requireCronSecret } from "@/lib/cron-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
@@ -35,15 +36,9 @@ interface AccountResult {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  // ── Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET> ──────────────
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
-  }
-  // Sem CRON_SECRET em dev/local → livre para testes
+  // Auth: Vercel Cron envia Authorization: Bearer <CRON_SECRET>; falha fechada em produção.
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   // ── Pré-condições ─────────────────────────────────────────────────────────────
   if (!isCoraConfigured()) {
