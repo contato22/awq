@@ -1,11 +1,10 @@
 // GET /api/cora/audit-probe?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 //
-// Public (no-auth) version of /api/cora/audit used by GitHub Actions workflows
-// to probe real Cora vs DB sync status from whitelisted IPs.
-//
-// Returns the same shape as /api/cora/audit but skips the NextAuth check.
+// Versão de /api/cora/audit para GitHub Actions: fora do middleware do NextAuth,
+// autenticada pelo header x-seed-secret (SEED_SECRET). Mesmo formato de resposta.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSeedSecret } from "@/lib/seed-secret";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
 import { getAllTransactions } from "@/lib/financial-db";
 import { todayBRT } from "@/lib/date-brt";
@@ -29,6 +28,9 @@ interface AccountAudit {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = requireSeedSecret(req);
+  if (denied) return denied;
+
   if (!isCoraConfigured()) {
     return NextResponse.json({ error: "Integração Cora não configurada." }, { status: 501 });
   }

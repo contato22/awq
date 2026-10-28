@@ -8,6 +8,7 @@
 // Idempotente: cada mês usa fileHash determinístico — re-rodar não duplica.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSeedSecret } from "@/lib/seed-secret";
 import {
   saveDocument,
   saveTransactions,
@@ -160,7 +161,9 @@ async function runSeed(uploadedBy: string) {
 
 // Endpoint público (sem auth) — segue o padrão das rotas /api/cora/*-probe.
 // Idempotência via fileHash impede duplicação se chamado mais de uma vez.
-async function handle(_req: NextRequest) {
+async function handle(req: NextRequest) {
+  const denied = requireSeedSecret(req);
+  if (denied) return denied;
   try {
     const result = await runSeed("seed-santander-extracts");
     return NextResponse.json(result);

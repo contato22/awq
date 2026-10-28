@@ -39,7 +39,7 @@ jobs:
           URL="https://awq-brown.vercel.app/api/setup/seed-santander-extracts"
           echo "POST $URL"
           RESP=$(mktemp)
-          STATUS=$(curl -sS --max-time 600 -o "$RESP" -w '%{http_code}' -X POST "$URL")
+          STATUS=$(curl -sS --max-time 600 -o "$RESP" -w '%{http_code}' -X POST -H "x-seed-secret: ${{ secrets.SEED_SECRET }}" "$URL")
           echo "HTTP $STATUS"
           head -c 8000 "$RESP"
           echo

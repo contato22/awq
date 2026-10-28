@@ -5,13 +5,16 @@
 // Necessário sempre que um extrato histórico é ingerido fora do fluxo do cron diário.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSeedSecret } from "@/lib/seed-secret";
 import { backfillSnapshots } from "@/lib/balance-snapshots";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-async function handle(_req: NextRequest) {
+async function handle(req: NextRequest) {
+  const denied = requireSeedSecret(req);
+  if (denied) return denied;
   try {
     const from = "2022-01-01";
     const to   = new Date().toISOString().slice(0, 10);

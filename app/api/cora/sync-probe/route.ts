@@ -1,6 +1,7 @@
 // POST /api/cora/sync-probe
 //
-// Public (no-auth) sync endpoint for GitHub Actions workflows.
+// Sync para GitHub Actions: fora do middleware do NextAuth, autenticado pelo
+// header x-seed-secret (SEED_SECRET).
 // Calls Cora API and imports missing transactions into bank_transactions.
 // Loops through all configured accounts (AWQ_Holding + JACQES if configured).
 //
@@ -8,6 +9,7 @@
 //   { startDate?: "YYYY-MM-DD", endDate?: "YYYY-MM-DD" }
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSeedSecret } from "@/lib/seed-secret";
 import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured, isCoraEnerdyConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
@@ -34,6 +36,9 @@ interface AccountResult {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = requireSeedSecret(req);
+  if (denied) return denied;
+
   if (!isCoraConfigured()) {
     return NextResponse.json({ error: "Integração Cora não configurada." }, { status: 501 });
   }

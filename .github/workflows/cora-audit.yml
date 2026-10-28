@@ -51,8 +51,8 @@ jobs:
           START=2026-01-01
           END=$(date -u +%Y-%m-%d)
           URL="https://awq-brown.vercel.app/api/cora/audit-probe?startDate=${START}&endDate=${END}"
-          BODY=$(curl -sf --max-time 58 "$URL" || echo '{}')
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 "$URL" || echo '000')
+          BODY=$(curl -sf --max-time 58 -H "x-seed-secret: ${{ secrets.SEED_SECRET }}" "$URL" || echo '{}')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -H "x-seed-secret: ${{ secrets.SEED_SECRET }}" "$URL" || echo '000')
           echo "http=$STATUS" >> $GITHUB_OUTPUT
           echo "HTTP $STATUS — ${BODY:0:2000}"
           if [ "$STATUS" = "200" ]; then
@@ -73,10 +73,12 @@ jobs:
           START=2026-01-01
           END=$(date -u +%Y-%m-%d)
           BODY=$(curl -sf --max-time 58 -X POST \
+            -H "x-seed-secret: ${{ secrets.SEED_SECRET }}" \
             -H 'Content-Type: application/json' \
             -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
             https://awq-brown.vercel.app/api/cora/sync-probe || echo '{}')
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -X POST \
+            -H "x-seed-secret: ${{ secrets.SEED_SECRET }}" \
             -H 'Content-Type: application/json' \
             -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
             https://awq-brown.vercel.app/api/cora/sync-probe || echo '000')
