@@ -18,7 +18,8 @@ function detectStaticMode(): boolean {
 
 // Built-in API key baked at build time from GitHub Secret ANTHROPIC_API_KEY.
 // Allows 24/7 operation without users needing to configure anything.
-const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
+// Sem chave embutida: NEXT_PUBLIC_* vai para o bundle do navegador e fica pública. A chave é a do usuário (localStorage).
+const BUILTIN_KEY = "";
 
 const LS_KEY = "openclaw_api_key";
 

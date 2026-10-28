@@ -25,7 +25,8 @@ const LS_ALERTS = "supervisor_alerts";
 const LS_LAST_BRIEF = "supervisor_last_brief";
 const BRIEF_INTERVAL_MS = 60 * 60 * 1000; // 1 h
 
-const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
+// Sem chave embutida: NEXT_PUBLIC_* vai para o bundle do navegador e fica pública. A chave é a do usuário (localStorage).
+const BUILTIN_KEY = "";
 
 function resolveKey(): string | null {
   if (typeof window === "undefined") return null;

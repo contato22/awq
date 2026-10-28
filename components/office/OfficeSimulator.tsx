@@ -126,7 +126,8 @@ const ORIGEM_POR_KIND: Record<EntregaKind, string> = {
   execucao: "Aprovação explícita do gestor",
   livre: "Pedido direto",
 };
-const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
+// Sem chave embutida: NEXT_PUBLIC_* vai para o bundle do navegador e fica pública. A chave é a do usuário (localStorage).
+const BUILTIN_KEY = "";
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 const PAPEIS: { role: PapelAgente; label: string; icon: React.ElementType; cor: string }[] = [
