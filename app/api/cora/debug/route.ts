@@ -50,6 +50,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+  // Diagnóstico cru da Cora + contagens do banco com service role: só owner/admin.
+  const role = req.headers.get("x-user-role");
+  if (role !== "owner" && role !== "admin") {
+    return NextResponse.json({ error: "Acesso restrito a owner/admin" }, { status: 403 });
+  }
 
   const clientId = env("CORA_CLIENT_ID");
   const cert     = env("CORA_CERT");

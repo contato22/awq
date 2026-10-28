@@ -12,7 +12,7 @@ export const BU_API_ALLOW_LIST: Record<string, RegExp[]> = {
     /^\/api\/crm(\/|$)/,
     /^\/api\/ppm(\/|$)/,
     /^\/api\/jacqes(\/|$)/,
-    /^\/api\/cora\/(sync|audit|debug)(\/|$|$)/,
+    /^\/api\/cora\/(sync|audit)(\/|$)/,
   ],
   caza: [
     /^\/api\/crm(\/|$)/,

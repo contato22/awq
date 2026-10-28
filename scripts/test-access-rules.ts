@@ -24,7 +24,7 @@ api("caza", "/api/cora/sync", false); api("caza", "/api/epm/dre", false); api("c
 page("jacqes", "/jacqes", true); page("jacqes", "/csops/x", true); page("jacqes", "/awq/ppm", true);
 page("jacqes", "/awq/bpm", false); page("jacqes", "/awq/epm", false); page("jacqes", "/caza-vision", false);
 api("jacqes", "/api/jacqes/x", true); api("jacqes", "/api/cora/sync", true);
-api("jacqes", "/api/epm/dre", false); api("jacqes", "/api/erp/assets/post-to-gl", false); api("jacqes", "/api/setup/x", false);
+api("jacqes", "/api/cora/debug", false); api("jacqes", "/api/epm/dre", false); api("jacqes", "/api/erp/assets/post-to-gl", false); api("jacqes", "/api/setup/x", false);
 
 // ENRD: bloqueios dentro de /awq/ppm
 page("enrd", "/awq/ppm", true); page("enrd", "/awq/ppm/resources", false); page("enrd", "/awq/ppm/risks/1", false);
