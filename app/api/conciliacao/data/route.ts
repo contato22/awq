@@ -50,7 +50,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           : detail,
         missingMigration: isMissingTable,
       },
-      { status: 500 },
+      { status: isMissingTable ? 503 : 500 },
     );
   }
 }

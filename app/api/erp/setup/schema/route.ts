@@ -1,3 +1,4 @@
+import { withErpErrors } from "@/lib/erp-route";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { readFile } from "node:fs/promises";
@@ -10,7 +11,7 @@ export const runtime = "nodejs";
  * Retorna o conteúdo de awq_erp_full_schema.sql para ser colado no SQL Editor
  * do Supabase ERP quando o workflow automático estiver indisponível.
  */
-export async function GET(req: NextRequest) {
+async function GET_handler(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -28,3 +29,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Erro ao ler schema" }, { status: 500 });
   }
 }
+
+export const GET = withErpErrors(GET_handler);

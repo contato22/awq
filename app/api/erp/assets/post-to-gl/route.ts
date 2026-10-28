@@ -1,3 +1,4 @@
+import { withErpErrors } from "@/lib/erp-route";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getErpAdminClient } from "@/lib/supabase-erp";
@@ -15,7 +16,7 @@ export const runtime = "nodejs";
  *
  * Idempotente: pula ativos cujo `code` já aparece como reference_doc em GL.
  */
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -119,3 +120,5 @@ export async function POST(req: NextRequest) {
   const totalValue = posted.reduce((s, p) => s + p.value, 0);
   return NextResponse.json({ posted: posted.length, totalValue, skipped, entries: posted }, { status: 201 });
 }
+
+export const POST = withErpErrors(POST_handler);

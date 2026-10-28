@@ -1,9 +1,10 @@
+import { withErpErrors } from "@/lib/erp-route";
 import { NextResponse } from "next/server";
 import { getErpAdminClient, isErpConfigured } from "@/lib/supabase-erp";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function GET_handler() {
   if (!isErpConfigured()) {
     return NextResponse.json(
       { ok: false, configured: false, error: "ERP Supabase env vars not set" },
@@ -30,3 +31,5 @@ export async function GET() {
     return NextResponse.json({ ok: false, configured: true, error: message }, { status: 200 });
   }
 }
+
+export const GET = withErpErrors(GET_handler);

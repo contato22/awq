@@ -1,3 +1,4 @@
+import { withErpErrors } from "@/lib/erp-route";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getErpAdminClient } from "@/lib/supabase-erp";
@@ -43,7 +44,7 @@ type Body = {
   deactivateSource?: boolean;
 };
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -175,3 +176,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ created: created?.length ?? 0, codes: created?.map(c => c.code) ?? [], skipped, minValue }, { status: 201 });
 }
+
+export const POST = withErpErrors(POST_handler);

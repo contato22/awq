@@ -1,3 +1,4 @@
+import { withErpErrors } from "@/lib/erp-route";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getErpAdminClient } from "@/lib/supabase-erp";
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
  * Insere os 51 itens do inventário inicial do Caza Vision em erp_inventory_items.
  * Idempotente: faz upsert por SKU (CV-*) — pode ser rodado várias vezes sem duplicar.
  */
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -39,3 +40,5 @@ export async function POST(req: NextRequest) {
     skus: data?.map(r => r.sku) ?? [],
   }, { status: 201 });
 }
+
+export const POST = withErpErrors(POST_handler);

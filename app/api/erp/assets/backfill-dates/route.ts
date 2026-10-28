@@ -1,3 +1,4 @@
+import { withErpErrors } from "@/lib/erp-route";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getErpAdminClient } from "@/lib/supabase-erp";
@@ -26,7 +27,7 @@ const ACQ_DATE_BY_SKU: Record<string, string> = {
  * ACQ_DATE_BY_SKU, ajusta `acquisition_date`. Os demais ficam com NULL
  * (data de aquisição desconhecida — melhor que falsificar com hoje).
  */
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -58,3 +59,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ updated: results.length, results });
 }
+
+export const POST = withErpErrors(POST_handler);

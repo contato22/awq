@@ -13,7 +13,7 @@
     "test:recon:int": "tsx scripts/test-recon-integration.ts",
     "test:live-shop": "tsx scripts/test-live-shop.ts",
     "test:access": "npx tsx scripts/test-access-rules.ts",
-    "test:guards": "npx tsx scripts/test-seed-secret.ts && npx tsx scripts/test-cron-auth.ts"
+    "test:guards": "npx tsx scripts/test-seed-secret.ts && npx tsx scripts/test-cron-auth.ts && npx tsx scripts/test-erp-route.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
