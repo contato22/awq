@@ -131,6 +131,7 @@ type AwqModule = {
 const aiNav: ModuleItem[] = [
     { label: "Agents",   href: "/agents",   icon: Bot      },
     { label: "Office",   href: "/agents/office", icon: Building2 },
+    { label: "Fernando", href: "/agents/fernando", icon: Bot },
     { label: "OpenClaw", href: "/openclaw", icon: Sparkles },
 ];
 
