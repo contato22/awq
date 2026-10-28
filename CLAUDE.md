@@ -46,6 +46,11 @@ supabase (financial DB svc role)
 
 `ERP_SUPABASE_SERVICE_ROLE_KEY` configurado no Vercel → `erpAdmin` é o cliente ativo.
 
+### Testes e dev isolados
+
+`AWQ_OFFLINE=1` desliga todos os clientes Supabase (`lib/supabase.ts`), inclusive os de reserva
+embutidos no código. Use ao rodar build/testes locais para não consultar o banco real.
+
 ### Next.js Data Cache — IMPORTANTE
 
 Os clientes Supabase são criados com `cache: 'no-store'` (em `lib/supabase.ts`) para evitar
